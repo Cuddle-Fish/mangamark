@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "mangamark",
+  "version": "1.0",
+  "description": "",
+  "action": {
+    "default_popup": "popup/popup.html"
+  },
+  "permissions": ["activeTab" ]
+}
