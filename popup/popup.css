@@ -1,0 +1,29 @@
+:root{
+  --primaryColor: #2D333C;
+  --secondayColor: #171D25;
+  --offWhite: #DCDEDF;
+  --accent01: #09B9FF;
+  --accent02: #3C5B7F;
+}
+
+body {
+  background-color: var(--primaryColor);
+  width: 400px;
+}
+
+h1 {
+  color: var(--offWhite);
+}
+
+.card {
+  width: 315px;
+  height: 140px;
+  background-color: var(--secondayColor);
+  border-radius: 10px;
+}
+
+img {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+}

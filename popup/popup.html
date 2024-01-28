@@ -2,12 +2,22 @@
 <html>
   <head>
     <title>Mangamark Popup</title>
+    <link rel="stylesheet" type="text/css" href="popup.css">
   </head>
   <body>
-    <h1>Managamark</h1>
-    <button>Get Title</button>
-    <div id="titleField" style="display: none;"></div>
+    <div class="container">
+      <h1>Managamark</h1>
+      <hr>
+      <button id="updateButton">Update</button>
+      <button id="addButton">Add Title</button>
 
-    <script src="popup.js" type="module"></script>
+      <div id="titleField" style="display: none;"></div>
+      
+      <div class="card">
+        <div id="coverContainer"></div>
+      </div>
+
+      <script src="popup.js" type="module"></script>      
+    </div>
   </body>
 </html>
