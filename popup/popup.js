@@ -32,10 +32,11 @@ doneButton.addEventListener('click', function() {
 });
 
 function updateTitle(activeTab) {
+  let domain = new URL(activeTab.url).hostname;
   let contentTitle = document.getElementById("contentTitle");
   let contentSite = document.getElementById("contentSite");
   contentTitle.textContent = activeTab.title;
-  contentSite.textContent = activeTab.url;
+  contentSite.textContent = domain;
 }
 
 function displayCover(coverSrc) {
