@@ -1,6 +1,7 @@
 const updateButton = document.getElementById('updateButton');
 const createButton = document.getElementById('createButton');
 const editButton = document.getElementById('editButton');
+const editDoneButton = document.getElementById('editDoneButton');
 const getImageButton = document.getElementById('getImageButton');
 const doneButton = document.getElementById('doneButton');
 
@@ -18,7 +19,19 @@ createButton.addEventListener('click', function() {
 });
 
 editButton.addEventListener('click', function() {
-  alert("Not yet implemented");
+  let contentTitle = document.getElementById("contentTitle");
+  contentTitle.readOnly = false;
+  contentTitle.className = "titleEditable";
+  editButton.style.display = 'none';
+  editDoneButton.style.display = 'inline-block';
+});
+
+editDoneButton.addEventListener('click', function() {
+  let contentTitle = document.getElementById("contentTitle");
+  contentTitle.readOnly = true;
+  contentTitle.className = "titleReadOnly";
+  editDoneButton.style.display = 'none';
+  editButton.style.display = 'inline-block';
 });
 
 getImageButton.addEventListener('click', function() {
@@ -35,7 +48,7 @@ function updateTitle(activeTab) {
   let domain = new URL(activeTab.url).hostname;
   let contentTitle = document.getElementById("contentTitle");
   let contentSite = document.getElementById("contentSite");
-  contentTitle.textContent = activeTab.title;
+  contentTitle.value = activeTab.title;
   contentSite.textContent = domain;
 }
 

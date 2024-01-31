@@ -2,6 +2,7 @@
   --primaryColor: #2D333C;
   --secondayColor: #171D25;
   --offWhite: #DCDEDF;
+  --offWhite30: #dcdedf4d;
   --accent01: #09B9FF;
   --accent02: #3C5B7F;
   --red: #CF6161;
@@ -10,6 +11,7 @@
 body {
   background-color: var(--primaryColor);
   width: 400px;
+  color: var(--offWhite);
 }
 
 img {
@@ -20,18 +22,14 @@ img {
   border-radius: 20px;
 }
 
+input {
+  color: var(--offWhite);
+}
+
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-h1 {
-  color: var(--offWhite);
-}
-
-div {
-  color: var(--offWhite);
 }
 
 .content {
@@ -56,6 +54,30 @@ div {
 
 .gridButton {
   grid-column: button;
+}
+
+.titleReadOnly {
+  border: none;
+  outline: none;
+  border-radius: 2px;
+  grid-column: content;
+  background: none;
+}
+
+.titleReadOnly:focus {
+  outline: 1px solid var(--offWhite30);
+}
+
+.titleEditable {
+  background-color: var(--secondayColor);
+  border: none;
+  outline: 1px solid var(--offWhite);
+  border-radius: 2px;
+  grid-column: content;
+}
+
+.titleEditable:focus {
+  outline: 1px solid var(--accent01);
 }
 
 .noImageText {

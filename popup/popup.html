@@ -21,8 +21,11 @@
       </div>
       <div class="textArea">
         <div class="gridType">Title</div>
-        <div id="contentTitle" class="gridContent">I'm the Only One Who Knows That Jobless Is the Strongest</div>
-        <div class="gridButton"><button id="editButton">Edit</button></div>          
+        <input id="contentTitle" class="titleReadOnly" readonly type="text">
+        <div class="gridButton">
+          <button id="editButton">Edit</button>
+          <button id="editDoneButton" style="display: none;">Done</button>
+        </div>
         <div class="gridType">Site</div>
         <div id="contentSite" class="gridContent">&lt;site url&gt</div>
         <div id="noImageText" class="noImageText">Could not find cover image.</div>
@@ -33,8 +36,6 @@
       <button id="getImageButton">Get Image</button>
       <button id="doneButton">Done</button>
     </div>
-    
-    <div id="titleField" style="display: none;"></div>
 
     <script src="popup.js" type="module"></script>
   </body>
