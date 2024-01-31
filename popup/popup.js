@@ -1,40 +1,48 @@
 const updateButton = document.getElementById('updateButton');
+const createButton = document.getElementById('createButton');
+const editButton = document.getElementById('editButton');
+const getImageButton = document.getElementById('getImageButton');
+const doneButton = document.getElementById('doneButton');
 
-updateButton.addEventListener('click', async () => {
-  var textField = document.getElementById('titleField');
+updateButton.addEventListener('click', function() {
   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-    var urlNode = document.createTextNode(tabs[0].url);
-    var titleNode = document.createTextNode(tabs[0].title);
-    textField.appendChild(urlNode);
-    textField.appendChild(document.createElement('br'));
-    textField.appendChild(document.createElement('br'));
-    textField.appendChild(titleNode);
-  })
-  textField.style.display = 'block';
+    let activeTab = tabs[0];
+    updateTitle(activeTab);
+  });
 });
 
-const addButton = document.getElementById('addButton');
-
-addButton.addEventListener('click', function() {
+createButton.addEventListener('click', function() {
   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
     chrome.tabs.sendMessage(tabs[0].id, {action: 'getCover'}, coverSrc => displayCover(coverSrc));
   });
 });
 
-function displayCover(coverSrc) {
-  const coverContainer = document.getElementById('coverContainer');
-  
-  while (coverContainer.firstChild) {
-    coverContainer.removeChild(coverContainer.firstChild);
-  }
+editButton.addEventListener('click', function() {
+  alert("Not yet implemented");
+});
 
+getImageButton.addEventListener('click', function() {
+  chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
+    chrome.tabs.sendMessage(tabs[0].id, {action: 'getImage'});
+  });
+});
+
+doneButton.addEventListener('click', function() {
+  alert("Not yet implemented");
+});
+
+function updateTitle(activeTab) {
+  let contentTitle = document.getElementById("contentTitle");
+  let contentSite = document.getElementById("contentSite");
+  contentTitle.textContent = activeTab.title;
+  contentSite.textContent = activeTab.url;
+}
+
+function displayCover(coverSrc) {
   if (coverSrc) {
-    const cover = document.createElement('img');
-    cover.src = coverSrc;
-    coverContainer.appendChild(cover);
+    const popupImage = document.getElementById('coverImage');
+    popupImage.src = coverSrc;
   } else {
-    const noCover = document.createElement('p');
-    noCover.textContent = "Could not find cover image.";
-    coverContainer.appendChild(noCover);
+    document.getElementById("noImageText").style.display = 'block';
   }
 }

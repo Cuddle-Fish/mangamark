@@ -4,6 +4,7 @@
   --offWhite: #DCDEDF;
   --accent01: #09B9FF;
   --accent02: #3C5B7F;
+  --red: #CF6161;
 }
 
 body {
@@ -11,19 +12,61 @@ body {
   width: 400px;
 }
 
+img {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border: 1px solid var(--accent01);
+  border-radius: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 h1 {
   color: var(--offWhite);
 }
 
-.card {
-  width: 315px;
-  height: 140px;
-  background-color: var(--secondayColor);
-  border-radius: 10px;
+div {
+  color: var(--offWhite);
 }
 
-img {
-  width: 140px;
-  height: 140px;
-  object-fit: cover;
+.content {
+  display: flex;
+  align-items: flex-start;
+  padding-left: 10px;
+}
+
+.textArea {
+  display: grid;
+  grid-template-columns: [start] 25px [type] 50px [content] 150px [button] 45px [end];
+  row-gap: 3px;
+}
+
+.gridType {
+  grid-column: type;
+}
+
+.gridContent {
+  grid-column: content;
+}
+
+.gridButton {
+  grid-column: button;
+}
+
+.noImageText {
+  display: none;
+  color: var(--red);
+  grid-column-start: type;
+  grid-column-end: end;
+  padding-top: 20px;
+  padding-left: 12px;
+}
+
+.noImageButtons {
+  text-align: right;
 }

@@ -1,26 +1,40 @@
 let blurEnabled = false;
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'getCover') {
-    blurEnabled = !blurEnabled;
-    applyBlur();
+  switch(message.action) {
+    case 'getCover':
+      sendResponse(getCover());
+      break;
+    case 'getImage':
+      blurEnabled = !blurEnabled;
+      applyBlur();
+      break;
+  }
 
-    const cover = document.querySelector('img[src*="cover" i]');
-    if (cover) {
-      sendResponse(cover.src);
-    } else {
-      sendResponse(null);
-    }
-    
+  return true;
+
     // document.addEventListener('click', function (event) {
     //   var element = event.target;
     //   if (element.tagName === 'IMG') {
     //     alert(element.src);
     //   }
     // }, { once: true });
-    return true;
-  }
+    
 });
+
+function getCover() {
+  let cover = document.querySelector('img[src*="cover" i]');
+  if (cover) {
+    return cover.src;
+  }
+
+  cover = document.querySelector("meta[property='og:image']").getAttribute("content");
+  if (cover) {
+    return cover;
+  } else {
+    return null;
+  }
+}
 
 function applyBlur() {
   const elementsToBlur = document.querySelectorAll('body *:not(img)');
