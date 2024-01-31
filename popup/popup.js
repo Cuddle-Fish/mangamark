@@ -13,7 +13,7 @@ updateButton.addEventListener('click', function() {
 
 createButton.addEventListener('click', function() {
   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-    chrome.tabs.sendMessage(tabs[0].id, {action: 'getCover'}, coverSrc => displayCover(coverSrc));
+    chrome.tabs.sendMessage(tabs[0].id, {action: 'getCover'}, coverSrc => createTitle(tabs[0], coverSrc));
   });
 });
 
@@ -37,6 +37,11 @@ function updateTitle(activeTab) {
   let contentSite = document.getElementById("contentSite");
   contentTitle.textContent = activeTab.title;
   contentSite.textContent = domain;
+}
+
+function createTitle(activeTab, coverSrc) {
+  updateTitle(activeTab);
+  displayCover(coverSrc);
 }
 
 function displayCover(coverSrc) {
