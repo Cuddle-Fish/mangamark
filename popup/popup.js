@@ -4,6 +4,11 @@ const editButton = document.getElementById('editButton');
 const editDoneButton = document.getElementById('editDoneButton');
 const getImageButton = document.getElementById('getImageButton');
 const doneButton = document.getElementById('doneButton');
+const manageButton = document.getElementById('manageButton');
+
+manageButton.addEventListener('click', function() {
+  chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
+});
 
 updateButton.addEventListener('click', function() {
   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
@@ -64,4 +69,79 @@ function displayCover(coverSrc) {
   } else {
     document.getElementById("noImageText").style.display = 'block';
   }
+}
+
+function findBookmarkByTitle(domain, title, callback) {
+  chrome.bookmarks.search({title: 'Mangamark'}, (results) => {
+    if (results.length == 1) {
+      const mangamarkFolder = results[0];
+      findDomainFolder(mangamarkFolder.id, domain, (domainId) => {
+        if (domainId) {
+          searchDomainFolder(domainId, title)
+            .then(bookmark => {
+              if (bookmark) {
+                callback(bookmark);
+              } else {
+                // could not find bookmark
+                callback(null);
+              }
+            })
+            .catch(error => {
+              console.error("Error searching domain folder:", error);
+            });
+        } else {
+          // domain folder not found or empty
+          callback(null);
+        }
+      });
+    } else {
+      // Mangamark folder not found or multiple folders
+      //TODO should this just be a copy of the onInstalled function in background.js
+      callback(null);
+    }
+  });
+}
+
+function findDomainFolder(parentId, domain, callback) {
+  chrome.bookmarks.getChildren(parentId, (children) => {
+    var domainFolder = children.find((child) => (child.title === domain) && child.children);
+    if (domainFolder) {
+      callback(domainFolder.id);
+    } else {
+      callback(null);
+    }
+  });
+}
+
+function searchDomainFolder(domainId, title) {
+  return new Promise((resolve, reject) => {
+    chrome.bookmarks.getSubTree(domainId, (bookmarkTreeNode) => {
+      var bookmark = null;
+
+      function search(node) {
+        if (node.url) {
+          var bookmarkTitle = node.title.split(' - ')[0];
+          if (title.includes(bookmarkTitle)) {
+            bookmark = node;
+          }
+        } else if (node.children) {
+          for (var i = 0; i < node.children.length; i++) {
+            search(node.children[i]);
+            if (bookmark) {
+              break;
+            }
+          }
+        }
+      }
+
+      for (var i = 0; i < bookmarkTreeNode.length; i++) {
+        search(bookmarkTreeNode[i]);
+        if (bookmark) {
+          break;
+        }
+      }
+
+      resolve(bookmark ? bookmark : null);
+    });
+  });
 }
