@@ -6,6 +6,80 @@ const getImageButton = document.getElementById('getImageButton');
 const doneButton = document.getElementById('doneButton');
 const manageButton = document.getElementById('manageButton');
 
+chrome.tabs.query({active: true, currentWindow: true})
+  .then((tabs) => {
+    const activeTab = tabs[0];
+    const domain = new URL(activeTab.url).hostname;
+    const title = activeTab.title;
+    return getMangamarkFolderId()
+      .then((mangamarkId) => getDomainFolderId(mangamarkId, domain))
+      .then((domainId) => chrome.bookmarks.getSubTree(domainId))
+      .then((bookmarkTreeNode) => searchDomainFolder(bookmarkTreeNode, title))
+  })
+  .then((bookmark) => console.log('bookmark exists'))
+  .catch((err) => console.error(err));
+
+
+function getMangamarkFolderId() {
+  return chrome.bookmarks.search({title: 'Mangamark'})
+    .then((results) => {
+      if (results.length == 1) {
+        const mangamarkFolder = results[0];
+        return mangamarkFolder.id;
+      }
+      else {
+        //TODO create and return created id???
+        return null;
+      }
+    });
+}
+
+function getDomainFolderId(parentId, domain) {
+  return chrome.bookmarks.getChildren(parentId)
+    .then((children) => {
+      var domainFolder = children.find((child) => child.title === domain);
+      if (domainFolder) {
+        return domainFolder.id;
+      } else {
+        //TODO create and return id of created folder???
+        return Promise.reject(`Domain folder not found ${domain}`);
+      }
+    });
+}
+
+function searchDomainFolder(bookmarkTreeNode, title) {
+  return new Promise((resolve, reject) => {
+    var bookmark = null;
+
+      function searchTree(tree) {
+        for (var i = 0; i < tree.length; i++) {
+          var node = tree[i];
+          if (node.url) {
+            var bookmarkTitle = node.title.split(' - ')[0];
+            if (title.includes(bookmarkTitle)) {
+              bookmark = node;
+            }
+          } else if (node.children) {
+            searchTree(node.children)
+          }
+          if (bookmark) {
+            break;
+          }
+        }
+      }
+
+      searchTree(bookmarkTreeNode);
+
+      if (bookmark) {
+        resolve(bookmark);
+      } else {
+        reject('Domain folder does not contain matching title.');
+      }
+  });
+}
+
+
+
 manageButton.addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
 });
@@ -69,79 +143,4 @@ function displayCover(coverSrc) {
   } else {
     document.getElementById("noImageText").style.display = 'block';
   }
-}
-
-function findBookmarkByTitle(domain, title, callback) {
-  chrome.bookmarks.search({title: 'Mangamark'}, (results) => {
-    if (results.length == 1) {
-      const mangamarkFolder = results[0];
-      findDomainFolder(mangamarkFolder.id, domain, (domainId) => {
-        if (domainId) {
-          searchDomainFolder(domainId, title)
-            .then(bookmark => {
-              if (bookmark) {
-                callback(bookmark);
-              } else {
-                // could not find bookmark
-                callback(null);
-              }
-            })
-            .catch(error => {
-              console.error("Error searching domain folder:", error);
-            });
-        } else {
-          // domain folder not found or empty
-          callback(null);
-        }
-      });
-    } else {
-      // Mangamark folder not found or multiple folders
-      //TODO should this just be a copy of the onInstalled function in background.js
-      callback(null);
-    }
-  });
-}
-
-function findDomainFolder(parentId, domain, callback) {
-  chrome.bookmarks.getChildren(parentId, (children) => {
-    var domainFolder = children.find((child) => (child.title === domain) && child.children);
-    if (domainFolder) {
-      callback(domainFolder.id);
-    } else {
-      callback(null);
-    }
-  });
-}
-
-function searchDomainFolder(domainId, title) {
-  return new Promise((resolve, reject) => {
-    chrome.bookmarks.getSubTree(domainId, (bookmarkTreeNode) => {
-      var bookmark = null;
-
-      function search(node) {
-        if (node.url) {
-          var bookmarkTitle = node.title.split(' - ')[0];
-          if (title.includes(bookmarkTitle)) {
-            bookmark = node;
-          }
-        } else if (node.children) {
-          for (var i = 0; i < node.children.length; i++) {
-            search(node.children[i]);
-            if (bookmark) {
-              break;
-            }
-          }
-        }
-      }
-
-      for (var i = 0; i < bookmarkTreeNode.length; i++) {
-        search(bookmarkTreeNode[i]);
-        if (bookmark) {
-          break;
-        }
-      }
-
-      resolve(bookmark ? bookmark : null);
-    });
-  });
 }
