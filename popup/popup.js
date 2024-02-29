@@ -13,10 +13,16 @@ chrome.tabs.query({active: true, currentWindow: true})
     const title = activeTab.title;
     return getMangamarkFolderId()
       .then((mangamarkId) => getDomainFolderId(mangamarkId, domain))
-      .then((domainId) => chrome.bookmarks.getSubTree(domainId))
+      .then((domainId) => domainId ? chrome.bookmarks.getSubTree(domainId) : null)
       .then((bookmarkTreeNode) => searchDomainFolder(bookmarkTreeNode, title))
   })
-  .then((bookmark) => console.log('bookmark exists'))
+  .then((bookmark) => {
+    if (bookmark) {
+      console.log('bookmark exists');
+    } else {
+      console.log('new title');
+    }
+  })
   .catch((err) => console.error(err));
 
 
@@ -42,13 +48,17 @@ function getDomainFolderId(parentId, domain) {
         return domainFolder.id;
       } else {
         //TODO create and return id of created folder???
-        return Promise.reject(`Domain folder not found ${domain}`);
+        return null;
       }
     });
 }
 
 function searchDomainFolder(bookmarkTreeNode, title) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
+    if (!bookmarkTreeNode) {
+      resolve(null);
+    }
+
     var bookmark = null;
 
       function searchTree(tree) {
@@ -73,22 +83,32 @@ function searchDomainFolder(bookmarkTreeNode, title) {
       if (bookmark) {
         resolve(bookmark);
       } else {
-        reject('Domain folder does not contain matching title.');
+        resolve(null);
       }
   });
 }
 
+function displayAddTitle(){
+  changeActionDisplay("Add Title");
+}
 
+function displayUpdateTitle(siteTitle, bookmark) {
+  changeActionDisplay("Update Title");
+  const bookmarkInfo = bookmark.title.split(' - ');
+  const bookmarkTitle = bookmarkInfo[0];
+  const bookmarkChapter = parseInt(bookmarkInfo[1].trim().split(' ')[1]);
+
+  const removeTitle = siteTitle.replace(bookmarkTitle, '');
+  const siteChapterNum = removeTitle.match(/\d+/)[0];
+}
+
+function changeActionDisplay(displyStr) {
+  const action = document.getElementById('action');
+  action.textContent = displyStr;
+}
 
 manageButton.addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
-});
-
-updateButton.addEventListener('click', function() {
-  chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-    let activeTab = tabs[0];
-    updateTitle(activeTab);
-  });
 });
 
 createButton.addEventListener('click', function() {
@@ -122,19 +142,6 @@ getImageButton.addEventListener('click', function() {
 doneButton.addEventListener('click', function() {
   alert("Not yet implemented");
 });
-
-function updateTitle(activeTab) {
-  let domain = new URL(activeTab.url).hostname;
-  let contentTitle = document.getElementById("contentTitle");
-  let contentSite = document.getElementById("contentSite");
-  contentTitle.value = activeTab.title;
-  contentSite.textContent = domain;
-}
-
-function createTitle(activeTab, coverSrc) {
-  updateTitle(activeTab);
-  displayCover(coverSrc);
-}
 
 function displayCover(coverSrc) {
   if (coverSrc) {
