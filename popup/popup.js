@@ -1,10 +1,15 @@
+const manageButton = document.getElementById('manageButton');
+const editButton = document.getElementById('editButton');
+// doneButton???
 const updateButton = document.getElementById('updateButton');
 const createButton = document.getElementById('createButton');
-const editButton = document.getElementById('editButton');
-const editDoneButton = document.getElementById('editDoneButton');
-const getImageButton = document.getElementById('getImageButton');
-const doneButton = document.getElementById('doneButton');
-const manageButton = document.getElementById('manageButton');
+
+const titleElement = document.getElementById('contentTitle');
+
+HTMLTextAreaElement.prototype.resize = function() {
+  this.style.height = '';
+  this.style.height = this.scrollHeight + 'px';
+}
 
 chrome.tabs.query({active: true, currentWindow: true})
   .then((tabs) => {
@@ -15,12 +20,31 @@ chrome.tabs.query({active: true, currentWindow: true})
       .then((mangamarkId) => getDomainFolderId(mangamarkId, domain))
       .then((domainId) => domainId ? chrome.bookmarks.getSubTree(domainId) : null)
       .then((bookmarkTreeNode) => searchDomainFolder(bookmarkTreeNode, title))
+      .then((bookmark) => [bookmark, domain, title]);
   })
-  .then((bookmark) => {
+  .then(([bookmark, domain, title]) => {
+    domainDisplay(domain);
+    const numsInTitle = title.match(/\d+/g) || [];
     if (bookmark) {
       console.log('bookmark exists');
+
+      changeActionType('Update Title');
+      setDisplayElements(true);
+
+      const bookmarkInfo = bookmarkTitleAndChapter(bookmark.title);
+
+      titleDisplay(bookmarkInfo.title);
+
+      chapterDisplay(numsInTitle, bookmarkInfo.chapter);
     } else {
       console.log('new title');
+
+      changeActionType('Add Title');
+      setDisplayElements(false);
+
+      titleDisplay(title);
+
+      chapterDisplay(numsInTitle);
     }
   })
   .catch((err) => console.error(err));
@@ -88,66 +112,110 @@ function searchDomainFolder(bookmarkTreeNode, title) {
   });
 }
 
-function displayAddTitle(){
-  changeActionDisplay("Add Title");
+function bookmarkTitleAndChapter(bookmarkTitle) {
+  const regex = /^(.*?) - Chapter (\d+)$/i;
+  const matches = bookmarkTitle.match(regex);
+  console.log(matches)
+  if (matches) {
+    const [, title, chapter] = matches;
+    return { title: title.trim(), chapter: parseInt(chapter)};
+  } else {
+    return null;
+  }
 }
 
-function displayUpdateTitle(siteTitle, bookmark) {
-  changeActionDisplay("Update Title");
-  const bookmarkInfo = bookmark.title.split(' - ');
-  const bookmarkTitle = bookmarkInfo[0];
-  const bookmarkChapter = parseInt(bookmarkInfo[1].trim().split(' ')[1]);
-
-  const removeTitle = siteTitle.replace(bookmarkTitle, '');
-  const siteChapterNum = removeTitle.match(/\d+/)[0];
+function changeActionType(displyStr) {
+  const actionType = document.getElementById('actionType');
+  actionType.textContent = displyStr;
 }
 
-function changeActionDisplay(displyStr) {
-  const action = document.getElementById('action');
-  action.textContent = displyStr;
+function setDisplayElements(update) {
+  if (update) {
+    updateButton.classList.remove('hidden');
+
+    const oldChapter = document.getElementById('oldChapter');
+    const chapterArrow = document.getElementById('chapterArrow');
+    const newChapterSingle = document.getElementById('newChapterSingle');
+    const newChapterSelect = document.getElementById('newChapterSelect');
+    oldChapter.classList.remove('hidden');
+    chapterArrow.classList.remove('hidden');
+    newChapterSingle.classList.add('blueText');
+    newChapterSelect.classList.add('blueText');
+  } else {
+    createButton.classList.remove('hidden');
+
+    editButton.classList.remove('hidden');
+  }
+}
+
+function titleDisplay(title) {
+  titleElement.value = title;
+  titleElement.resize();
+}
+
+function chapterDisplay(newChapter, oldChapter) {
+  if (oldChapter) {
+    const oldChapterElement = document.getElementById('oldChapter');
+    oldChapterElement.textContent = oldChapter;
+  }
+
+  const newChapterSelect = document.getElementById('newChapterSelect');
+  const newChapterSingle = document.getElementById('newChapterSingle');
+
+  if (newChapter.length <= 1) {
+    newChapterSingle.textContent = newChapter[0];
+  } else {
+    newChapterSingle.classList.add('hidden');
+    newChapterSelect.classList.remove('hidden');
+    newChapter.forEach(number => {
+      const option = document.createElement('option');
+      option.text = number;
+      newChapterSelect.add(option);
+    });
+    newChapterSelect.selectedIndex = 0;
+  }
+}
+
+function domainDisplay(domain) {
+  const domainElement = document.getElementById('domain');
+  domainElement.textContent = domain;
 }
 
 manageButton.addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
 });
 
-createButton.addEventListener('click', function() {
-  chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-    chrome.tabs.sendMessage(tabs[0].id, {action: 'getCover'}, coverSrc => createTitle(tabs[0], coverSrc));
-  });
+titleElement.addEventListener('input', function() {
+  this.resize();
 });
 
-editButton.addEventListener('click', function() {
-  let contentTitle = document.getElementById("contentTitle");
-  contentTitle.readOnly = false;
-  contentTitle.className = "titleEditable";
-  editButton.style.display = 'none';
-  editDoneButton.style.display = 'inline-block';
-});
+// editButton.addEventListener('click', function() {
+//   let contentTitle = document.getElementById("contentTitle");
+//   contentTitle.readOnly = false;
+//   contentTitle.className = "titleEditable";
+//   editButton.style.display = 'none';
+//   editDoneButton.style.display = 'inline-block';
+// });
 
-editDoneButton.addEventListener('click', function() {
-  let contentTitle = document.getElementById("contentTitle");
-  contentTitle.readOnly = true;
-  contentTitle.className = "titleReadOnly";
-  editDoneButton.style.display = 'none';
-  editButton.style.display = 'inline-block';
-});
+// editDoneButton.addEventListener('click', function() {
+//   let contentTitle = document.getElementById("contentTitle");
+//   contentTitle.readOnly = true;
+//   contentTitle.className = "titleReadOnly";
+//   editDoneButton.style.display = 'none';
+//   editButton.style.display = 'inline-block';
+// });
 
-getImageButton.addEventListener('click', function() {
-  chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-    chrome.tabs.sendMessage(tabs[0].id, {action: 'getImage'});
-  });
-});
+// getImageButton.addEventListener('click', function() {
+//   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
+//     chrome.tabs.sendMessage(tabs[0].id, {action: 'getImage'});
+//   });
+// });
 
-doneButton.addEventListener('click', function() {
-  alert("Not yet implemented");
-});
-
-function displayCover(coverSrc) {
-  if (coverSrc) {
-    const popupImage = document.getElementById('coverImage');
-    popupImage.src = coverSrc;
-  } else {
-    document.getElementById("noImageText").style.display = 'block';
-  }
-}
+// function displayCover(coverSrc) {
+//   if (coverSrc) {
+//     const popupImage = document.getElementById('coverImage');
+//     popupImage.src = coverSrc;
+//   } else {
+//     document.getElementById("noImageText").style.display = 'block';
+//   }
+// }

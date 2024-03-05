@@ -6,39 +6,35 @@
   </head>
   <body>
     <div class="header">
-      <div class="headerButtons">
-        <button id="updateButton">Update</button> 
-        <button id="createButton">Create</button>
-      </div>
-      <div class="headerTitle">
-        <h1>Managamark</h1>
-      </div>
+      <button id="manageButton">Manage</button>
+      <h1>Mangamark</h1>
     </div>
-    <div id="action"></div>
 
-    <div class="content">
-      <div id="coverContainer">
-        <img id="coverImage" src="../images/imageIcon.png">
-      </div>
-      <div class="textArea">
+    <div>
+      <div id="actionType" class="action">&lt;Action Title&gt;</div>
+      <div class="infoGrid">
         <div class="gridType">Title</div>
-        <input id="contentTitle" class="titleReadOnly" readonly type="text">
+        <textarea id="contentTitle" class="gridValue titleTextArea">&lt;Title of Content&gt;</textarea>
         <div class="gridButton">
-          <button id="editButton">Edit</button>
-          <button id="editDoneButton" style="display: none;">Done</button>
+          <button id="editButton" class="hidden">Edit</button>
         </div>
+
         <div class="gridType">Site</div>
-        <div id="contentSite" class="gridContent">&lt;site url&gt</div>
-        <div id="noImageText" class="noImageText">Could not find cover image.</div>
+        <div id="domain" class="gridValue">&lt;Site Domain&gt;</div>
+
+        <div class="gridType">Chapter</div>
+        <div class="chapterGrid">
+          <span id="oldChapter" class="greyText hidden">&lt;##&gt;</span>
+          <span id="chapterArrow" class="hidden">--&gt;</span>
+          <span id="newChapterSingle">&lt;##&gt;</span>
+          <select id="newChapterSelect" class="hidden"></select>
       </div>
     </div>
 
-    <div class="noImageButtons">
-      <button id="getImageButton">Get Image</button>
-      <button id="doneButton">Done</button>
+    <div class="bottom">
+      <button id="createButton" class="hidden">Create</button>
+      <button id="updateButton" class="hidden">Update</button>
     </div>
-
-    <button id="manageButton">Manage</button>
 
     <script src="popup.js" type="module"></script>
   </body>
