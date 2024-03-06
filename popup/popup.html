@@ -28,8 +28,12 @@
         <div class="chapterGrid">
           <span id="oldChapter" class="greyText hidden">&lt;##&gt;</span>
           <span id="chapterArrow" class="hidden">--&gt;</span>
-          <span id="newChapterSingle">&lt;##&gt;</span>
-          <select id="newChapterSelect" class="hidden"></select>
+
+          <div class="inputContainer">
+            <input id="chapterInput" class="chapterInput" type="number" min="0" max="9999" required/>
+            <label id="inputLabel" for="chapterInput" class="hidden inputLabel">Enter valid chapter number</label>
+          </div>          
+          <select id="chapterSelect" class="hidden"></select>
       </div>
     </div>
 

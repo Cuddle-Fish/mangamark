@@ -114,7 +114,6 @@ function searchDomainFolder(bookmarkTreeNode, title) {
 function bookmarkTitleAndChapter(bookmarkTitle) {
   const regex = /^(.*?) - Chapter (\d+)$/i;
   const matches = bookmarkTitle.match(regex);
-  console.log(matches)
   if (matches) {
     const [, title, chapter] = matches;
     return { title: title.trim(), chapter: parseInt(chapter)};
@@ -134,12 +133,8 @@ function setDisplayElements(update) {
 
     const oldChapter = document.getElementById('oldChapter');
     const chapterArrow = document.getElementById('chapterArrow');
-    const newChapterSingle = document.getElementById('newChapterSingle');
-    const newChapterSelect = document.getElementById('newChapterSelect');
     oldChapter.classList.remove('hidden');
     chapterArrow.classList.remove('hidden');
-    newChapterSingle.classList.add('blueText');
-    newChapterSelect.classList.add('blueText');
   } else {
     createButton.classList.remove('hidden');
 
@@ -158,20 +153,31 @@ function chapterDisplay(newChapter, oldChapter) {
     oldChapterElement.textContent = oldChapter;
   }
 
-  const newChapterSelect = document.getElementById('newChapterSelect');
-  const newChapterSingle = document.getElementById('newChapterSingle');
+  const chapterInput = document.getElementById('chapterInput');
 
-  if (newChapter.length <= 1) {
-    newChapterSingle.textContent = newChapter[0];
-  } else {
-    newChapterSingle.classList.add('hidden');
-    newChapterSelect.classList.remove('hidden');
+  if (oldChapter && newChapter.length > 0) {
+    var defaultVal = newChapter.reduce((prev, curr) => {
+      return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
+    });
+    chapterInput.value = defaultVal;
+  } else if (newChapter.length > 0) {
+    chapterInput.value = newChapter[0];
+  }
+
+  const chapterSelect = document.getElementById('chapterSelect');
+
+  if (newChapter.length > 1) {
+    chapterSelect.classList.remove('hidden');
     newChapter.forEach(number => {
       const option = document.createElement('option');
-      option.text = number;
-      newChapterSelect.add(option);
+      option.value = number;
+      option.textContent = number;
+      chapterSelect.appendChild(option);
     });
-    newChapterSelect.selectedIndex = 0;
+
+    chapterSelect.addEventListener('change', () => {
+      chapterInput.value = chapterSelect.value;
+    });
   }
 }
 

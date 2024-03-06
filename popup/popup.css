@@ -69,11 +69,40 @@ body {
   outline: 1px solid var(--accent02);
 }
 
-
 .chapterGrid {
   display: grid;
   grid-template-columns: max-content max-content max-content;
   gap: 20px;
+}
+
+.inputContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.chapterInput {
+  color: var(--offWhite);
+  width: 4em;
+  border: none;
+  border-radius: 4px;
+  outline: 1px solid var(--offWhite30);
+  background-color: var(--secondayColor);
+}
+
+.chapterInput:focus {
+  outline: 1px solid var(--accent02);
+}
+
+.inputLabel {
+  display: none;
+}
+
+.chapterInput:invalid + .inputLabel {
+  display: block;
+  padding-top: 5px;
+  padding-left: 10px;
+  color: var(--red);
 }
 
 .bottom {
