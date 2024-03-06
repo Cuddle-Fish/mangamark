@@ -147,7 +147,7 @@ function titleDisplay(title) {
   titleElement.resize();
 }
 
-function chapterDisplay(newChapter, oldChapter) {
+function chapterDisplay(numsInTitle, oldChapter) {
   if (oldChapter) {
     const oldChapterElement = document.getElementById('oldChapter');
     oldChapterElement.textContent = oldChapter;
@@ -155,20 +155,20 @@ function chapterDisplay(newChapter, oldChapter) {
 
   const chapterInput = document.getElementById('chapterInput');
 
-  if (oldChapter && newChapter.length > 0) {
-    var defaultVal = newChapter.reduce((prev, curr) => {
+  if (oldChapter && numsInTitle.length > 1) {
+    var defaultVal = numsInTitle.reduce((prev, curr) => {
       return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
     });
     chapterInput.value = defaultVal;
-  } else if (newChapter.length > 0) {
-    chapterInput.value = newChapter[0];
+  } else if (numsInTitle.length > 0) {
+    chapterInput.value = numsInTitle[0];
   }
 
   const chapterSelect = document.getElementById('chapterSelect');
 
-  if (newChapter.length > 1) {
+  if (numsInTitle.length > 1) {
     chapterSelect.classList.remove('hidden');
-    newChapter.forEach(number => {
+    numsInTitle.forEach(number => {
       const option = document.createElement('option');
       option.value = number;
       option.textContent = number;
