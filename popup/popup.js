@@ -1,6 +1,5 @@
 const manageButton = document.getElementById('manageButton');
 const editButton = document.getElementById('editButton');
-// doneButton???
 const updateButton = document.getElementById('updateButton');
 const createButton = document.getElementById('createButton');
 
@@ -149,7 +148,7 @@ function setDisplayElements(update) {
 }
 
 function titleDisplay(title) {
-  titleElement.value = title;
+  titleElement.value = title.replace(/\n/g, '');
   titleElement.resize();
 }
 
@@ -189,33 +188,18 @@ titleElement.addEventListener('input', function() {
   this.resize();
 });
 
-// editButton.addEventListener('click', function() {
-//   let contentTitle = document.getElementById("contentTitle");
-//   contentTitle.readOnly = false;
-//   contentTitle.className = "titleEditable";
-//   editButton.style.display = 'none';
-//   editDoneButton.style.display = 'inline-block';
-// });
-
-// editDoneButton.addEventListener('click', function() {
-//   let contentTitle = document.getElementById("contentTitle");
-//   contentTitle.readOnly = true;
-//   contentTitle.className = "titleReadOnly";
-//   editDoneButton.style.display = 'none';
-//   editButton.style.display = 'inline-block';
-// });
-
-// getImageButton.addEventListener('click', function() {
-//   chrome.tabs.query({active: true, lastFocusedWindow: true}, tabs => {
-//     chrome.tabs.sendMessage(tabs[0].id, {action: 'getImage'});
-//   });
-// });
-
-// function displayCover(coverSrc) {
-//   if (coverSrc) {
-//     const popupImage = document.getElementById('coverImage');
-//     popupImage.src = coverSrc;
-//   } else {
-//     document.getElementById("noImageText").style.display = 'block';
-//   }
-// }
+editButton.addEventListener('click', function() {
+  if (titleElement.readOnly) {
+    titleElement.readOnly = false;
+    titleElement.classList.remove('readOnly');
+    titleElement.classList.add('editable');
+    editButton.textContent = 'Done';
+  } else {
+    titleElement.readOnly = true;
+    titleElement.value = titleElement.value.replace(/\n/g, '');
+    titleElement.resize();
+    titleElement.classList.remove('editable');
+    titleElement.classList.add('readOnly');
+    editButton.textContent = 'Edit';
+  }
+});

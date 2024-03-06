@@ -43,20 +43,32 @@ body {
 
 .gridButton {
   grid-column: button;
-  display: flex;
-  justify-content: flex-end;
+  /* display: flex;
+  justify-content: flex-end; */
 }
 
 .titleTextArea {
-  grid-column: value;
   resize: none;
   overflow: auto;
-  outline: none;
   border: none;
-  border-radius: 5px;
   color: var(--offWhite);
+}
+
+.readOnly {
+  outline: none;
+  background-color: transparent;
+}
+
+.editable {
+  outline: 1px solid var(--offWhite30);
+  border-radius: 6px;
   background-color: var(--secondayColor);
 }
+
+.editable:focus {
+  outline: 1px solid var(--accent02);
+}
+
 
 .chapterGrid {
   display: grid;
