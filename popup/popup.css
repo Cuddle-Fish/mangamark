@@ -107,9 +107,11 @@ body {
 
 .bottom {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  /* justify-content: flex-end;
   padding-right: 10px;
-  padding-bottom: 10px;
+  padding-bottom: 10px; */
 }
 
 .hidden {

@@ -5,6 +5,8 @@ const createButton = document.getElementById('createButton');
 
 const titleElement = document.getElementById('contentTitle');
 
+var pageURL = '';
+
 HTMLTextAreaElement.prototype.resize = function() {
   this.style.height = '';
   this.style.height = this.scrollHeight + 'px';
@@ -13,6 +15,7 @@ HTMLTextAreaElement.prototype.resize = function() {
 chrome.tabs.query({active: true, currentWindow: true})
   .then((tabs) => {
     const activeTab = tabs[0];
+    pageURL = activeTab.url;
     const domain = new URL(activeTab.url).hostname;
     const title = activeTab.title;
     return getMangamarkFolderId()
@@ -63,20 +66,24 @@ function getMangamarkFolderId() {
     });
 }
 
-function getDomainFolderId(parentId, domain) {
+function getDomainFolderId(parentId, domain, create=false) {
   return chrome.bookmarks.getChildren(parentId)
     .then((children) => {
       var domainFolder = children.find((child) => child.title === domain);
       if (domainFolder) {
         return domainFolder.id;
       } else {
-        //TODO create and return id of created folder???
-        return null;
+        if (create) {
+          return chrome.bookmarks.create({parentId: parentId, title: domain})
+            .then((bookmarkTreeNode) => bookmarkTreeNode.id);
+        } else {
+          return null;          
+        }
       }
     });
 }
 
-function searchDomainFolder(bookmarkTreeNode, title) {
+function searchDomainFolder(bookmarkTreeNode, title, exactTitle=false) {
   return new Promise((resolve) => {
     if (!bookmarkTreeNode) {
       resolve(null);
@@ -88,9 +95,16 @@ function searchDomainFolder(bookmarkTreeNode, title) {
         for (var i = 0; i < tree.length; i++) {
           var node = tree[i];
           if (node.url) {
-            var bookmarkTitle = node.title.split(' - ')[0];
-            if (title.includes(bookmarkTitle)) {
-              bookmark = node;
+            if (exactTitle) {
+              var bookmarkTitle = node.title
+              if (title === bookmarkTitle) {
+                bookmark = node;
+              }
+            } else {
+              var bookmarkTitle = node.title.split(' - ')[0];
+              if (title.includes(bookmarkTitle)) {
+                bookmark = node;
+              }
             }
           } else if (node.children) {
             searchTree(node.children)
@@ -208,4 +222,68 @@ editButton.addEventListener('click', function() {
     titleElement.classList.add('readOnly');
     editButton.textContent = 'Edit';
   }
+});
+
+function createBookmarkTitle(title, chapterNum) {
+  return title + ' - Chapter ' + chapterNum;
+}
+
+function addBookmark(contentTitle, chapterNum, url, folderName) {
+  const bookmarkTitle = createBookmarkTitle(contentTitle, chapterNum);
+  return getMangamarkFolderId()
+    .then((mangamarkId) => getDomainFolderId(mangamarkId, folderName, true))
+    .then((domainId) => chrome.bookmarks.create({parentId: domainId, title: bookmarkTitle, url: url}))
+    .then((bookmark) => bookmark.title);
+}
+
+function removeBookmark(bookmarkTitle, folderName) {
+  return getMangamarkFolderId()
+    .then((mangamarkId) => getDomainFolderId(mangamarkId, folderName))
+    .then((domainId) => domainId ? chrome.bookmarks.getSubTree(domainId) : null)
+    .then((bookmarkTreeNode) => searchDomainFolder(bookmarkTreeNode, bookmarkTitle, true))
+    .then((bookmark) => chrome.bookmarks.remove(bookmark.id));
+}
+
+function getData() {
+  const title = titleElement.value;
+  const chapterInput = document.getElementById('chapterInput');
+  const chapter = chapterInput.value;
+  const domainElement = document.getElementById('domain');
+  const folderName = domainElement.textContent;
+  return {
+    title: title,
+    chapter: chapter,
+    folderName: folderName,
+    url: pageURL
+  }
+}
+
+updateButton.addEventListener('click', function() {
+  const resultElement = document.getElementById('result');
+  const oldChapterElement = document.getElementById('oldChapter');
+  const oldChapter = oldChapterElement.textContent;
+  const data = getData();
+  const oldBookmarkTitle = createBookmarkTitle(data.title, oldChapter);
+  addBookmark(data.title, data.chapter, data.url, data.folderName)
+    .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark updated: ' + bookmarkTitle})
+    .then(() => removeBookmark(oldBookmarkTitle, data.folderName))
+    .catch((err) => {
+      resultElement.textContent = 'Error updating bookmark';
+      console.error('Error creating bookmark:', err);
+    });
+
+  updateButton.disabled = true;
+});
+
+createButton.addEventListener('click', function() {
+  const resultElement = document.getElementById('result');
+  const data = getData();
+  addBookmark(data.title, data.chapter, data.url, data.folderName)
+    .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark created: ' + bookmarkTitle})
+    .catch((err) => {
+      resultElement.textContent = 'Error creating bookmark';
+      console.error('Error creating bookmark:', err);
+    });
+
+  createButton.disabled = true;
 });
