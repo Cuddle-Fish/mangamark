@@ -8,7 +8,7 @@ chrome.runtime.onInstalled.addListener(() => {
     } else {
       chrome.bookmarks.create({title: 'Mangamark'}, (folder) => {
         const url = chrome.runtime.getURL('manager/manager.html');
-        chrome.bookmarks.create({parentId: folder.id, title: 'Managa Mangamarks', url: url});
+        chrome.bookmarks.create({parentId: folder.id, title: 'Manage Mangamarks', url: url});
       });
       console.log('No "Mangamark bookmark found, bookmark created.');
     }
