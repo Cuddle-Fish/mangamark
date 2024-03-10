@@ -1,12 +1,4 @@
-:root{
-  --primaryColor: #2D333C;
-  --secondayColor: #171D25;
-  --offWhite: #DCDEDF;
-  --offWhite30: #dcdedf4d;
-  --accent01: #09B9FF;
-  --accent02: #3C5B7F;
-  --red: #CF6161;
-}
+@import '../theme.css';
 
 body {
   background-color: var(--primaryColor);
@@ -102,7 +94,7 @@ body {
   display: block;
   padding-top: 5px;
   padding-left: 10px;
-  color: var(--red);
+  color: var(--warning);
 }
 
 .bottom {

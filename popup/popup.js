@@ -1,3 +1,5 @@
+import { getMangamarkFolderId } from "../bookmark.js";
+
 const manageButton = document.getElementById('manageButton');
 const editButton = document.getElementById('editButton');
 const updateButton = document.getElementById('updateButton');
@@ -51,21 +53,6 @@ chrome.tabs.query({active: true, currentWindow: true})
   })
   .catch((err) => console.error(err));
 
-
-function getMangamarkFolderId() {
-  return chrome.bookmarks.search({title: 'Mangamark'})
-    .then((results) => {
-      if (results.length == 1) {
-        const mangamarkFolder = results[0];
-        return mangamarkFolder.id;
-      }
-      else {
-        //TODO create and return created id???
-        return null;
-      }
-    });
-}
-
 function getDomainFolderId(parentId, domain, create=false) {
   return chrome.bookmarks.getChildren(parentId)
     .then((children) => {
@@ -89,6 +76,7 @@ function searchDomainFolder(bookmarkTreeNode, title, exactTitle=false) {
       resolve(null);
     }
 
+    console.log(bookmarkTreeNode);
     var bookmark = null;
 
       function searchTree(tree) {

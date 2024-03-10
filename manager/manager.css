@@ -1,0 +1,102 @@
+@import '../theme.css';
+
+body {
+  background-color: var(--primaryColor);
+  color: var(--offWhite);
+}
+
+.sidePanel {
+  height: 100%;
+  width: 15%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  background-color: var(--secondayColor);
+}
+
+.main {
+  margin-left: 15%;
+}
+
+.header {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.list {
+  display: grid;
+  grid-auto-flow: row;
+  grid-row-gap: 10px
+}
+
+.bookmarkEntry {
+  display: flex;
+}
+
+.bookmarkGrid {
+  display: grid;
+  flex: auto;
+  grid-template-columns: [col1] auto [col2] 18ch [end];
+  row-gap: 5px;
+  background-color: var(--secondaryColor30);
+}
+
+.col1 {
+  grid-column: col1;
+}
+
+.col2 {
+  grid-column: col2;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.fullGridLength {
+  grid-column-start: col1;
+  grid-column-end: end;
+}
+
+.dropDown {
+  display: flex;
+  align-items: center;
+}
+
+.circle {
+  width: 5px;
+  height: 5px;
+  margin: 2px;
+  background: var(--offWhite);
+  border-radius: 50%;
+  display: block;
+}
+
+.dropDown:hover .circle {
+  background: var(--accent01);
+}
+
+.bookmarkOptions {
+  display: none;
+  grid-column: end;
+  background-color: var(--secondayColor);
+  border: 1px solid var(--offWhite);
+}
+
+button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.show {
+  display: flex;
+  flex-direction: column;
+}
+
+.removeIcon {
+  color: var(--warning);
+}
+
+.completeIcon {
+  color: var(--approve);
+}
