@@ -14,14 +14,30 @@ class Folder {
     this.bookmarks = bookmarks;
     this.subFolders = subFolders;
   }
+
+  getAllBookmarks() {
+    const allBookmarks = this.bookmarks;
+    this.subFolders.forEach(subFolder => {
+      allBookmarks.push(...subFolder.bookmarks);
+    });
+    return allBookmarks;
+  }
+
+  getSubFolderBookmarks(subFolderName='Completed') {
+    this.subFolders.forEach(subFolder => {
+      if (subFolder.name === subFolderName) {
+        return subFolder.bookmarks;
+      }
+    });
+  }
 }
 
 class Bookmark {
   /**
    * 
-   * @param {string} bookmarkTitle 
-   * @param {string} url 
-   * @param {number} dateCreated 
+   * @param {string} bookmarkTitle
+   * @param {string} url
+   * @param {number} dateCreated
    */
   constructor(bookmarkTitle, url, dateCreated) {
     const {title, chapter} = this.#convertBookmarkTitle(bookmarkTitle);
@@ -29,7 +45,8 @@ class Bookmark {
     this.title = title;
     this.chapter = chapter;
     this.url = url;
-    this.date = this.#convertDate(dateCreated);
+    this.date = dateCreated
+    this.dateString = this.#convertDate(dateCreated);
   }
 
   #convertBookmarkTitle(bookmarkTitle) {
@@ -63,8 +80,7 @@ class Bookmark {
     return `${month} ${day}, ${year}`
   }
 
-  bookmarkElement(domain) {
-    console.log(domain);
+  bookmarkElement() {
     const bookmarkEntry = document.createElement('div');
     bookmarkEntry.classList.add('bookmarkEntry');
 
@@ -94,11 +110,11 @@ class Bookmark {
 
     const domainElement = document.createElement('div');
     domainElement.classList.add('col1');
-    domainElement.textContent = domain;
+    domainElement.textContent = new URL(this.url).hostname;
 
     const dateElement = document.createElement('div');
     dateElement.classList.add('col2');
-    dateElement.textContent = this.date;
+    dateElement.textContent = this.dateString;
 
     bookmarkGrid.appendChild(titleElement);
     bookmarkGrid.appendChild(optionsElement);
@@ -184,27 +200,40 @@ function getBookmarks(tree, getSubFolders=true) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function displayAll(folders) {
-  const bookmarkList = document.getElementById('bookmarkList');
+function displayAll(folders, sortBy='recent') {
+  var allBookmarks = [];
   folders.forEach(folder => {
-    folder.bookmarks.forEach(bookmark => {
-      const bookmarkEntry = bookmark.bookmarkElement(folder.name);
-      bookmarkList.appendChild(bookmarkEntry);
-      console.log(bookmark);
-    })
-    folder.subFolders.forEach(subFolder => {
-      subFolder.bookmarks.forEach(bookmark => {
-        console.log(bookmark)
-      })
-    })
+    allBookmarks.push(...folder.getAllBookmarks());
+  });
+
+  allBookmarks = sortBookmarks(allBookmarks, sortBy);
+
+  const bookmarkList = document.getElementById('bookmarkList');
+  allBookmarks.forEach(bookmark => {
+    bookmarkList.appendChild(bookmark.bookmarkElement());
   });
 }
 
-const dropDown = document.getElementById('dropDown');
-dropDown.addEventListener('click', () => {
-  const bookmarkOptions = document.getElementById('bookmarkOptions');
-  bookmarkOptions.classList.toggle('show');
-})
+function sortBookmarks(bookmarks, sortBy) {
+  return bookmarks.toSorted((a, b) => {
+    switch (sortBy) {
+      case 'recent':
+        return b.date - a.date;
+      case 'oldest':
+        return a.date - b.date;
+      case 'titleAZ':
+        return a.title.localeCompare(b.title);
+      case 'titleZA':
+        return b.title.localeCompare(a.title);
+      default:
+        throw new Error('Invalid sorting criteria');
+    }
+  });
+}
+
+function displayBookmarks(sortBy='date', type='all', folder) {
+  
+}
 
 function openNav() {
 
