@@ -20,8 +20,25 @@ body {
 
 .header {
   margin-bottom: 20px;
+}
+
+.bookmarkToggle {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  width: fit-content;
+}
+
+.bookmarkToggle input{
+  display: none;
+}
+
+.bookmarkToggle label {
+  padding: 10px;
+  background-color: var(--offWhite30);
+}
+
+.bookmarkToggle input:checked + label {
+  background-color: var(--accent02);
 }
 
 .list {

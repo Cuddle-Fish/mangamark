@@ -1,6 +1,7 @@
 import { getMangamarkFolderId } from "../bookmark.js";
 
 const sideNavWidth = "250px";
+var globalFolders;
 
 class Folder {
   /**
@@ -16,19 +17,20 @@ class Folder {
   }
 
   getAllBookmarks() {
-    const allBookmarks = this.bookmarks;
+    const allBookmarks = [...this.bookmarks];
     this.subFolders.forEach(subFolder => {
       allBookmarks.push(...subFolder.bookmarks);
     });
     return allBookmarks;
   }
 
-  getSubFolderBookmarks(subFolderName='Completed') {
-    this.subFolders.forEach(subFolder => {
-      if (subFolder.name === subFolderName) {
-        return subFolder.bookmarks;
-      }
-    });
+  getSubFolderBookmarks(subFolderName='completed') {
+    const subFolder = this.subFolders.find(subFolder => subFolder.name === subFolderName);
+    if (subFolder) {
+      return [...subFolder.bookmarks];
+    } else {
+      return [];
+    }
   }
 }
 
@@ -169,7 +171,7 @@ function getMarks() {
   getMangamarkFolderId()
   .then((mangamarkId) => chrome.bookmarks.getSubTree(mangamarkId))
   .then((mangamarkTree) => getFolders(mangamarkTree[0].children))
-  .then((folders) => displayAll(folders))
+  .then((folders) => displayBookmarks(folders))
 }
 
 function getFolders(tree) {
@@ -181,6 +183,7 @@ function getFolders(tree) {
       folders.push(folder);
     }
   });
+  globalFolders = folders;
   return folders;
 }
 
@@ -200,18 +203,49 @@ function getBookmarks(tree, getSubFolders=true) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function displayAll(folders, sortBy='recent') {
-  var allBookmarks = [];
+function compileAllBookmarks(folders) {
+  const allBookmarks = [];
   folders.forEach(folder => {
     allBookmarks.push(...folder.getAllBookmarks());
   });
+  return allBookmarks;
+}
 
-  allBookmarks = sortBookmarks(allBookmarks, sortBy);
-
-  const bookmarkList = document.getElementById('bookmarkList');
-  allBookmarks.forEach(bookmark => {
-    bookmarkList.appendChild(bookmark.bookmarkElement());
+function compileMainBookmarks(folders) {
+  const mainBookmarks = [];
+  folders.forEach(folder => {
+    mainBookmarks.push(...folder.bookmarks);
   });
+  return mainBookmarks;
+}
+
+function compileCompletedBookmarks(folders) {
+  const completedBookmarks = [];
+  folders.forEach(folder => {
+    completedBookmarks.push(...folder.getSubFolderBookmarks());
+  });
+  return completedBookmarks;
+}
+
+function displayBookmarks(folders, type='all', sortBy='recent') {
+  var bookmarks;
+  switch (type) {
+    case 'all':
+      bookmarks = compileAllBookmarks(folders);
+      break;
+    case 'reading':
+      bookmarks = compileMainBookmarks(folders);
+      break;
+    case 'completed':
+      bookmarks = compileCompletedBookmarks(folders);
+      break;
+    default:
+      throw new Error('Invalid display type');
+  }
+  bookmarks = sortBookmarks(bookmarks, sortBy);
+  const bookmarkDisplay = bookmarks.map(bookmark => bookmark.bookmarkElement());
+  const bookmarkList = document.getElementById('bookmarkList');
+  bookmarkList.replaceChildren(...bookmarkDisplay);
 }
 
 function sortBookmarks(bookmarks, sortBy) {
@@ -231,9 +265,13 @@ function sortBookmarks(bookmarks, sortBy) {
   });
 }
 
-function displayBookmarks(sortBy='date', type='all', folder) {
-  
-}
+const bookmarkType = document.getElementsByName('bookmarkType');
+bookmarkType.forEach(type => {
+  type.addEventListener('change', () => {
+    console.log(type.value);
+    displayBookmarks(globalFolders, type.value);
+  });
+});
 
 function openNav() {
 

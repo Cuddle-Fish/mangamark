@@ -12,7 +12,15 @@
 
   <div class="main">
     <div class="header">
-      search bar here
+      <div>search bar here</div>
+      <div class="bookmarkToggle">
+        <input type="radio" id="typeAll" name="bookmarkType" value="all" checked>
+        <label for="typeAll">All</label>
+        <input type="radio" id="typeReading" name="bookmarkType" value="reading">
+        <label for="typeReading">Reading</label>
+        <input type="radio" id="typeCompleted" name="bookmarkType" value="completed">
+        <label for="typeCompleted">Completed</label>
+      </div>
     </div>
     <div id="bookmarkList" class="list"></div>
   </div>
