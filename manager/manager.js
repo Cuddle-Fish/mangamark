@@ -1,7 +1,8 @@
 import { getMangamarkFolderId } from "../bookmark.js";
 
 const sideNavWidth = "250px";
-var globalFolders;
+var extensionChange = false;
+var bookmarkFolders;
 
 class Folder {
   /**
@@ -126,7 +127,7 @@ class Bookmark {
 
     const bookmarkOptions = this.#optionsMenu();
     dropDown.addEventListener('click', () => {
-      bookmarkOptions.classList.toggle('show');
+      bookmarkOptions.classList.toggle('showBookmarkOpt');
     });
 
     bookmarkEntry.appendChild(bookmarkGrid);
@@ -165,13 +166,21 @@ class Bookmark {
   }
 }
 
+setOptions();
 getMarks();
 
 function getMarks() {
   getMangamarkFolderId()
   .then((mangamarkId) => chrome.bookmarks.getSubTree(mangamarkId))
   .then((mangamarkTree) => getFolders(mangamarkTree[0].children))
-  .then((folders) => displayBookmarks(folders))
+  .then((folders) => {
+    return chrome.storage.sync.get(['managerType', 'managerOrder'])
+      .then((result) => {
+        const { managerType, managerOrder } = result;
+        return {folders, managerType, managerOrder};
+      });
+  })
+  .then(({folders, managerType, managerOrder}) => displayBookmarks(folders, managerType, managerOrder));
 }
 
 function getFolders(tree) {
@@ -183,7 +192,7 @@ function getFolders(tree) {
       folders.push(folder);
     }
   });
-  globalFolders = folders;
+  bookmarkFolders = folders;
   return folders;
 }
 
@@ -227,7 +236,7 @@ function compileCompletedBookmarks(folders) {
   return completedBookmarks;
 }
 
-function displayBookmarks(folders, type='all', sortBy='recent') {
+function displayBookmarks(folders, type='all', sortBy='Recent') {
   var bookmarks;
   switch (type) {
     case 'all':
@@ -251,13 +260,13 @@ function displayBookmarks(folders, type='all', sortBy='recent') {
 function sortBookmarks(bookmarks, sortBy) {
   return bookmarks.toSorted((a, b) => {
     switch (sortBy) {
-      case 'recent':
+      case 'Recent':
         return b.date - a.date;
-      case 'oldest':
+      case 'Oldest':
         return a.date - b.date;
-      case 'titleAZ':
+      case 'Az':
         return a.title.localeCompare(b.title);
-      case 'titleZA':
+      case 'Za':
         return b.title.localeCompare(a.title);
       default:
         throw new Error('Invalid sorting criteria');
@@ -269,9 +278,56 @@ const bookmarkType = document.getElementsByName('bookmarkType');
 bookmarkType.forEach(type => {
   type.addEventListener('change', () => {
     console.log(type.value);
-    displayBookmarks(globalFolders, type.value);
+    chrome.storage.sync.set({'managerType': type.value});
+    chrome.storage.sync.get('managerOrder')
+    .then((result) => displayBookmarks(bookmarkFolders, type.value, result.managerOrder));
   });
 });
+
+const orderButton = document.getElementById('orderButton');
+const orderDropDown = document.getElementById('orderDropDown');
+orderButton.addEventListener('click', () => {
+  orderDropDown.classList.toggle('showOrder');
+});
+
+const selectedDisplay = document.getElementById('selectedOrder');
+const orderOptions = document.getElementsByName('orderOption');
+orderOptions.forEach(option => {
+  option.addEventListener('change', () => {
+    console.log(option.value);    
+    chrome.storage.sync.set({'managerOrder': option.value});
+    chrome.storage.sync.get('managerType')
+    .then((result) => displayBookmarks(bookmarkFolders, result.managerType, option.value));
+    selectedDisplay.textContent = option.value;
+  });
+  option.addEventListener('click', () => {
+    orderDropDown.classList.toggle('showOrder');
+  });
+});
+
+chrome.bookmarks.onChanged.addListener(handleBookmarkChange);
+chrome.bookmarks.onChildrenReordered.addListener(handleBookmarkChange);
+chrome.bookmarks.onCreated.addListener(handleBookmarkChange);
+chrome.bookmarks.onMoved.addListener(handleBookmarkChange);
+chrome.bookmarks.onRemoved.addListener(handleBookmarkChange);
+
+function handleBookmarkChange() {
+  console.log(`bookmark changed extensionChange = ${extensionChange}`);
+  if (!extensionChange) {
+    getMarks();
+  }
+  extensionChange = false;
+}
+
+function setOptions() {
+  chrome.storage.sync.get(['managerType', 'managerOrder'])
+  .then((result) => {
+    const { managerType, managerOrder } = result;
+    document.querySelector(`input[name="bookmarkType"][value="${managerType}"]`).checked = true;
+    document.querySelector(`input[name="orderOption"][value="${managerOrder}"]`).checked = true;
+    selectedDisplay.textContent = managerOrder;
+  })
+}
 
 function openNav() {
 
