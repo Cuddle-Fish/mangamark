@@ -6,50 +6,70 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
 </head>
 <body>
-  <div class="sidePanel">
-    navigation here
+  <div id="sidePanel" class="sidePanel">
+    <input type="radio" id="navAll" name="folderNav" value="all" checked>
+    <label for="navAll">
+      <div class="circleText">All</div>
+      <div class="labelText">Display All</div>
+    </label>
+    <div id="navFolders"></div>
   </div>
 
   <div class="main">
     <div class="header">
-      <div>search bar here</div>
-      <div class="bookmarkToggle">
-        <input type="radio" id="typeAll" name="bookmarkType" value="all">
-        <label for="typeAll">All</label>
-        <input type="radio" id="typeReading" name="bookmarkType" value="reading">
-        <label for="typeReading">Reading</label>
-        <input type="radio" id="typeCompleted" name="bookmarkType" value="completed">
-        <label for="typeCompleted">Completed</label>
-      </div>
-      <div class="orderBy">
-        <button id="orderButton">
-          Order by&nbsp;
-          <span id="selectedOrder">&nbsp;</span>
+      <div class="searchContainer">
+        <div class="searchArea">
           <span class="material-symbols-outlined">
-            arrow_drop_down
-          </span>
-        </button>
-        <div id="orderDropDown" class="orderDropDown">
-          <div>
-            <input type="radio" id="orderRecent" name="orderOption" value="Recent">
-            <label for="orderRecent">Most Recent</label>          
-          </div>
-          <div>
-            <input type="radio" id="orderOldest" name="orderOption" value="Oldest">
-            <label for="orderOldest">Least Recent</label>          
-          </div>
-          <div>
-            <input type="radio" id="orderTitleAz" name="orderOption" value="Az">
-            <label for="orderTitleAz">Title A-Z</label>          
-          </div>
-          <div>
-            <input type="radio" id="orderTitleZa" name="orderOption" value="Za">
-            <label for="orderTitleZa">Title Z-A</label>          
-          </div>
+            search
+          </span>          
+          <input type="text" id="searchBar" placeholder="Search">
+          <button id="clearSearch" class="hidden">
+            <span class="material-symbols-outlined">
+              close
+            </span>
+          </button>
         </div>
       </div>
 
+      <div class="orderContainer">
+        <div class="bookmarkToggle">
+          <input type="radio" id="typeAll" name="bookmarkType" value="all">
+          <label for="typeAll">All</label>
+          <input type="radio" id="typeReading" name="bookmarkType" value="reading">
+          <label for="typeReading">Reading</label>
+          <input type="radio" id="typeCompleted" name="bookmarkType" value="completed">
+          <label for="typeCompleted">Completed</label>
+        </div>
+        <div class="orderBy">
+          <button id="orderButton">
+            Order by&nbsp;
+            <span id="selectedOrder">&nbsp;</span>
+            <span class="material-symbols-outlined">
+              arrow_drop_down
+            </span>
+          </button>
+          <div id="orderDropDown" class="orderDropDown">
+            <div>
+              <input type="radio" id="orderRecent" name="orderOption" value="Recent">
+              <label for="orderRecent">Most Recent</label>          
+            </div>
+            <div>
+              <input type="radio" id="orderOldest" name="orderOption" value="Oldest">
+              <label for="orderOldest">Least Recent</label>          
+            </div>
+            <div>
+              <input type="radio" id="orderTitleAz" name="orderOption" value="Az">
+              <label for="orderTitleAz">Title A-Z</label>          
+            </div>
+            <div>
+              <input type="radio" id="orderTitleZa" name="orderOption" value="Za">
+              <label for="orderTitleZa">Title Z-A</label>          
+            </div>
+          </div>
+        </div>        
+      </div>
     </div>
+
     <div id="bookmarkList" class="list"></div>
   </div>
   <script src="manager.js" type="module"></script>

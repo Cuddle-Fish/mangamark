@@ -1,5 +1,9 @@
 @import '../theme.css';
 
+:root {
+  scrollbar-color: var(--offWhite30) var(--primaryColor);
+}
+
 body {
   background-color: var(--primaryColor);
   color: var(--offWhite);
@@ -7,19 +11,128 @@ body {
 
 .sidePanel {
   height: 100%;
-  width: 15%;
+  width: 260px;
   position: fixed;
   top: 0;
   left: 0;
   background-color: var(--secondayColor);
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite30) var(--secondayColor);
+}
+
+.sidePanel input {
+  display: none;
+}
+
+.sidePanel label {
+  display: block flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 5px 0 20px;
+  gap: 10px;
+}
+
+.circleText {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 55px;
+  height: 55px;
+  font-size: 20px;
+  border-radius: 50%;
+  background-color: var(--accent02);
+  color: var(--offWhite);
+}
+
+.labelText {
+  font-size: 18px;
+  word-break: break-all;
+}
+
+.sidePanel label:hover .circleText {
+  outline: 1px solid var(--offWhite);
+}
+
+.sidePanel label:hover .labelText {
+  text-decoration: underline;
+  text-decoration-color: var(--offWhite);
+}
+
+.sidePanel input:checked + label .circleText {
+  outline: 1px solid var(--accent01);
+}
+
+.sidePanel input:checked + label .labelText {
+  text-decoration: underline;
+  text-decoration-color: var(--accent01);
 }
 
 .main {
-  margin-left: 15%;
+  margin-left: 260px;
 }
 
 .header {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto auto;
+  justify-content: space-between;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+.searchContainer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.searchArea {
+  display: flex;
+  width: 250px;
+  gap: 5px;
+  background-color: var(--secondayColor);
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.searchArea:hover {
+  outline: 1px solid var(--offWhite);
+}
+
+.searchArea:focus-within {
+  outline: 1px solid var(--accent01);
+}
+
+.searchArea input {
+  all: unset;
+  flex: auto;
+}
+
+.searchArea button {
+  width: 25px;
+  height: 25px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--offWhite);
+}
+
+.searchArea button:hover {
+  outline: 2px solid var(--offWhite30);
+}
+
+.searchArea button span {
+  font-weight: bold;
+  color: var(--secondayColor);
+  font-size: 18px;
+}
+
+.searchArea button:hover span {
+  color: var(--secondaryColor30);
+}
+
+.orderContainer {
+  display: flex;
+  justify-content: space-between;
 }
 
 .bookmarkToggle {
@@ -111,7 +224,7 @@ body {
 
 button {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
 }
 
@@ -126,4 +239,8 @@ button {
 
 .completeIcon {
   color: var(--approve);
+}
+
+.hidden {
+  display: none;
 }
