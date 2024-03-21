@@ -5,8 +5,6 @@ import { getMangamarkFolderId } from "../bookmark.js";
   -- mark as completed
   -- remove bookmark
 
-  - add indicator for completed bookmarks
-
   - display warning for bookmarks that do not meet naming requirements
 
   - Consider: allowing for restoration of deleted bookmarks
@@ -120,12 +118,17 @@ class Bookmark {
    * @param {string} url link to site
    * @param {number} dateCreated date bookmark was created, date read
    */
-  constructor(title, chapter, url, dateCreated) {
+  constructor(title, chapter, url, dateCreated, specialType) {
     this.title = title;
     this.chapter = chapter;
     this.url = url;
     this.date = dateCreated
     this.dateString = this.#convertDate(dateCreated);
+    if (specialType) {
+      this.specialType = specialType.toUpperCase();
+    } else {
+      this.specialType = null;
+    }
   }
 
   #convertDate(dateCreated) {
@@ -151,8 +154,15 @@ class Bookmark {
   }
 
   bookmarkElement() {
+    const sideBar = document.createElement('div');
+    sideBar.classList.add('sideBar');
+    if (this.specialType) {
+      sideBar.setAttribute('specialType', this.specialType);
+    }
+
     const bookmarkEntry = document.createElement('div');
     bookmarkEntry.classList.add('bookmarkEntry');
+    sideBar.appendChild(bookmarkEntry);
 
     const bookmarkGrid = document.createElement('div');
     bookmarkGrid.classList.add('bookmarkGrid');
@@ -160,6 +170,13 @@ class Bookmark {
     const titleElement = document.createElement('div');
     titleElement.classList.add('col1');
     titleElement.textContent = this.title;
+    if (this.specialType) {
+      const specialText = document.createElement('span');
+      specialText.classList.add('specialText');
+      specialText.setAttribute('specialType', this.specialType);
+      specialText.textContent = this.specialType;
+      titleElement.appendChild(specialText);
+    }
 
     const optionsElement = document.createElement('div');
     optionsElement.classList.add('col2');
@@ -200,7 +217,7 @@ class Bookmark {
     bookmarkEntry.appendChild(bookmarkGrid);
     bookmarkEntry.appendChild(bookmarkOptions);
 
-    return bookmarkEntry;
+    return sideBar;
   }
 
   #optionsMenu() {
@@ -217,17 +234,18 @@ class Bookmark {
       //TODO remove bookmark
       //TODO remove HTML element
     });
-
-    const completeButton = document.createElement('button');
-    completeButton.title = 'Mark as Completed';
-    const completeIcon = document.createElement('span');
-    completeIcon.classList.add('material-symbols-outlined', 'completeIcon');
-    completeIcon.textContent = 'done';
-    completeButton.appendChild(completeIcon);
-    //TOOD add onclick move to completed
-
     bookmarkOptions.appendChild(deleteButton);
-    bookmarkOptions.appendChild(completeButton);
+
+    if (this.specialType !== 'COMPLETED') {
+      const completeButton = document.createElement('button');
+      completeButton.title = 'Mark as Completed';
+      const completeIcon = document.createElement('span');
+      completeIcon.classList.add('material-symbols-outlined', 'completeIcon');
+      completeIcon.textContent = 'done';
+      completeButton.appendChild(completeIcon);
+      //TOOD add onclick move to completed
+      bookmarkOptions.appendChild(completeButton);          
+    }
 
     return bookmarkOptions;
   }
@@ -246,7 +264,6 @@ function getMarks() {
         !folders.some(currentFolder => currentFolder.name === activeNavFolder.name)
       )
     ) {
-      console.log('set navFolder to all');
       navAll.checked = true;
       activeNavFolder = bookmarkFolders;
     }
@@ -275,12 +292,17 @@ function getFolders(tree) {
   return folders;
 }
 
-function getBookmarks(tree, getSubFolders=true) {
+function getBookmarks(tree, getSubFolders=true, specialType) {
   const bookmarks = [];
   const folders = []
   tree.forEach(node => {
     if (node.url) {
-      const bookmark = createBookmarkObject(node.title, node.url, node.dateAdded);
+      var bookmark;
+      if (specialType) {
+        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, specialType);
+      } else {
+        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded);
+      }
       if (bookmark) {
         bookmarks.push(bookmark);
       } else {
@@ -288,7 +310,7 @@ function getBookmarks(tree, getSubFolders=true) {
         //TODO display somewhere on page
       }
     } else if (node.children && getSubFolders) {
-      const {bookmarks: folderBookmarks} = getBookmarks(node.children, false);
+      const {bookmarks: folderBookmarks} = getBookmarks(node.children, false, node.title);
       const folder = new Folder(node.title, folderBookmarks);
       folders.push(folder);
     }
@@ -296,7 +318,7 @@ function getBookmarks(tree, getSubFolders=true) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function createBookmarkObject(bookmarkTitle, url, dateAdded) {
+function createBookmarkObject(bookmarkTitle, url, dateAdded, specialType) {
   const regex = /^(.*?) - Chapter (\d+)$/i;
   const matches = bookmarkTitle.match(regex);
   if (!matches) {
@@ -304,7 +326,11 @@ function createBookmarkObject(bookmarkTitle, url, dateAdded) {
   } else{
     const title = matches[1]
     const chapter = matches[2];
-    return new Bookmark(title, chapter, url, dateAdded);
+    if (specialType) {
+      return new Bookmark(title, chapter, url, dateAdded, specialType);
+    } else {
+      return new Bookmark(title, chapter, url, dateAdded);      
+    }
   }
 }
 
@@ -474,8 +500,6 @@ function populateFolderNav(folders) {
     navFolders.appendChild(input);
     navFolders.appendChild(label);
   });
-  console.log(activeNavFolder);
-
 }
 
 function clearNavFolders(folderChildren) {

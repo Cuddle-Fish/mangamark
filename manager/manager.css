@@ -172,6 +172,8 @@ body {
 
 .bookmarkEntry {
   display: flex;
+  background-color: var(--lightSecondary);
+  margin-left: 5px;
 }
 
 .bookmarkGrid {
@@ -179,7 +181,8 @@ body {
   flex: auto;
   grid-template-columns: [col1] auto [col2] 18ch [end];
   row-gap: 5px;
-  background-color: var(--secondaryColor30);
+  padding-left: 10px;
+  font-size: 16px;
 }
 
 .col1 {
@@ -243,4 +246,32 @@ button {
 
 .hidden {
   display: none;
+}
+
+.sideBar {
+  border-radius: 5px;
+}
+
+.sideBar[specialType="COMPLETED"] {
+  background-color: var(--approve);
+}
+
+.sideBar[specialType="DELETED"] {
+  background-color: var(--warning);
+}
+
+.specialText {
+  border-radius: 3px;
+  padding: 0 5px;
+  font-weight: bold;
+  color: var(--primaryColor);
+  background-color: var(--accent02);
+}
+
+.specialText[specialType="COMPLETED"] {
+  background-color: var(--approve);
+}
+
+.specialText[specialType="DELETED"] {
+  background-color: var(--warning);
 }
