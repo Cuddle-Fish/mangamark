@@ -1,4 +1,4 @@
-import { getMangamarkFolderId } from "../bookmark.js";
+import { findBookmark, addBookmark, removeBookmark } from "../bookmark.js";
 
 const manageButton = document.getElementById('manageButton');
 const editButton = document.getElementById('editButton');
@@ -20,10 +20,7 @@ chrome.tabs.query({active: true, currentWindow: true})
     pageURL = activeTab.url;
     const domain = new URL(activeTab.url).hostname;
     const title = activeTab.title;
-    return getMangamarkFolderId()
-      .then((mangamarkId) => getDomainFolderId(mangamarkId, domain))
-      .then((domainId) => domainId ? chrome.bookmarks.getSubTree(domainId) : null)
-      .then((bookmarkTreeNode) => searchDomainFolder(bookmarkTreeNode, title))
+    return findBookmark(title, domain)
       .then((bookmark) => [bookmark, domain, title]);
   })
   .then(([bookmark, domain, title]) => {
@@ -52,66 +49,6 @@ chrome.tabs.query({active: true, currentWindow: true})
     }
   })
   .catch((err) => console.error(err));
-
-function getDomainFolderId(parentId, domain, create=false) {
-  return chrome.bookmarks.getChildren(parentId)
-    .then((children) => {
-      var domainFolder = children.find((child) => child.title === domain);
-      if (domainFolder) {
-        return domainFolder.id;
-      } else {
-        if (create) {
-          return chrome.bookmarks.create({parentId: parentId, title: domain})
-            .then((bookmarkTreeNode) => bookmarkTreeNode.id);
-        } else {
-          return null;          
-        }
-      }
-    });
-}
-
-function searchDomainFolder(bookmarkTreeNode, title, exactTitle=false) {
-  return new Promise((resolve) => {
-    if (!bookmarkTreeNode) {
-      resolve(null);
-    }
-
-    console.log(bookmarkTreeNode);
-    var bookmark = null;
-
-      function searchTree(tree) {
-        for (var i = 0; i < tree.length; i++) {
-          var node = tree[i];
-          if (node.url) {
-            if (exactTitle) {
-              var bookmarkTitle = node.title
-              if (title === bookmarkTitle) {
-                bookmark = node;
-              }
-            } else {
-              var bookmarkTitle = node.title.split(' - ')[0];
-              if (title.includes(bookmarkTitle)) {
-                bookmark = node;
-              }
-            }
-          } else if (node.children) {
-            searchTree(node.children)
-          }
-          if (bookmark) {
-            break;
-          }
-        }
-      }
-
-      searchTree(bookmarkTreeNode);
-
-      if (bookmark) {
-        resolve(bookmark);
-      } else {
-        resolve(null);
-      }
-  });
-}
 
 function bookmarkTitleAndChapter(bookmarkTitle) {
   const regex = /^(.*?) - Chapter (\d+)$/i;
@@ -212,26 +149,6 @@ editButton.addEventListener('click', function() {
   }
 });
 
-function createBookmarkTitle(title, chapterNum) {
-  return title + ' - Chapter ' + chapterNum;
-}
-
-function addBookmark(contentTitle, chapterNum, url, folderName) {
-  const bookmarkTitle = createBookmarkTitle(contentTitle, chapterNum);
-  return getMangamarkFolderId()
-    .then((mangamarkId) => getDomainFolderId(mangamarkId, folderName, true))
-    .then((domainId) => chrome.bookmarks.create({parentId: domainId, title: bookmarkTitle, url: url}))
-    .then((bookmark) => bookmark.title);
-}
-
-function removeBookmark(bookmarkTitle, folderName) {
-  return getMangamarkFolderId()
-    .then((mangamarkId) => getDomainFolderId(mangamarkId, folderName))
-    .then((domainId) => domainId ? chrome.bookmarks.getSubTree(domainId) : null)
-    .then((bookmarkTreeNode) => searchDomainFolder(bookmarkTreeNode, bookmarkTitle, true))
-    .then((bookmark) => chrome.bookmarks.remove(bookmark.id));
-}
-
 function getData() {
   const title = titleElement.value;
   const chapterInput = document.getElementById('chapterInput');
@@ -251,10 +168,9 @@ updateButton.addEventListener('click', function() {
   const oldChapterElement = document.getElementById('oldChapter');
   const oldChapter = oldChapterElement.textContent;
   const data = getData();
-  const oldBookmarkTitle = createBookmarkTitle(data.title, oldChapter);
   addBookmark(data.title, data.chapter, data.url, data.folderName)
     .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark updated: ' + bookmarkTitle})
-    .then(() => removeBookmark(oldBookmarkTitle, data.folderName))
+    .then(() => removeBookmark(data.title, oldChapter, data.folderName))
     .catch((err) => {
       resultElement.textContent = 'Error updating bookmark';
       console.error('Error creating bookmark:', err);

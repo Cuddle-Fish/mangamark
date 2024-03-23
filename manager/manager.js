@@ -1,13 +1,12 @@
-import { getMangamarkFolderId } from "../bookmark.js";
+import { getMangamarkSubTree } from "../bookmark.js";
 
 /* Task remaining
   - implement bookmark buttons
   -- mark as completed
   -- remove bookmark
+  --- Consider: allowing for restoration of deleted bookmarks
 
   - display warning for bookmarks that do not meet naming requirements
-
-  - Consider: allowing for restoration of deleted bookmarks
 
   - options for bookmark grid display 
 
@@ -252,8 +251,7 @@ class Bookmark {
 }
 
 function getMarks() {
-  getMangamarkFolderId()
-  .then((mangamarkId) => chrome.bookmarks.getSubTree(mangamarkId))
+  getMangamarkSubTree()
   .then((mangamarkTree) => getFolders(mangamarkTree[0].children))
   .then((folders) => {
     bookmarkFolders = folders;
