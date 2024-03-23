@@ -512,6 +512,10 @@ function clearNavFolders(folderChildren) {
 }
 
 function navListener() {
+  if (searchBar.value !== '') {
+    searchBar.value = '';
+    clearSearchButton.classList.add('hidden');
+  }
   const value = this.value;
   console.log(`Nav: ${this.value}`);
   chrome.storage.sync.get(['managerType', 'managerOrder'])
