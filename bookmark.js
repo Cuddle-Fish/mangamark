@@ -136,6 +136,17 @@ function addBookmark(title, chapterNum, url, folderName) {
 }
 
 /**
+ * removes bookmark and associated folder if empty
+ * 
+ * @param {BookmarkTreeNode} bookmark chrome bookmark to be removed
+ */
+function performRemove(bookmark) {
+  chrome.bookmarks.remove(bookmark.id)
+  .then(() => chrome.bookmarks.getChildren(bookmark.parentId))
+  .then((children) => children.length === 0 ? chrome.bookmarks.remove(bookmark.parentId) : Promise.resolve());
+}
+
+/**
  * remove a bookmark from Mangamark folder under given folderName
  * 
  * @param {string} title title of content 
@@ -148,7 +159,7 @@ function removeBookmark(title, chapterNum, folderName) {
   .then((mangamarkId) => getFolderId(mangamarkId, folderName))
   .then((folderId) => folderId ?  chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))
   .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true))
-  .then((bookmark) => bookmark ? chrome.bookmarks.remove(bookmark.id) : Promise.reject('Could not find bookmark'))
+  .then((bookmark) => bookmark ? performRemove(bookmark) : Promise.reject('Could not find bookmark'))
 }
 
 export {getMangamarkSubTree, findBookmark, addBookmark, removeBookmark}
