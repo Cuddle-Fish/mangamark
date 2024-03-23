@@ -250,6 +250,30 @@ class Bookmark {
   }
 }
 
+addEventListener('DOMContentLoaded', () => {
+  setOptions()
+  .then(() => getMarks())
+});
+
+function setOptions() {
+  return new Promise((resolve, reject) => {
+    chrome.storage.sync.get(['managerType', 'managerOrder'])
+    .then((result) => {
+      const { managerType, managerOrder } = result;
+
+      if (!managerType || !managerOrder) {
+        reject(new Error('Type or order for manager page not found in storage'));
+        return;
+      }
+
+      document.querySelector(`input[name="bookmarkType"][value="${managerType}"]`).checked = true;
+      document.querySelector(`input[name="orderOption"][value="${managerOrder}"]`).checked = true;
+      selectedDisplay.textContent = managerOrder;
+      resolve();
+    });
+  });
+}
+
 function getMarks() {
   getMangamarkSubTree()
   .then((mangamarkTree) => getFolders(mangamarkTree[0].children))
@@ -332,30 +356,6 @@ function createBookmarkObject(bookmarkTitle, url, dateAdded, specialType) {
   }
 }
 
-function compileAllBookmarks(folders) {
-  const allBookmarks = [];
-  folders.forEach(folder => {
-    allBookmarks.push(...folder.getAllBookmarks());
-  });
-  return allBookmarks;
-}
-
-function compileMainBookmarks(folders) {
-  const mainBookmarks = [];
-  folders.forEach(folder => {
-    mainBookmarks.push(...folder.bookmarks);
-  });
-  return mainBookmarks;
-}
-
-function compileCompletedBookmarks(folders) {
-  const completedBookmarks = [];
-  folders.forEach(folder => {
-    completedBookmarks.push(...folder.getSubFolderBookmarks());
-  });
-  return completedBookmarks;
-}
-
 function displayBookmarks(folders, type='all', sortBy='Recent') {
   var bookmarks;
   if (!Array.isArray(folders)) {
@@ -381,6 +381,30 @@ function displayBookmarks(folders, type='all', sortBy='Recent') {
   const bookmarkDisplay = bookmarks.map(bookmark => bookmark.bookmarkElement());
   const bookmarkList = document.getElementById('bookmarkList');
   bookmarkList.replaceChildren(...bookmarkDisplay);
+}
+
+function compileAllBookmarks(folders) {
+  const allBookmarks = [];
+  folders.forEach(folder => {
+    allBookmarks.push(...folder.getAllBookmarks());
+  });
+  return allBookmarks;
+}
+
+function compileMainBookmarks(folders) {
+  const mainBookmarks = [];
+  folders.forEach(folder => {
+    mainBookmarks.push(...folder.bookmarks);
+  });
+  return mainBookmarks;
+}
+
+function compileCompletedBookmarks(folders) {
+  const completedBookmarks = [];
+  folders.forEach(folder => {
+    completedBookmarks.push(...folder.getSubFolderBookmarks());
+  });
+  return completedBookmarks;
 }
 
 function sortBookmarks(bookmarks, sortBy) {
@@ -436,39 +460,6 @@ orderOptions.forEach(option => {
     orderDropDown.classList.toggle('showOrder');
   });
 });
-
-chrome.bookmarks.onChanged.addListener(handleBookmarkChange);
-chrome.bookmarks.onChildrenReordered.addListener(handleBookmarkChange);
-chrome.bookmarks.onCreated.addListener(handleBookmarkChange);
-chrome.bookmarks.onMoved.addListener(handleBookmarkChange);
-chrome.bookmarks.onRemoved.addListener(handleBookmarkChange);
-
-function handleBookmarkChange() {
-  console.log(`bookmark changed extensionChange = ${extensionChange}`);
-  if (!extensionChange) {
-    getMarks();
-  }
-  extensionChange = false;
-}
-
-function setOptions() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.sync.get(['managerType', 'managerOrder'])
-    .then((result) => {
-      const { managerType, managerOrder } = result;
-
-      if (!managerType || !managerOrder) {
-        reject(new Error('Type or order for manager page not found in storage'));
-        return;
-      }
-
-      document.querySelector(`input[name="bookmarkType"][value="${managerType}"]`).checked = true;
-      document.querySelector(`input[name="orderOption"][value="${managerOrder}"]`).checked = true;
-      selectedDisplay.textContent = managerOrder;
-      resolve();
-    });
-  });
-}
 
 const navAll = document.getElementById('navAll');
 navAll.addEventListener('change', () => {
@@ -613,8 +604,17 @@ function closeNav() {
   
 }
 
-addEventListener('DOMContentLoaded', () => {
-  setOptions()
-  .then(() => getMarks())
-});
+chrome.bookmarks.onChanged.addListener(handleBookmarkChange);
+chrome.bookmarks.onChildrenReordered.addListener(handleBookmarkChange);
+chrome.bookmarks.onCreated.addListener(handleBookmarkChange);
+chrome.bookmarks.onMoved.addListener(handleBookmarkChange);
+chrome.bookmarks.onRemoved.addListener(handleBookmarkChange);
+
+function handleBookmarkChange() {
+  console.log(`bookmark changed extensionChange = ${extensionChange}`);
+  if (!extensionChange) {
+    getMarks();
+  }
+  extensionChange = false;
+}
 
