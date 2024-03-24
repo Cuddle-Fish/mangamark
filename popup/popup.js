@@ -1,18 +1,12 @@
 import { findBookmark, addBookmark, removeBookmark } from "../bookmark.js";
 
-const manageButton = document.getElementById('manageButton');
 const editButton = document.getElementById('editButton');
 const updateButton = document.getElementById('updateButton');
 const createButton = document.getElementById('createButton');
-
+const manageButton = document.getElementById('manageButton');
 const titleElement = document.getElementById('contentTitle');
-
+const oldChapterElement = document.getElementById('oldChapter');
 var pageURL = '';
-
-HTMLTextAreaElement.prototype.resize = function() {
-  this.style.height = '';
-  this.style.height = this.scrollHeight + 'px';
-}
 
 chrome.tabs.query({active: true, currentWindow: true})
   .then((tabs) => {
@@ -28,72 +22,88 @@ chrome.tabs.query({active: true, currentWindow: true})
     const numsInTitle = title.match(/\d+/g) || [];
     if (bookmark) {
       console.log('bookmark exists');
-
-      changeActionType('Update Title');
       setDisplayElements(true);
-
       const bookmarkInfo = bookmarkTitleAndChapter(bookmark.title);
-
       titleDisplay(bookmarkInfo.title);
-
       chapterDisplay(numsInTitle, bookmarkInfo.chapter);
     } else {
       console.log('new title');
-
-      changeActionType('Add Title');
       setDisplayElements(false);
-
       titleDisplay(title);
-
       chapterDisplay(numsInTitle);
     }
   })
   .catch((err) => console.error(err));
 
+/**
+ * Extracts title of content and chapter number from bookmark title
+ * 
+ * Expects to recieve a bookmark title with valid format
+ * 
+ * @param {string} bookmarkTitle Title of bookmark
+ * @returns {Object} Object with title and chapter number
+ * @property {string} title - Extracted title
+ * @property {string} chapter - Extracted chapter number
+ */
 function bookmarkTitleAndChapter(bookmarkTitle) {
   const regex = /^(.*?) - Chapter (\d+)$/i;
   const matches = bookmarkTitle.match(regex);
-  if (matches) {
     const [, title, chapter] = matches;
-    return { title: title.trim(), chapter: parseInt(chapter)};
-  } else {
-    return null;
-  }
+    console.log(`'${title}' - '${chapter}'`);
+    return { title: title, chapter: chapter};
 }
 
-function changeActionType(displyStr) {
-  const actionType = document.getElementById('actionType');
-  actionType.textContent = displyStr;
-}
-
+/**
+ * Set up popup display for updating or creating a bookmark
+ * 
+ * @param {boolean} update define display type, true for updating, false for creating
+ */
 function setDisplayElements(update) {
+  const actionType = document.getElementById('actionType');
   if (update) {
+    actionType.textContent = 'Update Title';
     updateButton.classList.remove('hidden');
-
-    const oldChapter = document.getElementById('oldChapter');
     const chapterArrow = document.getElementById('chapterArrow');
-    oldChapter.classList.remove('hidden');
+    oldChapterElement.classList.remove('hidden');
     chapterArrow.classList.remove('hidden');
   } else {
+    actionType.textContent = 'Add Title';
     createButton.classList.remove('hidden');
-
     editButton.classList.remove('hidden');
   }
 }
 
+/**
+ * Set title to be displayed in popup
+ *  
+ * @param {string} title 
+ */
 function titleDisplay(title) {
   titleElement.value = title.replace(/\n/g, '');
   titleElement.resize();
 }
 
+titleElement.addEventListener('input', function() {
+  this.resize();
+});
+
+HTMLTextAreaElement.prototype.resize = function() {
+  this.style.height = '';
+  this.style.height = this.scrollHeight + 'px';
+}
+
+/**
+ * Set chapter information displayed in popup
+ * 
+ * @param {Array} numsInTitle list of all numbers in url title
+ * @param {*=} oldChapter previous chapter number, if applicable
+ */
 function chapterDisplay(numsInTitle, oldChapter) {
   if (oldChapter) {
-    const oldChapterElement = document.getElementById('oldChapter');
     oldChapterElement.textContent = oldChapter;
   }
 
   const chapterInput = document.getElementById('chapterInput');
-
   if (oldChapter && numsInTitle.length > 1) {
     var defaultVal = numsInTitle.reduce((prev, curr) => {
       return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
@@ -104,7 +114,6 @@ function chapterDisplay(numsInTitle, oldChapter) {
   }
 
   const chapterSelect = document.getElementById('chapterSelect');
-
   if (numsInTitle.length > 1) {
     chapterSelect.classList.remove('hidden');
     numsInTitle.forEach(number => {
@@ -120,6 +129,11 @@ function chapterDisplay(numsInTitle, oldChapter) {
   }
 }
 
+/**
+ * Set domain name displayted in popup
+ * 
+ * @param {string} domain name of current page's domain
+ */
 function domainDisplay(domain) {
   const domainElement = document.getElementById('domain');
   domainElement.textContent = domain;
@@ -127,10 +141,6 @@ function domainDisplay(domain) {
 
 manageButton.addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
-});
-
-titleElement.addEventListener('input', function() {
-  this.resize();
 });
 
 editButton.addEventListener('click', function() {
@@ -149,6 +159,20 @@ editButton.addEventListener('click', function() {
   }
 });
 
+/**
+ * @typedef {Object} BookmarkData
+ * @property {string} title - title of content
+ * @property {string} chapter - chapter number
+ * @property {string} folderName - name of folder
+ * @property {string} url - url for bookmark
+ */
+
+/**
+ * Get all data for creating a bookmark
+ * 
+ * @returns {BookmarkData} Object with title of content, chapter number,
+ * name of bookmark folder and bookmark url
+ */
 function getData() {
   const title = titleElement.value;
   const chapterInput = document.getElementById('chapterInput');
@@ -165,7 +189,6 @@ function getData() {
 
 updateButton.addEventListener('click', function() {
   const resultElement = document.getElementById('result');
-  const oldChapterElement = document.getElementById('oldChapter');
   const oldChapter = oldChapterElement.textContent;
   const data = getData();
   addBookmark(data.title, data.chapter, data.url, data.folderName)
