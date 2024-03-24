@@ -280,14 +280,14 @@ function getMarks() {
   .then((folders) => {
     bookmarkFolders = folders;
     if (
-      !activeNavFolder ||
-      (
-        !Array.isArray(activeNavFolder) &&
-        !folders.some(currentFolder => currentFolder.name === activeNavFolder.name)
-      )
+      !activeNavFolder || 
+      Array.isArray(activeNavFolder) ||
+      !folders.some(currentFolder => currentFolder.name === activeNavFolder.name)
     ) {
       navAll.checked = true;
-      activeNavFolder = bookmarkFolders;
+      activeNavFolder = folders;
+    } else {
+      activeNavFolder = folders.find(currentFolder => currentFolder.name === activeNavFolder.name);
     }
     return chrome.storage.sync.get(['managerType', 'managerOrder'])
       .then((result) => {
@@ -378,6 +378,7 @@ function displayBookmarks(folders, type='all', sortBy='Recent') {
       throw new Error('Invalid display type');
   }
   bookmarks = sortBookmarks(bookmarks, sortBy);
+  console.log(bookmarks);
   const bookmarkDisplay = bookmarks.map(bookmark => bookmark.bookmarkElement());
   const bookmarkList = document.getElementById('bookmarkList');
   bookmarkList.replaceChildren(...bookmarkDisplay);
