@@ -52,10 +52,11 @@ function getFolderId(parentId, folderName, create=false) {
 /**
  * Search tree hierarchy for bookmark matching desired title
  * 
- * @param {BookmarkTreeNode[]} tree children of folder to search within
+ * @param {chrome.bookmarks.BookmarkTreeNode[]} tree children of folder to search within
  * @param {string} searchTitle title to search for
  * @param {boolean} completeTitle specify if searchTitle should match bookmark entry exactly or contain title
- * @returns BookmarkTreeNode matching searchTitle or null if no matching title
+ * @returns {chrome.bookmarks.BookmarkTreeNode|null} 
+ * BookmarkTreeNode matching searchTitle or null if no matching title
  */
 function searchFolder(tree, searchTitle, completeTitle=false) {
   for (var i = 0; i < tree.length; i++) {
@@ -104,7 +105,7 @@ function getMangamarkSubTree() {
  * Attempts to find a bookmark by title within the given folderName
  * 
  * @param {string} contentTitle title of content
- * @param {string} folderName name of folder to serach for title
+ * @param {string} folderName name of folder to search for title
  * @returns BookmarkTreeNode for title or null if does not exist
  */
 function findBookmark(contentTitle, folderName) {
@@ -125,12 +126,14 @@ function createBookmarkTitle(title, chapterNum) {
  * @param {string} chapterNum current chapter number
  * @param {string} url URL navigated to when user clicks bookmark
  * @param {string} folderName name of folder to contain bookmark
+ * @param {string=} subFolderName name of sub folder, if applicable
  * @returns title of created bookmark
  */
-function addBookmark(title, chapterNum, url, folderName) {
+function addBookmark(title, chapterNum, url, folderName, subFolderName) {
   const bookmarkTitle = createBookmarkTitle(title, chapterNum);
   return getMangamarkFolderId()
     .then((mangamarkId) => getFolderId(mangamarkId, folderName, true))
+    .then((mainFolderId) => subFolderName ? getFolderId(mainFolderId, subFolderName, true) : mainFolderId)
     .then((folderId) => chrome.bookmarks.create({parentId: folderId, title: bookmarkTitle, url: url}))
     .then((bookmark) => bookmark.title);
 }
@@ -160,6 +163,22 @@ function removeBookmark(title, chapterNum, folderName) {
   .then((folderId) => folderId ?  chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))
   .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true))
   .then((bookmark) => bookmark ? performRemove(bookmark) : Promise.reject('Could not find bookmark'))
+}
+
+function moveBookmarkToSubFolder(title, chapterNum, folderName, subFolderName) {
+  const bookmarkTitle = createBookmarkTitle(title, chapterNum);
+  getMangamarkFolderId()
+  .then((mangamarkId) => getFolderId(mangamarkId, folderName))
+  .then((folderId) => {
+    const bookmark = chrome.bookmarks.getSubTree(folderId)
+    .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true));
+
+    const subFolderId = getFolderId(folderId, subFolderName, true);
+
+    Promise.all([bookmark, subFolderId]).then((values) => {
+      chrome.bookmarks.move(values[0].id, {parentId: values[1]});
+    });
+  })
 }
 
 export {getMangamarkSubTree, findBookmark, addBookmark, removeBookmark}

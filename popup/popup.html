@@ -11,7 +11,13 @@
     </div>
 
     <div>
-      <div id="actionType" class="action">&lt;Action Title&gt;</div>
+      <div class="infoType">
+        <div id="actionType">&lt;Action Title&gt;</div>
+        <div>
+          <input type="checkbox" id="completed" name="completed">
+          <label for="completed">Completed</label>
+        </div>
+      </div>
       <div class="infoGrid">
         <div class="gridType">Title</div>
         <textarea id="contentTitle" class="gridValue titleTextArea readOnly" readonly>
@@ -30,8 +36,8 @@
           <span id="chapterArrow" class="hidden">--&gt;</span>
 
           <div class="inputContainer">
-            <input id="chapterInput" class="chapterInput" type="number" min="0" max="9999" required/>
-            <label id="inputLabel" for="chapterInput" class="hidden inputLabel">Enter valid chapter number</label>
+            <input id="chapterInput" name="chapterInput" class="chapterInput" type="number" min="0" max="9999" required/>
+            <label for="chapterInput" class="inputLabel">Enter valid chapter number</label>
           </div>          
           <select id="chapterSelect" class="hidden"></select>
       </div>

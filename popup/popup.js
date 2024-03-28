@@ -111,7 +111,21 @@ function chapterDisplay(numsInTitle, oldChapter) {
     chapterInput.value = defaultVal;
   } else if (numsInTitle.length > 0) {
     chapterInput.value = numsInTitle[0];
+  } else {
+    createButton.disabled = true;
+    updateButton.disabled = true;
   }
+
+  chapterInput.addEventListener('input', () => {
+    console.log(chapterInput.value);
+    if (chapterInput.checkValidity()) {
+      createButton.disabled = false;
+      updateButton.disabled = false;
+    } else {
+      createButton.disabled = true;
+      updateButton.disabled = true;
+    }
+  });
 
   const chapterSelect = document.getElementById('chapterSelect');
   if (numsInTitle.length > 1) {
@@ -125,6 +139,8 @@ function chapterDisplay(numsInTitle, oldChapter) {
 
     chapterSelect.addEventListener('change', () => {
       chapterInput.value = chapterSelect.value;
+      createButton.disabled = false;
+      updateButton.disabled = false;
     });
   }
 }
@@ -187,11 +203,25 @@ function getData() {
   }
 }
 
+/**
+ * 
+ * @param {BookmarkData} data information to create bookmark
+ * @returns Promise resolves with title of bookmark created
+ */
+function createBookmark(data) {
+  const completeChecked = document.getElementById('completed').checked;
+  if (completeChecked) {
+    return addBookmark(data.title, data.chapter, data.url, data.folderName, 'completed');
+  } else {
+    return addBookmark(data.title, data.chapter, data.url, data.folderName);
+  }
+}
+
 updateButton.addEventListener('click', function() {
   const resultElement = document.getElementById('result');
   const oldChapter = oldChapterElement.textContent;
   const data = getData();
-  addBookmark(data.title, data.chapter, data.url, data.folderName)
+  createBookmark(data)
     .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark updated: ' + bookmarkTitle})
     .then(() => removeBookmark(data.title, oldChapter, data.folderName))
     .catch((err) => {
@@ -205,7 +235,7 @@ updateButton.addEventListener('click', function() {
 createButton.addEventListener('click', function() {
   const resultElement = document.getElementById('result');
   const data = getData();
-  addBookmark(data.title, data.chapter, data.url, data.folderName)
+  createBookmark(data)
     .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark created: ' + bookmarkTitle})
     .catch((err) => {
       resultElement.textContent = 'Error creating bookmark';
