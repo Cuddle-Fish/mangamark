@@ -1,0 +1,139 @@
+:host .highlight-container {
+  background-color: var(--highlight-color, none);
+  border-radius: 5px;
+}
+
+:host .card-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;  
+  margin-left: 5px;
+  background-color: var(--item-background);
+}
+
+:host .link-container, .active-tags-edit, .edit-container {
+  padding: 0 10px;
+}
+
+:host .link-container {
+  padding-top: 5px;
+}
+
+:host .link-container:hover {
+  background-color: var(--offWhite10);
+}
+:host .active-tags-edit {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+}
+
+:host a {
+  color: inherit;
+  text-decoration: inherit;
+  font-family: inherit;
+}
+
+:host .title {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+:host .chapter, .domain-date {
+  font-size: 16px;
+}
+
+:host .domain-date {
+  display: flex;
+  justify-content: space-between;
+}
+
+:host ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 10px;
+}
+
+:host li {
+  display: flex;
+  align-items: center;
+  padding: 0px 3px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-size: 18px;
+  font-weight: bold;
+  background-color: var(--offWhite10);
+}
+
+:host button {
+  cursor: pointer;
+  border: none;
+  background-color: transparent;
+  color: var(--offWhite);
+  border-radius: 3px;
+}
+
+:host button:hover {
+  background-color: var(--offWhite30);
+}
+
+:host .edit-container {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  margin-left: 5px;
+  background-color: var(--offWhite10);
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+:host(:not([state="default"])) .edit-container {
+  display: flex;
+}
+
+:host .info-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+}
+
+:host .edit-nav, .edit-options {
+  display: none;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+:host([state="editing"]) .edit-nav {
+  display: flex;
+}
+
+:host([state="tags"]) .edit-options,
+:host([state="readingStatus"]) .edit-options,
+:host([state="delete"]) .edit-options {
+  display: flex;
+}
+
+:host .tag-list {
+  display: none;
+}
+
+:host([state="tags"]) .tag-list {
+  display: flex;
+}
+
+
+:host .warning-text {
+  display: none;
+  justify-content: flex-end;
+  text-transform: uppercase;
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--warning);
+}
+
+:host([state="delete"]) .warning-text {
+  display: flex;
+}

@@ -1,0 +1,47 @@
+:host button {
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 5px;
+  border: none;
+  font-family: var(--font-family);
+  font-size: 20px;
+}
+
+:host([size="small"]) button {
+  font-size: 16px;
+}
+
+:host(:not([variant])) button,
+:host([variant="primary"]) button {
+  /* background-color: var(--accent-subdued); */
+  background-color: rgba(60, 91, 127, 0.7);
+  color: var(--offWhite);
+
+  &:hover {
+    background-color: rgba(60, 91, 127);
+  }
+
+  :host([disabled]) & {
+    cursor: not-allowed;
+    color: var(--offWhite30);
+    background-color: rgba(60, 91, 127, 0.3);
+  }
+}
+
+:host([variant="secondary"]) button {
+  background-color: var(--offWhite30);
+  color: var(--offWhite);
+
+  &:hover {
+    background-color: rgba(220, 222, 223, 0.50);
+  }
+}
+
+:host([variant="warning"]) button {
+  background-color: rgb(207, 97, 97, 0.8);
+  color: var(--offWhite);
+
+  &:hover {
+    background-color: var(--warning);
+  }
+}

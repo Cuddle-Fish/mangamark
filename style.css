@@ -1,0 +1,22 @@
+:root {
+  --background-color: #2D333C;
+  --secondary-background: #171D25;
+
+  --item-background: #282D35;
+
+  --accent-subdued: #3C5B7F;
+  --accent-subdued30: #3c5b7f4d;
+
+  --accent-bright: #09B9FF;
+  --accent-bright30: #09b9ff4d;
+
+  --offWhite: #DCDEDF;
+  --offWhite30: #dcdedf4d;
+  --offWhite10: #dcdedf1a;
+  --offWhite10-match: #41444B;
+  
+  --warning: #CF6161;
+  --approval: #92bd3b;
+
+  --font-family: "Poppins", sans-serif;
+}
