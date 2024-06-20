@@ -15,6 +15,10 @@ customElements.define(
       return ['selected', 'variant', 'size'];
     }
 
+    get variant() {
+      return this.getAttribute('variant') || '';
+    }
+
     get selected() {
       return this.hasAttribute('selected') && this.getAttribute('selected') !== false;
     }
@@ -30,13 +34,18 @@ customElements.define(
     }
 
     connectedCallback() {
+      if (this.variant === 'noAction') {
+        this.selected = false;
+      }
       this.shadowRoot
         .querySelector('button')
         .addEventListener('click', (event) => this.toggle());
     }
 
     toggle() {
-      this.selected = !this.selected;
+      if (this.variant !== 'noAction') {
+        this.selected = !this.selected;
+      }
     }
   }
 );
