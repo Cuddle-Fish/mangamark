@@ -40,51 +40,50 @@ customElements.define(
       const datetimeValue = dateObj.toISOString();
 
       this.shadowRoot.innerHTML = /* html */ `
-      <style>
-        @import "/components/bookmark-card/bookmark-card.css";
-      </style>
-      <div class="highlight-container">
-        <div class="card-container">
-          <a href="${url}" class="card">
-            <div class="link-container">
-              <div class="title">${title}</div>
-              <div class="chapter">Chapter ${chapterNumber}</div>
-              <div class="domain-date">
-                <div>${domain}</div>
-                <time datetime="${datetimeValue}">${displayDate}</time>
+        <style>
+          @import "/components/bookmark-card/bookmark-card.css";
+        </style>
+        <div class="highlight-container">
+          <div class="card-container">
+            <a href="${url}" class="card">
+              <div class="link-container">
+                <div class="title">${title}</div>
+                <div class="chapter">Chapter ${chapterNumber}</div>
+                <div class="domain-date">
+                  <div>${domain}</div>
+                  <time datetime="${datetimeValue}">${displayDate}</time>
+                </div>
               </div>
+            </a>
+            <div class="active-tags-edit">
+              <ul>
+                ${activeTags.map(tag => `<li>${tag}</li>`).join('')}
+              </ul>
+              <button id="edit-button" title="Edit Bookmark"><edit-icon></edit-icon></button>                
             </div>
-          </a>
-          <div class="active-tags-edit">
-            <ul>
-              ${activeTags.map(tag => `<li>${tag}</li>`).join('')}
-            </ul>
-            <button id="edit-button" title="Edit Bookmark"><edit-icon></edit-icon></button>                
           </div>
         </div>
-      </div>
-      <div class="edit-container">
-
-        <div class="info-container">
-          <info-icon></info-icon>
-          <span id="info-text">Select action to perform</span>
+        <div class="edit-container">
+          <div class="info-container">
+            <info-icon></info-icon>
+            <span id="info-text">Select action to perform</span>
+          </div>
+          <div class="edit-nav">
+            <themed-button id="tag-option">Edit Tags</themed-button>
+            <themed-button id="status-option">Mark Reading</themed-button>
+            <themed-button id="delete-option" variant="warning">Delete Bookmark</themed-button>
+            <themed-button id="close-button">Close</themed-button>        
+          </div>
+          <div class="tag-list">
+            <tag-button>TagName</tag-button>
+          </div>
+          <div class="warning-text">WARNING: This action is permanent</div>
+          <div class="edit-options">
+            <themed-button>Confirm</themed-button>
+            <themed-button id="cancel-button">Cancel</themed-button>
+          </div>
         </div>
-        <div class="edit-nav">
-          <themed-button id="tag-option">Edit Tags</themed-button>
-          <themed-button id="status-option">Mark Reading</themed-button>
-          <themed-button id="delete-option" variant="warning">Delete Bookmark</themed-button>
-          <themed-button id="close-button">Close</themed-button>        
-        </div>
-        <div class="tag-list">
-          <tag-button>TagName</tag-button>
-        </div>
-        <div class="warning-text">WARNING: This action is permanent</div>
-        <div class="edit-options">
-          <themed-button>Confirm</themed-button>
-          <themed-button id="cancel-button">Cancel</themed-button>
-        </div>
-      </div>
-    `;
+      `;
 
     this.initializeButtons();
     }
