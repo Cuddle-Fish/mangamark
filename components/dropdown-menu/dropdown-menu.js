@@ -38,7 +38,6 @@ customElements.define(
     }
 
     set selected(value) {
-      console.log('dropdown called set selected');
       if (!this.hasAttribute('selected') || this.getAttribute('selected') !== value) {
         const inputs = this.shadowRoot.querySelectorAll('input');
         for (const input of inputs) {
@@ -66,7 +65,6 @@ customElements.define(
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-      console.log(`change callback ${name}`);
       if (name === 'width') {
         this.style.setProperty('--dropdown-width', newValue);
       } else if (name === 'open' || name === 'selected') {
