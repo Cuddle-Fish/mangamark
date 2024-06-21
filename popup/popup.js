@@ -1,18 +1,34 @@
-import { findBookmark, addBookmark, removeBookmark } from "../bookmark.js";
+import { bookmarkRegex, findBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
+import "/components/themed-button/themed-button.js";
+import "/components/svg/check-box.js";
+import "/components/svg/done-icon.js";
+import "/components/info-tooltip/info-tooltip.js";
 
-const editButton = document.getElementById('editButton');
-const updateButton = document.getElementById('updateButton');
-const createButton = document.getElementById('createButton');
-const manageButton = document.getElementById('manageButton');
-const titleElement = document.getElementById('contentTitle');
-const oldChapterElement = document.getElementById('oldChapter');
+//#region Buttons
+const manageButton = document.getElementById('manage-button');
+const findTitleButton = document.getElementById('find-update');
+const modeChangeButton = document.getElementById('change-mode');
+const cancelButton = document.getElementById('cancel-edit');
+const confirmButton = document.getElementById('confirm-edit');
+const editButton = document.getElementById('edit-button');
+const actionButton = document.getElementById('action-button');
+const editTagsButton = document.getElementById('edit-tags-mode');
+//#endregion
+
 var pageURL = '';
+
+manageButton.addEventListener('click', function() {
+  chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
+});
 
 chrome.tabs.query({active: true, currentWindow: true})
   .then((tabs) => {
     const activeTab = tabs[0];
     pageURL = activeTab.url;
-    const domain = new URL(activeTab.url).hostname;
+    let domain = new URL(activeTab.url).hostname;
+    if (domain.startsWith('www.')) {
+      domain = domain.substring(4);
+    }
     const title = activeTab.title;
     return findBookmark(title, domain)
       .then((bookmark) => [bookmark, domain, title]);
@@ -22,18 +38,59 @@ chrome.tabs.query({active: true, currentWindow: true})
     const numsInTitle = title.match(/\d+/g) || [];
     if (bookmark) {
       console.log('bookmark exists');
-      setDisplayElements(true);
+      setActionDisplay(true);
       const bookmarkInfo = bookmarkTitleAndChapter(bookmark.title);
       titleDisplay(bookmarkInfo.title);
       chapterDisplay(numsInTitle, bookmarkInfo.chapter);
     } else {
       console.log('new title');
-      setDisplayElements(false);
+      setActionDisplay(false);
       titleDisplay(title);
       chapterDisplay(numsInTitle);
     }
   })
   .catch((err) => console.error(err));
+
+/**
+ * Set domain name displayted in popup
+ * 
+ * @param {string} domain name of current page's domain
+ */
+function domainDisplay(domain) {
+  const domainElement = document.getElementById('domain');
+  domainElement.textContent = domain;
+}
+
+/**
+ * Set up popup display for updating or creating a bookmark
+ * 
+ * @param {boolean} update define display type, true for updating, false for creating
+ */
+function setActionDisplay(update) {
+  const actionTitle = document.getElementById('bookmark-action');
+  const oldChapter = document.getElementById('old-chapter');
+  const chapterArrow = document.getElementById('chapter-arrow');
+  const newChapter = document.getElementById('new-chapter');
+  if (update) {
+    actionTitle.textContent = 'Update Bookmark';
+    actionButton.textContent = "Update";
+
+    oldChapter.classList.remove('hidden');
+    chapterArrow.classList.remove('hidden');
+    newChapter.classList.add('bright-text');
+
+    modeChangeButton.textContent = 'Create Mode';
+  } else {
+    actionTitle.textContent = 'Create Bookmark';
+    actionButton.textContent = "Create";
+    
+    oldChapter.classList.add('hidden');
+    chapterArrow.classList.add('hidden');
+    newChapter.classList.remove('bright-text');
+
+    modeChangeButton.textContent = 'Update Mode';
+  }
+}
 
 /**
  * Extracts title of content and chapter number from bookmark title
@@ -46,31 +103,10 @@ chrome.tabs.query({active: true, currentWindow: true})
  * @property {string} chapter - Extracted chapter number
  */
 function bookmarkTitleAndChapter(bookmarkTitle) {
-  const regex = /^(.*?) - Chapter (\d+)$/i;
-  const matches = bookmarkTitle.match(regex);
+  const matches = bookmarkTitle.match(bookmarkRegex());
     const [, title, chapter] = matches;
     console.log(`'${title}' - '${chapter}'`);
     return { title: title, chapter: chapter};
-}
-
-/**
- * Set up popup display for updating or creating a bookmark
- * 
- * @param {boolean} update define display type, true for updating, false for creating
- */
-function setDisplayElements(update) {
-  const actionType = document.getElementById('actionType');
-  if (update) {
-    actionType.textContent = 'Update Title';
-    updateButton.classList.remove('hidden');
-    const chapterArrow = document.getElementById('chapterArrow');
-    oldChapterElement.classList.remove('hidden');
-    chapterArrow.classList.remove('hidden');
-  } else {
-    actionType.textContent = 'Add Title';
-    createButton.classList.remove('hidden');
-    editButton.classList.remove('hidden');
-  }
 }
 
 /**
@@ -79,17 +115,8 @@ function setDisplayElements(update) {
  * @param {string} title 
  */
 function titleDisplay(title) {
-  titleElement.value = title.replace(/\n/g, '');
-  titleElement.resize();
-}
-
-titleElement.addEventListener('input', function() {
-  this.resize();
-});
-
-HTMLTextAreaElement.prototype.resize = function() {
-  this.style.height = '';
-  this.style.height = this.scrollHeight + 'px';
+  const titleElement = document.getElementById('content-title');
+  titleElement.textContent = title.replace(/\n/g, '');
 }
 
 /**
@@ -100,80 +127,31 @@ HTMLTextAreaElement.prototype.resize = function() {
  */
 function chapterDisplay(numsInTitle, oldChapter) {
   if (oldChapter) {
+    const oldChapterElement = document.getElementById('old-chapter');
     oldChapterElement.textContent = oldChapter;
   }
 
-  const chapterInput = document.getElementById('chapterInput');
+  const newChapter = document.getElementById('new-chapter');
   if (oldChapter && numsInTitle.length > 1) {
     var defaultVal = numsInTitle.reduce((prev, curr) => {
       return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
     });
-    chapterInput.value = defaultVal;
+    newChapter.textContent = defaultVal;
   } else if (numsInTitle.length > 0) {
-    chapterInput.value = numsInTitle[0];
+    newChapter.textContent = numsInTitle[0];
   } else {
-    createButton.disabled = true;
-    updateButton.disabled = true;
+    actionButton.disabled = true;
   }
 
-  chapterInput.addEventListener('input', () => {
-    console.log(chapterInput.value);
-    if (chapterInput.checkValidity()) {
-      createButton.disabled = false;
-      updateButton.disabled = false;
-    } else {
-      createButton.disabled = true;
-      updateButton.disabled = true;
-    }
-  });
-
-  const chapterSelect = document.getElementById('chapterSelect');
-  if (numsInTitle.length > 1) {
-    chapterSelect.classList.remove('hidden');
+  if (numsInTitle.length > 0) {
+    const chapterSelect = document.getElementById('detected-nums');
     numsInTitle.forEach(number => {
       const option = document.createElement('option');
       option.value = number;
-      option.textContent = number;
       chapterSelect.appendChild(option);
     });
-
-    chapterSelect.addEventListener('change', () => {
-      chapterInput.value = chapterSelect.value;
-      createButton.disabled = false;
-      updateButton.disabled = false;
-    });
   }
 }
-
-/**
- * Set domain name displayted in popup
- * 
- * @param {string} domain name of current page's domain
- */
-function domainDisplay(domain) {
-  const domainElement = document.getElementById('domain');
-  domainElement.textContent = domain;
-}
-
-manageButton.addEventListener('click', function() {
-  chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
-});
-
-editButton.addEventListener('click', function() {
-  if (titleElement.readOnly) {
-    titleElement.readOnly = false;
-    titleElement.classList.remove('readOnly');
-    titleElement.classList.add('editable');
-    editButton.textContent = 'Done';
-  } else {
-    titleElement.readOnly = true;
-    titleElement.value = titleElement.value.replace(/\n/g, '');
-    titleElement.resize();
-    titleElement.classList.remove('editable');
-    titleElement.classList.add('readOnly');
-    editButton.textContent = 'Edit';
-  }
-});
 
 /**
  * @typedef {Object} BookmarkData
@@ -190,9 +168,10 @@ editButton.addEventListener('click', function() {
  * name of bookmark folder and bookmark url
  */
 function getData() {
-  const title = titleElement.value;
-  const chapterInput = document.getElementById('chapterInput');
-  const chapter = chapterInput.value;
+  const titleElement = document.getElementById('content-title');
+  const title = titleElement.textContent;
+  const newChapter = document.getElementById('new-chapter');
+  const chapter = newChapter.textContent;
   const domainElement = document.getElementById('domain');
   const folderName = domainElement.textContent;
   return {
@@ -202,6 +181,23 @@ function getData() {
     url: pageURL
   }
 }
+
+actionButton.addEventListener('click', () => {
+  const data = getData();
+  if (actionButton.textContent === 'Update') {
+    const oldChapterElement = document.getElementById('old-chapter');
+    const oldChapter = oldChapterElement.textContent;
+    createBookmark(data)
+      .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
+      .then(() => removeBookmark(data.title, oldChapter, data.folderName))
+      .catch((err) => console.error('Error updating bookmark', err));
+  } else {
+    createBookmark(data)
+      .then((bookmarkTitle) => console.log(`Bookmark created: ${bookmarkTitle}`))
+      .catch((err) => console.error('Error creating bookmark:', err));
+  }
+  actionButton.disabled = true;
+});
 
 /**
  * 
@@ -217,30 +213,77 @@ function createBookmark(data) {
   }
 }
 
-updateButton.addEventListener('click', function() {
-  const resultElement = document.getElementById('result');
-  const oldChapter = oldChapterElement.textContent;
-  const data = getData();
-  createBookmark(data)
-    .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark updated: ' + bookmarkTitle})
-    .then(() => removeBookmark(data.title, oldChapter, data.folderName))
-    .catch((err) => {
-      resultElement.textContent = 'Error updating bookmark';
-      console.error('Error creating bookmark:', err);
-    });
+editButton.addEventListener('click', () => {
+  const finishEditButtons = document.getElementById('finish-edit');
+  finishEditButtons.classList.remove('hidden');
 
-  updateButton.disabled = true;
+  const editOptions = document.getElementById('edit-options');
+  editOptions.classList.remove('hidden');
+
+  const actionContainer = document.getElementById('action-button-container');
+  actionContainer.classList.add('hidden');
+
+  const newChapter = document.getElementById('new-chapter');
+  newChapter.classList.add('hidden');
+  const editChapter = document.getElementById('edit-chapter');
+  editChapter.classList.remove('hidden');
+
+  if (actionButton.textContent === 'Update') {
+    findTitleButton.classList.remove('hidden');
+  } else {
+    const titleElement = document.getElementById('content-title');
+    const editTitle = document.getElementById('title-edit');
+    editTitle.value = titleElement.textContent;
+    titleElement.classList.add('hidden');
+
+    const editTitleContainer = document.getElementById('title-edit-container');
+    editTitleContainer.classList.remove('hidden');
+  }
 });
 
-createButton.addEventListener('click', function() {
-  const resultElement = document.getElementById('result');
-  const data = getData();
-  createBookmark(data)
-    .then((bookmarkTitle) => {resultElement.textContent = 'Bookmark created: ' + bookmarkTitle})
-    .catch((err) => {
-      resultElement.textContent = 'Error creating bookmark';
-      console.error('Error creating bookmark:', err);
-    });
+cancelButton.addEventListener('click', () => hideEditElements());
 
-  createButton.disabled = true;
+confirmButton.addEventListener('click', () => {
+  const titleElement = document.getElementById('content-title');
+  const editTitle = document.getElementById('title-edit');
+  const newTitle = editTitle.value.replace(/\n/g, '')
+  titleElement.textContent = newTitle;
+
+  const editChapter = document.getElementById('edit-chapter');
+  const newChapter = document.getElementById('new-chapter');
+  newChapter.textContent = editChapter.value;
+
+  if (newTitle === '' || editChapter.value === '') {
+    actionButton.disabled = true;
+  } else {
+    actionButton.disabled = false;
+  }
+
+  hideEditElements();
 });
+
+function hideEditElements() {
+  const actionContainer = document.getElementById('action-button-container');
+  actionContainer.classList.remove('hidden');
+
+  const editOptions = document.getElementById('edit-options');
+  editOptions.classList.add('hidden');
+
+  const finishEditButtons = document.getElementById('finish-edit');
+  finishEditButtons.classList.add('hidden');
+
+  if (actionButton.textContent === 'Update') {
+    findTitleButton.classList.add('hidden');
+  } else {
+    const titleElement = document.getElementById('content-title');
+    const editTitleContainer = document.getElementById('title-edit-container');
+    editTitleContainer.classList.add('hidden');
+    titleElement.classList.remove('hidden');
+  }
+
+  const newChapter = document.getElementById('new-chapter');
+  newChapter.classList.remove('hidden');
+  const editChapter = document.getElementById('edit-chapter');
+  editChapter.classList.add('hidden');
+  editChapter.value = '';
+}

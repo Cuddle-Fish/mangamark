@@ -1,19 +1,29 @@
-import { getMangamarkSubTree } from "../bookmark.js";
+import { bookmarkRegex, getMangamarkSubTree } from "/externs/bookmark.js";
+import "/components/svg/close-icon.js";
+import "/components/dropdown-menu/dropdown-menu.js";
+import "/components/toggle-menu/toggle-menu.js";
+import "/components/option-data/option-data.js";
+import "/components/bookmark-card/bookmark-card.js";
+import "/components/svg/search-icon.js";
 
-/* Task remaining
-  - implement bookmark buttons
-  -- mark as completed
-  -- remove bookmark
-  --- Consider: allowing for restoration of deleted bookmarks
+function test() {
+  const  cardTest = document.getElementById('cardTest');
+  const bookmarkCard = document.createElement('bookmark-card');
+  bookmarkCard.initialize(
+    'test card title',
+    'https://mangadex.org/',
+    '13',
+    'siteName.net',
+    1717209600000,
+    ['tagName', 'another tag', 'lastTag']
+  );
+  cardTest.appendChild(bookmarkCard);
+}
+test();
 
-  - display warning for bookmarks that do not meet naming requirements
+var searchTypingTimer;
+const searchBar = document.getElementById('search-input');
 
-  - options for bookmark grid display 
-
-  - LAST, actual site styling
-*/
-
-const sideNavWidth = "250px";
 var extensionChange = false;
 var bookmarkFolders;
 var activeNavFolder;
@@ -266,9 +276,8 @@ function setOptions() {
         return;
       }
 
-      document.querySelector(`input[name="bookmarkType"][value="${managerType}"]`).checked = true;
-      document.querySelector(`input[name="orderOption"][value="${managerOrder}"]`).checked = true;
-      selectedDisplay.textContent = managerOrder;
+      document.getElementById('toggle-reading-type').selected = managerType;
+      document.getElementById('order-dropdown').selected = managerOrder;
       resolve();
     });
   });
@@ -341,8 +350,7 @@ function getBookmarks(tree, getSubFolders=true, specialType) {
 }
 
 function createBookmarkObject(bookmarkTitle, url, dateAdded, specialType) {
-  const regex = /^(.*?) - Chapter (\d+)$/i;
-  const matches = bookmarkTitle.match(regex);
+  const matches = bookmarkTitle.match(bookmarkRegex());
   if (!matches) {
     return null;
   } else{
@@ -425,40 +433,29 @@ function sortBookmarks(bookmarks, sortBy) {
   });
 }
 
-const bookmarkType = document.getElementsByName('bookmarkType');
-bookmarkType.forEach(type => {
-  type.addEventListener('change', () => {
-    chrome.storage.sync.set({'managerType': type.value});
+document.getElementById('toggle-reading-type')
+.addEventListener('toggleMenuChange', (event) => {
+  chrome.storage.sync.set({'managerType': event.detail})
+  .then(() => {
     if (searchBar.value === '') {
       chrome.storage.sync.get('managerOrder')
-      .then((result) => displayBookmarks(activeNavFolder, type.value, result.managerOrder));
+      .then((result) => displayBookmarks(activeNavFolder, event.detail, result.managerOrder));
     } else {
       performSearch();
     }
   });
 });
 
-const orderButton = document.getElementById('orderButton');
-const orderDropDown = document.getElementById('orderDropDown');
-orderButton.addEventListener('click', () => {
-  orderDropDown.classList.toggle('showOrder');
-});
-
-const selectedDisplay = document.getElementById('selectedOrder');
-const orderOptions = document.getElementsByName('orderOption');
-orderOptions.forEach(option => {
-  option.addEventListener('change', () => {
-    chrome.storage.sync.set({'managerOrder': option.value});
+document.getElementById('order-dropdown')
+.addEventListener('DropdownChange', (event) => {
+  chrome.storage.sync.set({'managerOrder': event.detail})
+  .then(() => {
     if (searchBar.value === '') {
       chrome.storage.sync.get('managerType')
-      .then((result) => displayBookmarks(activeNavFolder, result.managerType, option.value));   
+      .then((result) => displayBookmarks(activeNavFolder, result.managerType, event.detail));   
     } else {
       performSearch();
     }
-    selectedDisplay.textContent = option.value;
-  });
-  option.addEventListener('click', () => {
-    orderDropDown.classList.toggle('showOrder');
   });
 });
 
@@ -469,7 +466,7 @@ navAll.addEventListener('change', () => {
   .then((result) => {
     if (searchBar.value !== '') {
       searchBar.value = '';
-      clearSearchButton.classList.add('hidden');
+      setSearchIcon();
     }
     const { managerType, managerOrder } = result;
     activeNavFolder = bookmarkFolders;
@@ -506,7 +503,7 @@ function clearNavFolders(folderChildren) {
 function navListener() {
   if (searchBar.value !== '') {
     searchBar.value = '';
-    clearSearchButton.classList.add('hidden');
+    setSearchIcon();
   }
   const value = this.value;
   console.log(`Nav: ${this.value}`);
@@ -519,29 +516,35 @@ function navListener() {
   });
 }
 
-var typingTimer;
-const searchDelay = 400;
-const searchBar = document.getElementById('searchBar');
-const clearSearchButton = document.getElementById('clearSearch');
+
 searchBar.addEventListener('keydown', () => {
-  clearTimeout(typingTimer);
+  clearTimeout(searchTypingTimer);
 
   setTimeout(() => {
-    if (searchBar.value !== '') {
-      clearSearchButton.classList.remove('hidden');
-    } else {
-      clearSearchButton.classList.add('hidden');
-    }
+    searchBar.value !== '' ? setSearchIcon(false) : setSearchIcon();
   }, 0);
 
-  typingTimer = setTimeout(performSearch, searchDelay);
+  searchTypingTimer = setTimeout(performSearch, 400);
 });
 
-clearSearchButton.addEventListener('click', () => {
+document.getElementById('clear-search-button')
+.addEventListener('click', () => {
   searchBar.value = '';
   clearSearch();
-  clearSearchButton.classList.add('hidden');
+  setSearchIcon();
 });
+
+function setSearchIcon(searchCleared=true) {
+  const clearSearchButton = document.getElementById('clear-search-button');
+  const searchLabel = document.getElementById('search-label');
+  if (searchCleared) {
+    clearSearchButton.classList.add('hidden');
+    searchLabel.classList.remove('hidden');        
+  } else {
+    searchLabel.classList.add('hidden');
+    clearSearchButton.classList.remove('hidden');   
+  }
+}
 
 function performSearch() {
   console.log(`search value: '${searchBar.value}'`);
@@ -576,7 +579,7 @@ function performSearch() {
         default:
           throw new Error('Invalid display type');
       }
-    })
+    });
     chrome.storage.sync.get('managerOrder')
     .then((result) => displayBookmarks(searchResults, 'search', result.managerOrder));
   }
@@ -597,14 +600,6 @@ function clearSearch() {
   });
 }
 
-function openNav() {
-
-}
-
-function closeNav() {
-  
-}
-
 chrome.bookmarks.onChanged.addListener(handleBookmarkChange);
 chrome.bookmarks.onChildrenReordered.addListener(handleBookmarkChange);
 chrome.bookmarks.onCreated.addListener(handleBookmarkChange);
@@ -618,4 +613,3 @@ function handleBookmarkChange() {
   }
   extensionChange = false;
 }
-

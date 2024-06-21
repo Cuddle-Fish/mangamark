@@ -1,4 +1,14 @@
 /**
+ * @returns regex for matching bookmark, if string matches regex values will be:
+ *  1. Title
+ *  2. Chapter Number
+ *  3. Tags, string of comma seperated values
+ */
+function bookmarkRegex() {
+  return /^(.*?) - Chapter (\d*\.\d+|\d+)(?: - Tags (.+))?$/;
+}
+
+/**
  * Get the chrome bookmark ID for Mangamark folder, creates folder if does not exist
  * 
  * @returns resolves promise with bookmark ID, rejects if multiple folders titled Mangamark found
@@ -62,8 +72,7 @@ function searchFolder(tree, searchTitle, completeTitle=false) {
   for (var i = 0; i < tree.length; i++) {
     const node = tree[i];
     if (node.url) {
-      const regex = /^(.*?) - Chapter (\d+)$/i;
-      const matches = node.title.match(regex);
+      const matches = node.title.match(bookmarkRegex());
       if (!matches) {
         continue;
       }
@@ -181,4 +190,4 @@ function moveBookmarkToSubFolder(title, chapterNum, folderName, subFolderName) {
   })
 }
 
-export {getMangamarkSubTree, findBookmark, addBookmark, removeBookmark}
+export {bookmarkRegex, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark}

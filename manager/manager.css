@@ -1,12 +1,11 @@
-@import '../theme.css';
-
 :root {
-  scrollbar-color: var(--offWhite30) var(--primaryColor);
+  scrollbar-color: var(--offWhite30) var(--background-color);
 }
 
 body {
-  background-color: var(--primaryColor);
+  background-color: var(--background-color);
   color: var(--offWhite);
+  font-family: var(--font-family);
 }
 
 .sidePanel {
@@ -15,10 +14,10 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  background-color: var(--secondayColor);
+  background-color: var(--secondary-background);
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--offWhite30) var(--secondayColor);
+  scrollbar-color: var(--offWhite30) var(--secondary-background);
 }
 
 .sidePanel input {
@@ -41,7 +40,7 @@ body {
   height: 55px;
   font-size: 20px;
   border-radius: 50%;
-  background-color: var(--accent02);
+  background-color: var(--accent-subdued);
   color: var(--offWhite);
 }
 
@@ -60,12 +59,12 @@ body {
 }
 
 .sidePanel input:checked + label .circleText {
-  outline: 1px solid var(--accent01);
+  outline: 1px solid var(--accent-bright);
 }
 
 .sidePanel input:checked + label .labelText {
   text-decoration: underline;
-  text-decoration-color: var(--accent01);
+  text-decoration-color: var(--accent-bright);
 }
 
 .main {
@@ -81,87 +80,62 @@ body {
   margin-bottom: 20px;
 }
 
+.search-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.search-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  & input {
+    all: unset;
+    width: 500px;
+    border-radius: 8px;
+    padding: 10px;
+    padding-right: 50px;
+    background-color: var(--secondary-background);
+    color: var(--offWhite);
+    font-size: 20px;    
+  }
+
+  & input:focus {
+    outline: 1px solid var(--accent-bright);
+  }
+
+  & input::placeholder {
+    color: var(--offWhite30);
+  }
+
+  & button, label {
+    position: absolute;
+    right: 10px;
+  }
+
+  & button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 50%;
+    color: var(--offWhite);
+    background-color: var(--offWhite10);
+  }
+
+  & button:hover {
+    background-color: var(--offWhite30);
+  }
+}
+
 .searchContainer {
   display: flex;
   justify-content: flex-end;
 }
 
-.searchArea {
-  display: flex;
-  width: 250px;
-  gap: 5px;
-  background-color: var(--secondayColor);
-  padding: 5px;
-  border-radius: 5px;
-}
-
-.searchArea:hover {
-  outline: 1px solid var(--offWhite);
-}
-
-.searchArea:focus-within {
-  outline: 1px solid var(--accent01);
-}
-
-.searchArea input {
-  all: unset;
-  flex: auto;
-}
-
-.searchArea button {
-  width: 25px;
-  height: 25px;
-  border: none;
-  border-radius: 50%;
-  background-color: var(--offWhite);
-}
-
-.searchArea button:hover {
-  outline: 2px solid var(--offWhite30);
-}
-
-.searchArea button span {
-  font-weight: bold;
-  color: var(--secondayColor);
-  font-size: 18px;
-}
-
-.searchArea button:hover span {
-  color: var(--secondaryColor30);
-}
-
 .orderContainer {
   display: flex;
   justify-content: space-between;
-}
-
-.bookmarkToggle {
-  display: flex;
-  justify-content: space-between;
-  width: fit-content;
-}
-
-.bookmarkToggle input{
-  display: none;
-}
-
-.bookmarkToggle label {
-  padding: 10px;
-  background-color: var(--offWhite30);
-}
-
-.bookmarkToggle input:checked + label {
-  background-color: var(--accent02);
-}
-
-.orderDropDown {
-  display: none;
-  position: absolute;
-  background-color: var(--secondayColor);
-}
-
-.showOrder {
-  display: block;
 }
 
 .list {
@@ -172,7 +146,7 @@ body {
 
 .bookmarkEntry {
   display: flex;
-  background-color: var(--lightSecondary);
+  background-color: var(--item-background);
   margin-left: 5px;
 }
 
@@ -215,13 +189,13 @@ body {
 }
 
 .dropDown:hover .circle {
-  background: var(--accent01);
+  background: var(--accent-bright);
 }
 
 .bookmarkOptions {
   display: none;
   grid-column: end;
-  background-color: var(--secondayColor);
+  background-color: var(--secondary-background);
   border: 1px solid var(--offWhite);
 }
 
@@ -241,7 +215,7 @@ button {
 }
 
 .completeIcon {
-  color: var(--approve);
+  color: var(--approval);
 }
 
 .hidden {
@@ -253,7 +227,7 @@ button {
 }
 
 .sideBar[specialType="COMPLETED"] {
-  background-color: var(--approve);
+  background-color: var(--approval);
 }
 
 .sideBar[specialType="DELETED"] {
@@ -264,12 +238,12 @@ button {
   border-radius: 3px;
   padding: 0 5px;
   font-weight: bold;
-  color: var(--primaryColor);
-  background-color: var(--accent02);
+  color: var(--background-color);
+  background-color: var(--accent-subdued);
 }
 
 .specialText[specialType="COMPLETED"] {
-  background-color: var(--approve);
+  background-color: var(--approval);
 }
 
 .specialText[specialType="DELETED"] {

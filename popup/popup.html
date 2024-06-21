@@ -2,52 +2,78 @@
 <html>
   <head>
     <title>Mangamark Popup</title>
+    <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" type="text/css" href="popup.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
   </head>
   <body>
     <div class="header">
-      <button id="manageButton">Manage</button>
+      <themed-button id="manage-button">Manage</themed-button>
       <h1>Mangamark</h1>
     </div>
 
-    <div>
-      <div class="infoType">
-        <div id="actionType">&lt;Action Title&gt;</div>
-        <div>
+    <div class="update-create">
+      <div class="action-title-container">
+        <div id="bookmark-action">&lt;Bookmark Action&gt;</div>
+        <div class="completed-option">
           <input type="checkbox" id="completed" name="completed">
-          <label for="completed">Completed</label>
+          <label for="completed">
+            <check-box></check-box>
+            <done-icon></done-icon>
+            <span>Completed</span>
+          </label>
         </div>
       </div>
-      <div class="infoGrid">
-        <div class="gridType">Title</div>
-        <textarea id="contentTitle" class="gridValue titleTextArea readOnly" readonly>
-          &lt;Title of Content&gt;
-        </textarea>
-        <div class="gridButton">
-          <button id="editButton" class="hidden">Edit</button>
+
+      <div class="content-container">
+        <div class="identifier">Title</div>
+        <div class="value">
+          <div class="content-title-container">
+            <span id="content-title">&lt;Bookmark title&gt;</span>
+            <themed-button id="find-update" variant="secondary" size="small" class="hidden">Find Title</themed-button>
+          </div>
+          <div id="title-edit-container" class="content-title-container hidden">
+            <textarea id="title-edit" class="title-edit">&lt;Bookmark title&gt;</textarea>
+            <info-tooltip>
+              <p>
+                Automatic detection for updates will only work if the bookmark title entered
+                matches the title present on the web page, in either the page tab title or URL.
+              </p>
+            </info-tooltip>
+          </div>
         </div>
-
-        <div class="gridType">Site</div>
-        <div id="domain" class="gridValue">&lt;Site Domain&gt;</div>
-
-        <div class="gridType">Chapter</div>
-        <div class="chapterGrid">
-          <span id="oldChapter" class="greyText hidden">&lt;##&gt;</span>
-          <span id="chapterArrow" class="hidden">--&gt;</span>
-
-          <div class="inputContainer">
-            <input id="chapterInput" name="chapterInput" class="chapterInput" type="number" min="0" max="9999" required/>
-            <label for="chapterInput" class="inputLabel">Enter valid chapter number</label>
-          </div>          
-          <select id="chapterSelect" class="hidden"></select>
+        <div class="identifier">Site</div>
+        <div id="domain" class="value">&lt;Domain Name&gt;</div>
+        <div class="identifier">Chapter</div>
+        <div class="value chapter-container">
+          <span id="old-chapter" class="grey-text">&lt;##&gt;</span>
+          <span id="chapter-arrow">--&gt;</span>
+          <span id="new-chapter">&lt;##&gt;</span>
+          <input id="edit-chapter" type="number" list="detected-nums" step="0.01" class="chapter-input hidden"/>
+          <datalist id="detected-nums"></datalist>
+        </div>
+        <div class="identifier">Tags</div>
+        <ul class="value">
+          <li>tag01</li>
+          <li>tag02</li>
+        </ul>
       </div>
-    </div>
 
-    <div class="bottom">
-      <div id="result"></div>
-      <div>
-        <button id="createButton" class="hidden">Create</button>
-        <button id="updateButton" class="hidden">Update</button>
+      <div id="edit-options" class="edit-options hidden">
+        <themed-button id="edit-tags-mode" variant="secondary">Edit Tags</themed-button>
+        <themed-button id="change-mode" variant="secondary">&lt;Mode Change&gt;</themed-button>
+      </div>
+
+      <div id="action-button-container" class="action-button-container">
+        <themed-button id="edit-button">Edit</themed-button>
+        <themed-button id="action-button">&lt;Action&gt;</themed-button>
+      </div>
+
+      <div id="finish-edit" class="finish-edit hidden">
+        <themed-button id="cancel-edit">Cancel</themed-button>
+        <themed-button id="confirm-edit">Confirm</themed-button>
       </div>
     </div>
 

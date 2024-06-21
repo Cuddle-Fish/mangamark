@@ -2,8 +2,11 @@
 <html>
 <head>
   <title>Mangamark</title>
+  <link rel="stylesheet" href="/style.css">  
   <link rel="stylesheet" type="text/css" href="manager.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
 </head>
 <body>
   <div id="sidePanel" class="sidePanel">
@@ -16,60 +19,44 @@
   </div>
 
   <div class="main">
+
     <div class="header">
-      <div class="searchContainer">
-        <div class="searchArea">
-          <span class="material-symbols-outlined">
-            search
-          </span>          
-          <input type="text" id="searchBar" placeholder="Search">
-          <button id="clearSearch" class="hidden">
-            <span class="material-symbols-outlined">
-              close
-            </span>
-          </button>
+
+      <div class="search-container">
+        <div class="search-area">
+          <input type="text" placeholder="Search" name="search-input" id="search-input" />
+          <label id="search-label" for="search-input"><search-icon></search-icon></label>
+          <button id="clear-search-button" class="hidden"><close-icon></close-icon></button>
         </div>
       </div>
 
       <div class="orderContainer">
-        <div class="bookmarkToggle">
-          <input type="radio" id="typeAll" name="bookmarkType" value="all">
-          <label for="typeAll">All</label>
-          <input type="radio" id="typeReading" name="bookmarkType" value="reading">
-          <label for="typeReading">Reading</label>
-          <input type="radio" id="typeCompleted" name="bookmarkType" value="completed">
-          <label for="typeCompleted">Completed</label>
-        </div>
-        <div class="orderBy">
-          <button id="orderButton">
-            Order by&nbsp;
-            <span id="selectedOrder">&nbsp;</span>
-            <span class="material-symbols-outlined">
-              arrow_drop_down
-            </span>
-          </button>
-          <div id="orderDropDown" class="orderDropDown">
-            <div>
-              <input type="radio" id="orderRecent" name="orderOption" value="Recent">
-              <label for="orderRecent">Most Recent</label>          
-            </div>
-            <div>
-              <input type="radio" id="orderOldest" name="orderOption" value="Oldest">
-              <label for="orderOldest">Least Recent</label>          
-            </div>
-            <div>
-              <input type="radio" id="orderTitleAz" name="orderOption" value="Az">
-              <label for="orderTitleAz">Title A-Z</label>          
-            </div>
-            <div>
-              <input type="radio" id="orderTitleZa" name="orderOption" value="Za">
-              <label for="orderTitleZa">Title Z-A</label>          
-            </div>
-          </div>
-        </div>        
+        <toggle-menu id="toggle-reading-type">
+          <option-data value="all" label="All"></option-data>
+          <option-data value="reading" label="Reading"></option-data>
+          <option-data value="completed" label="Completed"></option-data>
+        </toggle-menu>
+
+        <dropdown-menu id="order-dropdown" placeholder="Order by" width="211px">
+          <option-data value="Recent" label="Most Recent"></option-data>
+          <option-data value="Oldest" label="Least Recent"></option-data>
+          <option-data value="Az" label="Title A-Z"></option-data>
+          <option-data value="Za" label="Title Z-A"></option-data>
+        </dropdown-menu>
       </div>
+
+      <div>
+        <toggle-menu id="tagToggleMenu" selected="FilterTags">
+          <option-data value="FilterTags" label="Filter Tags"></option-data>
+          <option-data value="AddNavTag" label="Add to Navigation"></option-data>
+          <option-data value="DeleteTags" label="Delete Tags"></option-data>
+          <option-data value="CreateTag" label="Create Tag"></option-data>
+        </toggle-menu>
+      </div>
+
     </div>
 
+    <div id="cardTest" style="padding-bottom: 5px;"></div>
     <div id="bookmarkList" class="list"></div>
   </div>
   <script src="manager.js" type="module"></script>
