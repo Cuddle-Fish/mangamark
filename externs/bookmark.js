@@ -124,8 +124,9 @@ function findBookmark(contentTitle, folderName) {
     .then((tree) => tree ? searchFolder(tree[0].children, contentTitle) : null);
 }
 
-function createBookmarkTitle(title, chapterNum) {
-  return title + ' - Chapter ' + chapterNum;
+function createBookmarkTitle(title, chapterNum, tags=[]) {
+  const tagSection = tags.length > 0 ? ` - Tags ${tags.join(', ')}` : '';
+  return `${title} - Chapter ${chapterNum}${tagSection}`;
 }
 
 /**
@@ -135,11 +136,12 @@ function createBookmarkTitle(title, chapterNum) {
  * @param {string} chapterNum current chapter number
  * @param {string} url URL navigated to when user clicks bookmark
  * @param {string} folderName name of folder to contain bookmark
+ * @param {Array.<string>} tags list of tags associated with bookmark
  * @param {string=} subFolderName name of sub folder, if applicable
  * @returns title of created bookmark
  */
-function addBookmark(title, chapterNum, url, folderName, subFolderName) {
-  const bookmarkTitle = createBookmarkTitle(title, chapterNum);
+function addBookmark(title, chapterNum, url, folderName, tags, subFolderName) {
+  const bookmarkTitle = createBookmarkTitle(title, chapterNum, tags);
   return getMangamarkFolderId()
     .then((mangamarkId) => getFolderId(mangamarkId, folderName, true))
     .then((mainFolderId) => subFolderName ? getFolderId(mainFolderId, subFolderName, true) : mainFolderId)

@@ -3,6 +3,7 @@ import "/components/themed-button/themed-button.js";
 import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
 import "/components/info-tooltip/info-tooltip.js";
+import "/popup/tags-screen/tags-screen.js";
 
 //#region Buttons
 const manageButton = document.getElementById('manage-button');
@@ -159,6 +160,7 @@ function chapterDisplay(numsInTitle, oldChapter) {
  * @property {string} chapter - chapter number
  * @property {string} folderName - name of folder
  * @property {string} url - url for bookmark
+ * @property {Array.<string>} tags - list of tags
  */
 
 /**
@@ -174,11 +176,14 @@ function getData() {
   const chapter = newChapter.textContent;
   const domainElement = document.getElementById('domain');
   const folderName = domainElement.textContent;
+  const bookmarkTags = document.getElementById('bookmark-tags');
+  const tagList = Array.from(bookmarkTags.children, li => li.textContent);
   return {
     title: title,
     chapter: chapter,
     folderName: folderName,
-    url: pageURL
+    url: pageURL,
+    tags: tagList
   }
 }
 
@@ -207,9 +212,9 @@ actionButton.addEventListener('click', () => {
 function createBookmark(data) {
   const completeChecked = document.getElementById('completed').checked;
   if (completeChecked) {
-    return addBookmark(data.title, data.chapter, data.url, data.folderName, 'completed');
+    return addBookmark(data.title, data.chapter, data.url, data.folderName, data.tags, 'completed');
   } else {
-    return addBookmark(data.title, data.chapter, data.url, data.folderName);
+    return addBookmark(data.title, data.chapter, data.url, data.folderName, data.tags);
   }
 }
 
@@ -287,3 +292,30 @@ function hideEditElements() {
   editChapter.classList.add('hidden');
   editChapter.value = '';
 }
+
+editTagsButton.addEventListener('click', () => {
+  const titleElement = document.getElementById('content-title');
+  const tagsScreen = document.getElementById('tags-screen');
+  const bookmarkTags = document.getElementById('bookmark-tags');
+  const tagList = Array.from(bookmarkTags.children, li => li.textContent);
+  tagsScreen.openScreen(titleElement.textContent, tagList);
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.add('hidden');
+});
+
+document.getElementById('tags-screen').addEventListener('finishEdit', (event) => {
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.remove('hidden');
+  const action = event.detail.action;
+  if (action === 'confirm') {
+    const newTags = event.detail.bookmarkTags;
+    const fragment = document.createDocumentFragment();
+    newTags.forEach(tag => {
+      const li = document.createElement('li');
+      li.textContent = tag;
+      fragment.appendChild(li);
+    });
+    const bookmarkTags = document.getElementById('bookmark-tags');
+    bookmarkTags.replaceChildren(fragment);
+  }
+});

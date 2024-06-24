@@ -19,6 +19,13 @@ customElements.define(
       return this.getAttribute('variant') || '';
     }
 
+    set variant(value) {
+      const validVariants = ['addToBookmark', 'active', 'filter', 'delete', 'noAction'];
+      if (validVariants.includes(value)) {
+        this.setAttribute('variant', value);
+      }
+    }
+
     get selected() {
       return this.hasAttribute('selected') && this.getAttribute('selected') !== false;
     }

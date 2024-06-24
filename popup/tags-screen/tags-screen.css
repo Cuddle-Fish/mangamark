@@ -1,0 +1,61 @@
+:host(:not([open])) {
+  display: none;
+}
+
+:host([open]) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--offWhite);
+  font-family: var(--font-family);
+}
+
+.tags-title-container {
+  font-size: 20px;
+}
+
+.tags-content-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 20px;
+  background-color: var(--offWhite10);
+}
+
+.tags-info-container {
+  display: flex;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.tags-creation-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.create-tag {
+  width: 260px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: var(--secondary-background);
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--offWhite);
+}
+
+.create-tag::placeholder {
+  color: var(--offWhite30);
+}
+
+.create-tag:focus {
+  outline: 1px solid var(--accent-bright);
+}
+
+.finish-edit {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}

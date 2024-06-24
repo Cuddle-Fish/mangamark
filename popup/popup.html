@@ -14,7 +14,7 @@
       <h1>Mangamark</h1>
     </div>
 
-    <div class="update-create">
+    <div id="update-create" class="update-create">
       <div class="action-title-container">
         <div id="bookmark-action">&lt;Bookmark Action&gt;</div>
         <div class="completed-option">
@@ -55,10 +55,7 @@
           <datalist id="detected-nums"></datalist>
         </div>
         <div class="identifier">Tags</div>
-        <ul class="value">
-          <li>tag01</li>
-          <li>tag02</li>
-        </ul>
+        <ul id="bookmark-tags" class="value"></ul>
       </div>
 
       <div id="edit-options" class="edit-options hidden">
@@ -76,6 +73,8 @@
         <themed-button id="confirm-edit">Confirm</themed-button>
       </div>
     </div>
+
+    <tags-screen id="tags-screen"></tags-screen>
 
     <script src="popup.js" type="module"></script>
   </body>
