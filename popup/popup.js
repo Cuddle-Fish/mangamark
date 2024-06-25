@@ -263,15 +263,19 @@ cancelButton.addEventListener('click', () => hideEditElements());
 
 confirmButton.addEventListener('click', () => {
   const titleElement = document.getElementById('content-title');
-  const editTitle = document.getElementById('title-edit');
-  const newTitle = editTitle.value.replace(/\n/g, '')
-  titleElement.textContent = newTitle;
+  if (actionButton.textContent ===  'Create') {
+    const editTitle = document.getElementById('title-edit');
+    const newTitle = editTitle.value.replace(/\n/g, '');
+    titleElement.textContent = newTitle;
+  }
 
   const editChapter = document.getElementById('edit-chapter');
   const newChapter = document.getElementById('new-chapter');
-  newChapter.textContent = editChapter.value;
+  if (editChapter.value) {
+    newChapter.textContent = editChapter.value;
+  }
 
-  if (newTitle === '' || editChapter.value === '') {
+  if (titleElement.textContent === '' || newChapter.textContent === '') {
     actionButton.disabled = true;
   } else {
     actionButton.disabled = false;
