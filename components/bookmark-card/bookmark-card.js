@@ -7,7 +7,7 @@ customElements.define(
   'bookmark-card',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['state'];
+      return ['state', 'readingStatus'];
     }
 
     get state() {
@@ -23,13 +23,32 @@ customElements.define(
       }
     }
 
+    get readingStatus() {
+      return this.getAttribute('readingStatus') || '';
+    }
+
+    set readingStatus(value) {
+      const validStatuses = ['reading', 'completed'];
+      if (value === '') {
+        this.removeAttribute('readingStatus');
+      } else if (validStatuses.includes(value)) {
+        this.setAttribute('readingStatus', value);
+      }
+    }
+
     constructor() {
       super();
       this.attachShadow({ mode: 'open'});
     }
 
-    initialize(title, url, chapterNumber, domain, date, activeTags) {
+    initialize(title, chapterNumber, url, date, readingStatus, activeTags) {
       this.state = 'default';
+      this.readingStatus = readingStatus;
+
+      let domain = new URL(url).hostname;
+      if (domain.startsWith('www.')) {
+        domain = domain.substring(4);
+      }
 
       const dateObj = new Date(date);
       const displayDate = dateObj.toLocaleDateString('en-US', {
@@ -47,7 +66,10 @@ customElements.define(
           <div class="card-container">
             <a href="${url}" class="card">
               <div class="link-container">
-                <div class="title">${title}</div>
+                <div class="title-container">
+                  <span class="title">${title}</span>
+                  ${readingStatus !== 'reading' ? `<span class="readingStatus">${readingStatus}</span>` : ''}
+                </div>
                 <div class="chapter">Chapter ${chapterNumber}</div>
                 <div class="domain-date">
                   <div>${domain}</div>
@@ -57,7 +79,10 @@ customElements.define(
             </a>
             <div class="active-tags-edit">
               <ul>
-                ${activeTags.map(tag => `<li>${tag}</li>`).join('')}
+                ${activeTags.length > 0
+                  ? activeTags.map(tag => `<li>${tag}</li>`).join('')
+                  : ''
+                }
               </ul>
               <button id="edit-button" title="Edit Bookmark"><edit-icon></edit-icon></button>                
             </div>
@@ -85,7 +110,7 @@ customElements.define(
         </div>
       `;
 
-    this.initializeButtons();
+      this.initializeButtons();
     }
 
     initializeButtons() {
@@ -103,7 +128,6 @@ customElements.define(
 
       const closeButton = this.shadowRoot.getElementById('close-button');
       closeButton.addEventListener('click', (event) => this.toggleOptions());
-
 
       const cancelButton = this.shadowRoot.getElementById('cancel-button');
       cancelButton.addEventListener('click', (event) => this.setEditing());

@@ -6,21 +6,6 @@ import "/components/option-data/option-data.js";
 import "/components/bookmark-card/bookmark-card.js";
 import "/components/svg/search-icon.js";
 
-function test() {
-  const  cardTest = document.getElementById('cardTest');
-  const bookmarkCard = document.createElement('bookmark-card');
-  bookmarkCard.initialize(
-    'test card title',
-    'https://mangadex.org/',
-    '13',
-    'siteName.net',
-    1717209600000,
-    ['tagName', 'another tag', 'lastTag']
-  );
-  cardTest.appendChild(bookmarkCard);
-}
-test();
-
 var searchTypingTimer;
 const searchBar = document.getElementById('search-input');
 
@@ -122,141 +107,34 @@ class Folder {
 class Bookmark {
   /**
    * 
-   * @param {string} title title of content
-   * @param {string} chapter bookmarked chapter number
-   * @param {string} url link to site
-   * @param {number} dateCreated date bookmark was created, date read
+   * @param {string} title The bookmark contents title
+   * @param {string} chapter The chapter number of the bookmark
+   * @param {string} url The url used for navigation
+   * @param {number} dateCreated The date the bookmark was created
+   * @param {string} readingStatus Status associated with bookmark
+   * @param {Array.<string>} tags List of tags associated with bookmark
    */
-  constructor(title, chapter, url, dateCreated, specialType) {
+  constructor(title, chapter, url, dateCreated, readingStatus, tags) {
     this.title = title;
     this.chapter = chapter;
     this.url = url;
     this.date = dateCreated
-    this.dateString = this.#convertDate(dateCreated);
-    if (specialType) {
-      this.specialType = specialType.toUpperCase();
-    } else {
-      this.specialType = null;
-    }
-  }
-
-  #convertDate(dateCreated) {
-    const months = [
-      "January", 
-      "February", 
-      "March", 
-      "April", 
-      "May", 
-      "June", 
-      "July", 
-      "August", 
-      "September", 
-      "October", 
-      "November", 
-      "December"
-    ];
-    const date = new Date(dateCreated);
-    const month = months[date.getMonth()];
-    const day = date.getDate();
-    const year = date.getFullYear();
-    return `${month} ${day}, ${year}`
+    this.readingStatus = readingStatus || null;
+    this.tags = tags || [];
   }
 
   bookmarkElement() {
-    const sideBar = document.createElement('div');
-    sideBar.classList.add('sideBar');
-    if (this.specialType) {
-      sideBar.setAttribute('specialType', this.specialType);
-    }
+    const bookmarkCard = document.createElement('bookmark-card');
+    bookmarkCard.initialize(
+      this.title,
+      this.chapter,
+      this.url,
+      this.date,
+      this.readingStatus,
+      this.tags
+    );
 
-    const bookmarkEntry = document.createElement('div');
-    bookmarkEntry.classList.add('bookmarkEntry');
-    sideBar.appendChild(bookmarkEntry);
-
-    const bookmarkGrid = document.createElement('div');
-    bookmarkGrid.classList.add('bookmarkGrid');
-
-    const titleElement = document.createElement('div');
-    titleElement.classList.add('col1');
-    titleElement.textContent = this.title;
-    if (this.specialType) {
-      const specialText = document.createElement('span');
-      specialText.classList.add('specialText');
-      specialText.setAttribute('specialType', this.specialType);
-      specialText.textContent = this.specialType;
-      titleElement.appendChild(specialText);
-    }
-
-    const optionsElement = document.createElement('div');
-    optionsElement.classList.add('col2');
-
-    const dropDown = document.createElement('div');
-    dropDown.classList.add('dropDown');
-    for (let i = 0; i < 3; i++) {
-      const circle = document.createElement('div');
-      circle.classList.add('circle');
-      dropDown.appendChild(circle);
-    }
-
-    optionsElement.appendChild(dropDown);
-
-    const chapterElement = document.createElement('div');
-    chapterElement.classList.add('fullGridLength');
-    chapterElement.textContent = 'Chapter ' + this.chapter;
-
-    const domainElement = document.createElement('div');
-    domainElement.classList.add('col1');
-    domainElement.textContent = new URL(this.url).hostname;
-
-    const dateElement = document.createElement('div');
-    dateElement.classList.add('col2');
-    dateElement.textContent = this.dateString;
-
-    bookmarkGrid.appendChild(titleElement);
-    bookmarkGrid.appendChild(optionsElement);
-    bookmarkGrid.appendChild(chapterElement);
-    bookmarkGrid.appendChild(domainElement);
-    bookmarkGrid.appendChild(dateElement);
-
-    const bookmarkOptions = this.#optionsMenu();
-    dropDown.addEventListener('click', () => {
-      bookmarkOptions.classList.toggle('showBookmarkOpt');
-    });
-
-    bookmarkEntry.appendChild(bookmarkGrid);
-    bookmarkEntry.appendChild(bookmarkOptions);
-
-    return sideBar;
-  }
-
-  #optionsMenu() {
-    const bookmarkOptions = document.createElement('div');
-    bookmarkOptions.classList.add('bookmarkOptions');
-
-    const deleteButton = document.createElement('button');
-    deleteButton.title = 'Delete Bookmark';
-    const deleteIcon = document.createElement('span');
-    deleteIcon.classList.add('material-symbols-outlined', 'removeIcon');
-    deleteIcon.textContent = 'delete';
-    deleteButton.appendChild(deleteIcon);
-    deleteButton.addEventListener('click' , () => {
-      //TODO remove bookmark
-      //TODO remove HTML element
-    });
-    bookmarkOptions.appendChild(deleteButton);
-
-    if (this.specialType !== 'COMPLETED') {
-      const completeButton = document.createElement('button');
-      completeButton.title = 'Mark as Completed';
-      const completeIcon = document.createElement('span');
-      completeIcon.classList.add('material-symbols-outlined', 'completeIcon');
-      completeIcon.textContent = 'done';
-      completeButton.appendChild(completeIcon);
-      //TOOD add onclick move to completed
-      bookmarkOptions.appendChild(completeButton);          
-    }
-
-    return bookmarkOptions;
+    return bookmarkCard;
   }
 }
 
@@ -323,14 +201,14 @@ function getFolders(tree) {
   return folders;
 }
 
-function getBookmarks(tree, getSubFolders=true, specialType) {
+function getBookmarks(tree, getSubFolders=true, subFolderName) {
   const bookmarks = [];
   const folders = []
   tree.forEach(node => {
     if (node.url) {
-      var bookmark;
-      if (specialType) {
-        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, specialType);
+      let bookmark;
+      if (subFolderName) {
+        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, subFolderName);
       } else {
         bookmark = createBookmarkObject(node.title, node.url, node.dateAdded);
       }
@@ -349,18 +227,16 @@ function getBookmarks(tree, getSubFolders=true, specialType) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function createBookmarkObject(bookmarkTitle, url, dateAdded, specialType) {
+function createBookmarkObject(bookmarkTitle, url, dateAdded, subFolderName) {
   const matches = bookmarkTitle.match(bookmarkRegex());
   if (!matches) {
     return null;
-  } else{
-    const title = matches[1]
+  } else {
+    const title = matches[1];
     const chapter = matches[2];
-    if (specialType) {
-      return new Bookmark(title, chapter, url, dateAdded, specialType);
-    } else {
-      return new Bookmark(title, chapter, url, dateAdded);      
-    }
+    const tags = matches[3] ? matches[3].split(',') : [];
+    const readingStatus = subFolderName || 'reading';
+    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags);
   }
 }
 
