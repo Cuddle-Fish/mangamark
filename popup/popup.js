@@ -43,6 +43,7 @@ chrome.tabs.query({active: true, currentWindow: true})
       const bookmarkInfo = bookmarkTitleAndChapter(bookmark.title);
       titleDisplay(bookmarkInfo.title);
       chapterDisplay(numsInTitle, bookmarkInfo.chapter);
+      tagDisplay(bookmarkInfo.tags);
     } else {
       console.log('new title');
       setActionDisplay(false);
@@ -106,8 +107,9 @@ function setActionDisplay(update) {
 function bookmarkTitleAndChapter(bookmarkTitle) {
   const matches = bookmarkTitle.match(bookmarkRegex());
     const [, title, chapter] = matches;
-    console.log(`'${title}' - '${chapter}'`);
-    return { title: title, chapter: chapter};
+    const tags = matches[3] ? matches[3].split(',') : [];
+    console.log(`'${title}' - '${chapter}' - ${tags}`);
+    return { title: title, chapter: chapter, tags: tags};
 }
 
 /**
@@ -152,6 +154,17 @@ function chapterDisplay(numsInTitle, oldChapter) {
       chapterSelect.appendChild(option);
     });
   }
+}
+
+function tagDisplay(tags) {
+  const fragment = document.createDocumentFragment();
+  tags.forEach(tag => {
+    const li = document.createElement('li');
+    li.textContent = tag;
+    fragment.appendChild(li);
+  });
+  const bookmarkTags = document.getElementById('bookmark-tags');
+  bookmarkTags.replaceChildren(fragment);
 }
 
 /**
@@ -309,13 +322,6 @@ document.getElementById('tags-screen').addEventListener('finishEdit', (event) =>
   const action = event.detail.action;
   if (action === 'confirm') {
     const newTags = event.detail.bookmarkTags;
-    const fragment = document.createDocumentFragment();
-    newTags.forEach(tag => {
-      const li = document.createElement('li');
-      li.textContent = tag;
-      fragment.appendChild(li);
-    });
-    const bookmarkTags = document.getElementById('bookmark-tags');
-    bookmarkTags.replaceChildren(fragment);
+    tagDisplay(newTags);
   }
 });
