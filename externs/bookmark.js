@@ -125,7 +125,7 @@ function findBookmark(contentTitle, folderName) {
 }
 
 function createBookmarkTitle(title, chapterNum, tags=[]) {
-  const tagSection = tags.length > 0 ? ` - Tags ${tags.join(', ')}` : '';
+  const tagSection = tags.length > 0 ? ` - Tags ${tags.join(',')}` : '';
   return `${title} - Chapter ${chapterNum}${tagSection}`;
 }
 
