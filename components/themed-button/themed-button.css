@@ -13,35 +13,34 @@
 
 :host(:not([variant])) button,
 :host([variant="primary"]) button {
-  /* background-color: var(--accent-subdued); */
-  background-color: rgba(60, 91, 127, 0.7);
+  background-color: var(--button-primary-color);
   color: var(--offWhite);
 
   &:hover {
-    background-color: rgba(60, 91, 127);
+    background-color: var(--button-primary-hover);
   }
 
   :host([disabled]) & {
     cursor: not-allowed;
     color: var(--offWhite30);
-    background-color: rgba(60, 91, 127, 0.3);
+    background-color: var(--button-primary-disabled);
   }
 }
 
 :host([variant="secondary"]) button {
-  background-color: var(--offWhite30);
+  background-color: var(--button-secondary-color);
   color: var(--offWhite);
 
   &:hover {
-    background-color: rgba(220, 222, 223, 0.50);
+    background-color: var(--button-secondary-hover);
   }
 }
 
 :host([variant="warning"]) button {
-  background-color: rgb(207, 97, 97, 0.8);
+  background-color: var(--button-warning-color);
   color: var(--offWhite);
 
   &:hover {
-    background-color: var(--warning);
+    background-color: var(--button-warning-hover);
   }
 }

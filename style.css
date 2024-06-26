@@ -19,4 +19,14 @@
   --approval: #92bd3b;
 
   --font-family: "Poppins", sans-serif;
+
+  --button-primary-color: #3c5b7fb3;
+  --button-primary-hover: var(--accent-subdued);
+  --button-primary-disabled: var(--accent-subdued30);
+
+  --button-secondary-color: var(--offWhite30);
+  --button-secondary-hover: #dcdedf80;
+
+  --button-warning-color: #cf6161cc;
+  --button-warning-hover: var(--warning);
 }
