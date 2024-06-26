@@ -145,6 +145,8 @@
 
 :host([state="tags"]) .tag-list {
   display: flex;
+  padding: 0 30px;
+  gap: 10px;
 }
 
 :host .warning-text {

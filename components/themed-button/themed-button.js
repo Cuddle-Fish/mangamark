@@ -23,6 +23,19 @@ customElements.define(
       value === true ? this.setAttribute('disabled', '') : this.removeAttribute('disabled');
     }
 
+    get variant() {
+      return this.getAttribute('variant') || 'primary';
+    }
+
+    set variant(value) {
+      const validVariants = ['primary', 'secondary', 'warning'];
+      if (value === '') {
+        this.removeAttribute('variant');
+      } else if (validVariants.includes(value)) {
+        this.setAttribute('variant', value);
+      }
+    }
+
     constructor() {
       super();
       const shadowRoot = this.attachShadow({ mode: 'open'});

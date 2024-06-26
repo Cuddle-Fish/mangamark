@@ -207,7 +207,7 @@ actionButton.addEventListener('click', () => {
     const oldChapter = oldChapterElement.textContent;
     createBookmark(data)
       .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
-      .then(() => removeBookmark(data.title, oldChapter, data.folderName))
+      .then(() => removeBookmark(data.title, oldChapter, data.folderName, data.tags))
       .catch((err) => console.error('Error updating bookmark', err));
   } else {
     createBookmark(data)

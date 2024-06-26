@@ -113,14 +113,17 @@ class Bookmark {
    * @param {number} dateCreated The date the bookmark was created
    * @param {string} readingStatus Status associated with bookmark
    * @param {Array.<string>} tags List of tags associated with bookmark
+   * @param {string} folderName Name of containing folder
    */
-  constructor(title, chapter, url, dateCreated, readingStatus, tags) {
+  constructor(title, chapter, url, dateCreated, readingStatus, tags, folderName) {
     this.title = title;
     this.chapter = chapter;
     this.url = url;
     this.date = dateCreated
     this.readingStatus = readingStatus || null;
     this.tags = tags || [];
+
+    this.folder = folderName;
   }
 
   bookmarkElement() {
@@ -131,7 +134,8 @@ class Bookmark {
       this.url,
       this.date,
       this.readingStatus,
-      this.tags
+      this.tags,
+      this.folder
     );
 
     return bookmarkCard;
@@ -193,7 +197,7 @@ function getFolders(tree) {
   const folders = [];
   tree.forEach(node => {
     if (node.children) {
-      const {folders: subFolders, bookmarks: bookmarks} = getBookmarks(node.children);
+      const {folders: subFolders, bookmarks: bookmarks} = getBookmarks(node.children, node.title);
       const folder = new Folder(node.title, bookmarks, subFolders);
       folders.push(folder);
     }
@@ -201,16 +205,16 @@ function getFolders(tree) {
   return folders;
 }
 
-function getBookmarks(tree, getSubFolders=true, subFolderName) {
+function getBookmarks(tree, folderName, getSubFolders=true, subFolderName) {
   const bookmarks = [];
-  const folders = []
+  const folders = [];
   tree.forEach(node => {
     if (node.url) {
       let bookmark;
       if (subFolderName) {
-        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, subFolderName);
+        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, folderName, subFolderName);
       } else {
-        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded);
+        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, folderName);
       }
       if (bookmark) {
         bookmarks.push(bookmark);
@@ -219,7 +223,7 @@ function getBookmarks(tree, getSubFolders=true, subFolderName) {
         //TODO display somewhere on page
       }
     } else if (node.children && getSubFolders) {
-      const {bookmarks: folderBookmarks} = getBookmarks(node.children, false, node.title);
+      const {bookmarks: folderBookmarks} = getBookmarks(node.children, folderName, false, node.title);
       const folder = new Folder(node.title, folderBookmarks);
       folders.push(folder);
     }
@@ -227,7 +231,7 @@ function getBookmarks(tree, getSubFolders=true, subFolderName) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function createBookmarkObject(bookmarkTitle, url, dateAdded, subFolderName) {
+function createBookmarkObject(bookmarkTitle, url, dateAdded, folderName, subFolderName) {
   const matches = bookmarkTitle.match(bookmarkRegex());
   if (!matches) {
     return null;
@@ -236,7 +240,7 @@ function createBookmarkObject(bookmarkTitle, url, dateAdded, subFolderName) {
     const chapter = matches[2];
     const tags = matches[3] ? matches[3].split(',') : [];
     const readingStatus = subFolderName || 'reading';
-    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags);
+    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags, folderName);
   }
 }
 

@@ -166,30 +166,65 @@ function performRemove(bookmark) {
  * @param {string} title title of content 
  * @param {string} chapterNum chapter number of title to be removed 
  * @param {string} folderName name of folder containing bookmark
+ * @param {Array.<string>} tags list of tags associated with bookmark
  */
-function removeBookmark(title, chapterNum, folderName) {
-  const bookmarkTitle = createBookmarkTitle(title, chapterNum);
+function removeBookmark(title, chapterNum, folderName, tags) {
+  const bookmarkTitle = createBookmarkTitle(title, chapterNum, tags);
   getMangamarkFolderId()
   .then((mangamarkId) => getFolderId(mangamarkId, folderName))
-  .then((folderId) => folderId ?  chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))
+  .then((folderId) => folderId ? chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))
   .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true))
   .then((bookmark) => bookmark ? performRemove(bookmark) : Promise.reject('Could not find bookmark'))
 }
 
-function moveBookmarkToSubFolder(title, chapterNum, folderName, subFolderName) {
-  const bookmarkTitle = createBookmarkTitle(title, chapterNum);
-  getMangamarkFolderId()
+/**
+ * Update tags associated with a bookmark
+ * 
+ * @param {string} title title of content 
+ * @param {string} chapterNum chapter number of title
+ * @param {string} folderName name of folder containing bookmark
+ * @param {Array.<string>} oldTags current tags associated with bookmark
+ * @param {Array.<string>} newTags new tags to be associated with bookmark
+ */
+function updateBookmarkTags(title, chapterNum, folderName, oldTags, newTags) {
+  const oldBookmarkTitle = createBookmarkTitle(title, chapterNum, oldTags);
+  console.log(oldBookmarkTitle);
+  const newBookmarkTitle = createBookmarkTitle(title, chapterNum, newTags);
+  return getMangamarkFolderId()
   .then((mangamarkId) => getFolderId(mangamarkId, folderName))
+  .then((folderId) => folderId ? chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))
+  .then((tree) => searchFolder(tree[0].children, oldBookmarkTitle, true))
+  .then((bookmark) => bookmark
+    ? chrome.bookmarks.update(bookmark.id, {title: newBookmarkTitle}) 
+    : Promise.reject('Could not find bookmark'));
+}
+
+/**
+ * Move a bookmark to a new location
+ * 
+ * @param {string} title title of content 
+ * @param {string} chapter chapter number of title
+ * @param {string} domain name of main folder containing bookmark
+ * @param {Array.<string>} tags tags associated with bookmark 
+ * @param {string} readingStatus indicates name of subFolder to move bookmark to or 'reading' for main folder
+ */
+function moveBookmark(title, chapter, domain, tags, readingStatus) {
+  const bookmarkTitle = createBookmarkTitle(title, chapter, tags);
+  return getMangamarkFolderId()
+  .then((mangamarkId) => getFolderId(mangamarkId, domain))
   .then((folderId) => {
     const bookmark = chrome.bookmarks.getSubTree(folderId)
-    .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true));
+      .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true));
+    
+    const destinationId = readingStatus === 'reading' ? folderId : getFolderId(folderId, readingStatus, true);
 
-    const subFolderId = getFolderId(folderId, subFolderName, true);
-
-    Promise.all([bookmark, subFolderId]).then((values) => {
-      chrome.bookmarks.move(values[0].id, {parentId: values[1]});
+    Promise.all([bookmark, destinationId]).then((values) => {
+      console.log(values[0].parentId, values[1]);
+      chrome.bookmarks.move(values[0].id, {parentId: values[1]})
+      .then(() => chrome.bookmarks.getChildren(values[0].parentId))
+      .then((children) => children.length === 0 ? chrome.bookmarks.remove(values[0].parentId) : Promise.resolve());
     });
   })
 }
 
-export {bookmarkRegex, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark}
+export {bookmarkRegex, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, moveBookmark}
