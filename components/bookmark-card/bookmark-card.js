@@ -1,5 +1,5 @@
 import { getTags } from "/externs/tags.js";
-import { updateBookmarkTags, moveBookmark, removeBookmark } from "/externs/bookmark.js";
+import { bookmarkRegex, updateBookmarkTags, moveBookmark, removeBookmark } from "/externs/bookmark.js";
 import "/components/svg/edit-icon.js";
 import "/components/svg/info-icon.js";
 import "/components/themed-button/themed-button.js";
@@ -261,7 +261,8 @@ customElements.define(
     }
 
     handelDelete(title, chapter, folder, tags) {
-      removeBookmark(title, chapter, folder, tags);
+      const bookmarkTitle = bookmarkRegex(title, chapter, tags);
+      removeBookmark(bookmarkTitle, folder);
     }
   }
 );

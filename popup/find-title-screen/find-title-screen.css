@@ -1,0 +1,114 @@
+:host(:not([open])) {
+  display: none;
+}
+
+:host([open]) {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.title-container {
+  font-size: 20px;
+}
+
+.selection-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background-color: var(--offWhite10);
+}
+
+.description {
+  padding: 5px;
+  background-color: var(--offWhite30);
+  font-size: 16px;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  input {
+    all: unset;
+    position: relative;
+    width: 80%;
+    border-radius: 8px;
+    padding: 5px 30px 5px 8px;
+    background-color: var(--secondary-background);
+    color: var(--offWhite);
+    font-size: 20px;
+  }
+
+  input:focus {
+    outline: 1px solid var(--accent-bright);
+  }
+
+  input::placeholder {
+    color: var(--offWhite30);
+  }
+
+  label {
+    position: absolute;
+    right: 30px;
+  }
+}
+
+.bookmark-list {
+  padding-bottom: 10px;
+  max-height: 205px;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite30) var(--secondary-background);
+}
+
+.bookmark-title {
+  padding: 0 5px;
+  font-size: 16px;
+
+  input {
+    display: none;
+  }
+
+  label {
+    border-radius: 12px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  label:hover {
+    background-color: var(--offWhite10);
+  }
+
+  label done-icon {
+    display: none;
+    color: var(--approval);
+  }
+
+  input:checked + label done-icon {
+    display: block;
+  }
+
+  input:checked + label {
+    background-color: var(--accent-subdued30);
+  }
+}
+
+.buttons-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.red-text {
+  color: var(--warning);
+}
+
+.hidden {
+  display: none;
+}

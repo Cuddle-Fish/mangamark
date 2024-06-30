@@ -87,7 +87,6 @@ customElements.define(
     setupFinishButtons() {
       const cancelButton = this.shadowRoot.getElementById('cancel-tag-edit');
       const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
-      confirmButton.disabled = true;
 
       confirmButton.addEventListener('click', () => {
         const tagsContainer = this.shadowRoot.getElementById('extension-tags');
@@ -124,6 +123,8 @@ customElements.define(
     openScreen(title, bookmarkTags) {
       this.setTitle(title);
       this.setTags(bookmarkTags);
+      const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
+      confirmButton.disabled = true;
       this.open = true;
     }
 

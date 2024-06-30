@@ -4,6 +4,7 @@ import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
 import "/components/info-tooltip/info-tooltip.js";
 import "/popup/tags-screen/tags-screen.js";
+import "/popup/find-title-screen/find-title-screen.js";
 
 //#region Buttons
 const manageButton = document.getElementById('manage-button');
@@ -17,6 +18,7 @@ const editTagsButton = document.getElementById('edit-tags-mode');
 //#endregion
 
 var pageURL = '';
+var updateBookmark = '';
 
 manageButton.addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
@@ -40,7 +42,8 @@ chrome.tabs.query({active: true, currentWindow: true})
     if (bookmark) {
       console.log('bookmark exists');
       setActionDisplay(true);
-      const bookmarkInfo = bookmarkTitleAndChapter(bookmark.title);
+      updateBookmark = bookmark.title;
+      const bookmarkInfo = getBookmarkContents(bookmark.title);
       titleDisplay(bookmarkInfo.title);
       chapterDisplay(numsInTitle, bookmarkInfo.chapter);
       tagDisplay(bookmarkInfo.tags);
@@ -95,16 +98,21 @@ function setActionDisplay(update) {
 }
 
 /**
+ * @typedef {Object} BookmarkContents
+ * @property {string} title - bookmark contents title
+ * @property {string} chapter - bookmark chapter number
+ * @property {Array.<string>} tags - tags associated with bookmarks
+ */
+
+/**
  * Extracts title of content and chapter number from bookmark title
  * 
  * Expects to recieve a bookmark title with valid format
  * 
  * @param {string} bookmarkTitle Title of bookmark
- * @returns {Object} Object with title and chapter number
- * @property {string} title - Extracted title
- * @property {string} chapter - Extracted chapter number
+ * @returns {BookmarkContents} Information contained in bookmark title
  */
-function bookmarkTitleAndChapter(bookmarkTitle) {
+function getBookmarkContents(bookmarkTitle) {
   const matches = bookmarkTitle.match(bookmarkRegex());
     const [, title, chapter] = matches;
     const tags = matches[3] ? matches[3].split(',') : [];
@@ -203,11 +211,9 @@ function getData() {
 actionButton.addEventListener('click', () => {
   const data = getData();
   if (actionButton.textContent === 'Update') {
-    const oldChapterElement = document.getElementById('old-chapter');
-    const oldChapter = oldChapterElement.textContent;
     createBookmark(data)
       .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
-      .then(() => removeBookmark(data.title, oldChapter, data.folderName, data.tags))
+      .then(() => removeBookmark(updateBookmark, data.folderName))
       .catch((err) => console.error('Error updating bookmark', err));
   } else {
     createBookmark(data)
@@ -329,3 +335,25 @@ document.getElementById('tags-screen').addEventListener('finishEdit', (event) =>
     tagDisplay(newTags);
   }
 });
+
+document.getElementById('find-update').addEventListener('click', () => {
+  const findTitleScreen = document.getElementById('find-title-screen');
+  const domain = document.getElementById('domain').textContent;
+  findTitleScreen.openScreen(domain);
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.add('hidden');
+});
+
+document.getElementById('find-title-screen').addEventListener('closeTitleScreen', (event) => {
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.remove('hidden');
+  const action = event.detail.action;
+  if (action === 'confirm') {
+    updateBookmark = event.detail.updateTitle;
+    const bookmarkInfo = getBookmarkContents(event.detail.updateTitle);
+    titleDisplay(bookmarkInfo.title);
+    const oldChapterElement = document.getElementById('old-chapter');
+    oldChapterElement.textContent = bookmarkInfo.chapter;
+    tagDisplay(bookmarkInfo.tags);
+  }
+})

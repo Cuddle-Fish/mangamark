@@ -168,13 +168,13 @@ function performRemove(bookmark) {
  * @param {string} folderName name of folder containing bookmark
  * @param {Array.<string>} tags list of tags associated with bookmark
  */
-function removeBookmark(title, chapterNum, folderName, tags) {
-  const bookmarkTitle = createBookmarkTitle(title, chapterNum, tags);
+function removeBookmark(bookmarkTitle, folderName) {
+  // const bookmarkTitle = createBookmarkTitle(title, chapterNum, tags);
   getMangamarkFolderId()
   .then((mangamarkId) => getFolderId(mangamarkId, folderName))
   .then((folderId) => folderId ? chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))
   .then((tree) => searchFolder(tree[0].children, bookmarkTitle, true))
-  .then((bookmark) => bookmark ? performRemove(bookmark) : Promise.reject('Could not find bookmark'))
+  .then((bookmark) => bookmark ? performRemove(bookmark) : Promise.reject('Remove failed, could not find bookmark'))
 }
 
 /**
