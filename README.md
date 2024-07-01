@@ -1,47 +1,56 @@
-# mangamark
+# Mangamark
 
-## Goals:
-- no longer have to remove old bookmarks
-- easier tracking and visualization of reading history
-- provide better/ automatic filtering
+A chrome extension that aims to provide users with a better method of managing a reading list. This extension provides users with a quick method of creating and updating existing reading entries through the use of automatic title detection. All reading entries can be accessed from a management page that allows for navigation to associated sites, provides better visualization and various sorting and filtering options. Additionally, a tag system and reading status provides users with additional means of personalizing their bookmarks.
 
-## Tasks:
-### Step 1:
-- display site url, title of content and current chapter
-  - separate title and chapter, discard group name if present
-- store info locally (for now)
-  - sort by domain name then title
-### Step 2:
-- check if title already exist
-  - if title exist update chapter and url
-  - else (options)
-    - create new entry 
-      
-      OR
+This extension utilizes your browser's bookmark system. If users ever wish to uninstall the extension all bookmarks will remain in place and be accessible via your browsers standard bookmark interface.
 
-    - ask before creating
-- add ability to add new title
-  - try and automatically get cover image
+## Features:
+- Extension Popup
+  - Create new bookmarks
+  - Automatically detect and update existing bookmarks
+    - provides manual update selection incase automatic detection fails
+  - Set a bookmarks reading status
+  - Add and manage bookmark tags
+  - Create new tags to add to bookmarks
+- Management Page
+  - View all bookmarks saved via this extension
+  - Navigate to site containing bookmarks content
+  - Filter bookmarks by tag, reading status and/or site
+  - Search bookmarks by name
+  - Manage individual bookmarks
+    - add or remove tags
+    - change reading status
+    - delete bookmark
+  - Manage tags
+    - create new tags
+    - delete existing tags
 
-### Step 3:
-- site interaction
+## Remaining Tasks:
 
+### Popup:
+#### Critical:
+- mode change button
+- confirmation after create/update
+- regex title and chapter matching
+#### Additions:
+- find update title: add folder select
+- user named folders
+- more reading status options
+- chapter display when editing
+- increases clarity for buttons:
+  - edit and update: is it clear update buttons updates an existing bookmark
+  - confirm tags change and find title change is permanent: cancel edit should revert all editing
 
+### Manager:
+#### Critical:
+- side navigation styling
+- tag options
+  - filter tags
+  - delete tag
+  - create tag
+- display bad bookmarks
+- edit bookmark title
 
-## For Consideration:
-### What kind of confirmation dialog boxes should we have, if any?
-### How should new titles be handled?
-#### what happens when adding a new title from a chapter:
-- display message (New title (add/cancel): ?)
-
-  OR
-
-- just add title
-- make card image just first letter of title
-#### button to add new title w/ image:
-- find cover via keyword search or manually select image
-  
-  Manual:
-  - blur all content except images
-  - add border to hovered image
-  - when image clicked revert site to normal
+### Other:
+- create Mangamark folder if not found
+- move all chrome api calls to externs
