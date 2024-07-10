@@ -138,7 +138,6 @@ customElements.define(
       .then((tags) => {
         const extensionTags = this.shadowRoot.getElementById('extension-tags');
         const fragment = document.createDocumentFragment();
-        const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
         tags.forEach((tag) => {
           const tagButton = document.createElement('tag-button');
           tagButton.textContent = tag;
