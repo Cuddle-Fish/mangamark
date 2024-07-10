@@ -76,6 +76,7 @@ customElements.define(
             const extensionTags = this.shadowRoot.getElementById('extension-tags');
             const tagButton = document.createElement('tag-button');
             tagButton.textContent = createTagInput.value.toLowerCase();
+            tagButton.addEventListener('click', () => this.tagChangeHandler());
             extensionTags.appendChild(tagButton);
           }
           createTagInput.value = '';
@@ -144,17 +145,20 @@ customElements.define(
           if (bookmarkTags.includes(tag)) {
             tagButton.variant = 'active';
           }
-          tagButton.addEventListener('click', () => {
-            if (this.bookmarkTagsChanged()) {
-              confirmButton.disabled = false;
-            } else {
-              confirmButton.disabled = true;
-            }
-          });
+          tagButton.addEventListener('click', () => this.tagChangeHandler());
           fragment.appendChild(tagButton);
         });
         extensionTags.replaceChildren(fragment);
       });
+    }
+
+    tagChangeHandler() {
+      const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
+      if (this.bookmarkTagsChanged()) {
+        confirmButton.disabled = false;
+      } else {
+        confirmButton.disabled = true;
+      }
     }
 
     bookmarkTagsChanged() {
