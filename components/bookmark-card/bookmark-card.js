@@ -1,5 +1,5 @@
 import { getTags } from "/externs/tags.js";
-import { bookmarkRegex, updateBookmarkTags, moveBookmark, removeBookmark } from "/externs/bookmark.js";
+import { updateBookmarkTags, moveBookmark, removeBookmark } from "/externs/bookmark.js";
 import "/components/svg/edit-icon.js";
 import "/components/svg/info-icon.js";
 import "/components/themed-button/themed-button.js";
@@ -148,8 +148,7 @@ customElements.define(
             this.handleReadingStatusChange(title, chapter, folder, tags);
             break;
           case 'delete':
-            this.handelDelete(title, chapter, folder, tags);
-            console.log('confirm delete');
+            removeBookmark(folder, {title: title, chapter: chapter, tags: tags});
             break;
           default:
             console.error('Error, bookmark-card confirm pressed in invalid state', this.state);
@@ -258,11 +257,6 @@ customElements.define(
       const newReadingStatus = this.readingStatus === 'reading' ? 'completed' : 'reading';
       moveBookmark(title, chapter, folder, tags, newReadingStatus)
       .then(() => this.readingStatus = newReadingStatus);
-    }
-
-    handelDelete(title, chapter, folder, tags) {
-      const bookmarkTitle = bookmarkRegex(title, chapter, tags);
-      removeBookmark(bookmarkTitle, folder);
     }
   }
 );

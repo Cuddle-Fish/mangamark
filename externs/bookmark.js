@@ -161,15 +161,32 @@ function performRemove(bookmark) {
 }
 
 /**
- * remove a bookmark from Mangamark folder under given folderName
+ * remove a bookmark from specified folder within the Mangamark folder
  * 
- * @param {string} title title of content 
- * @param {string} chapterNum chapter number of title to be removed 
+ * The function expects `details` to contain either:
+ *  - `bookmarkTitle`
+ * 
+ *  OR
+ * 
+ *  - `title`
+ *  - `chapter`
+ *  - `tags` (optional)
+ * 
  * @param {string} folderName name of folder containing bookmark
- * @param {Array.<string>} tags list of tags associated with bookmark
+ * @param {object} details title information for bookmark to remove
+ * @param {string} [details.bookmarkTitle] complete title of the bookmark, exactly as saved
+ * @param {string} [details.title] title of content associated with bookmark
+ * @param {string} [details.chapter] chapter number for bookmark
+ * @param {Array.<string>} [details.tags] tags associated with bookmark
  */
-function removeBookmark(bookmarkTitle, folderName) {
-  // const bookmarkTitle = createBookmarkTitle(title, chapterNum, tags);
+function removeBookmark(folderName, details) {
+  if (details.bookmarkTitle !== undefined) {
+    var bookmarkTitle = details.bookmarkTitle;
+  } else if (details.title !== undefined && details.chapter !== undefined) {
+    var bookmarkTitle = createBookmarkTitle(details.title, details.chapter, details.tags);
+  } else {
+    throw new Error('removeBookmark recieved invalid recieved invalid details, could not create title');
+  }
   getMangamarkFolderId()
   .then((mangamarkId) => getFolderId(mangamarkId, folderName))
   .then((folderId) => folderId ? chrome.bookmarks.getSubTree(folderId) : Promise.reject('Folder does not exist'))

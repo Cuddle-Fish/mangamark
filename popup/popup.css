@@ -109,6 +109,10 @@ body {
   color: var(--offWhite);
 }
 
+.chapter-input::placeholder {
+  color: var(--offWhite30);
+}
+
 .chapter-input:focus, .title-edit:focus {
   outline: 1px solid var(--accent-bright);
 }

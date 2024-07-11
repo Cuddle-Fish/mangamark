@@ -6,49 +6,127 @@ import "/components/info-tooltip/info-tooltip.js";
 import "/popup/tags-screen/tags-screen.js";
 import "/popup/find-title-screen/find-title-screen.js";
 
-//#region Buttons
-const manageButton = document.getElementById('manage-button');
-const findTitleButton = document.getElementById('find-update');
-const modeChangeButton = document.getElementById('change-mode');
-const cancelButton = document.getElementById('cancel-edit');
-const confirmButton = document.getElementById('confirm-edit');
-const editButton = document.getElementById('edit-button');
-const actionButton = document.getElementById('action-button');
-const editTagsButton = document.getElementById('edit-tags-mode');
-//#endregion
+const GlobalDataStore = (() => {
+  let _state = '';
+  let _title = '';
+  let _chapter = '';
+  let _folder  = '';
+  let _url = '';
+  let _tags = [];
+  let _updateTitle = '';
 
-var pageURL = '';
-var updateBookmark = '';
+  const hasArg = arg => {
+    if (arg === undefined) {
+      throw new Error('Undefined passed as argument to Store');
+    }
+  }
 
-manageButton.addEventListener('click', function() {
+  const Store = {
+    setState: state => {
+      hasArg(state);
+      _state = state;
+    },
+    getState: () => _state,
+    setData: data => {
+      hasArg(data);
+      _title = data.title ?? _title;
+      _chapter = data.chapter ?? _chapter;
+      _folder = data.folder ?? _folder;
+      _url = data.url ?? _url;
+      _updateTitle = data.updateTitle ?? _updateTitle;
+
+      if (data.tags !== undefined && !Array.isArray(data.tags)) {
+        throw new Error('tags on data, passed as argument to Store, must be an array argument');
+      }
+      if (data.tags !== undefined) {
+        _tags = [...data.tags];
+      }
+    },
+    getData: () => ({
+      title: _title,
+      chapter: _chapter,
+      folder: _folder,
+      url: _url,
+      tags: [..._tags],
+      updateTitle: _updateTitle
+    }),
+    setTitle: title => {
+      hasArg(title);
+      _title = title;
+    },
+    getTitle: () => _title,
+    setChapter: chapter => {
+      hasArg(chapter);
+      _chapter = chapter;
+    },
+    getChapter: () => _chapter,
+    setFolder: folder => {
+      hasArg(folder);
+      _folder = folder;
+    },
+    getFolder: () => _folder,
+    setUrl: url => {
+      hasArg(url);
+      _url = url;
+    },
+    getUrl: () => _url,
+    setTags: tags => {
+      hasArg(tags);
+      if (!Array.isArray(tags)) {
+        throw new Error('tags must be passed as array argument to Store');
+      }
+      _tags = [...tags];
+    },
+    getTags: () => [..._tags],
+    setUpdateTitle: updateTitle => {
+      hasArg(updateTitle);
+      _updateTitle = updateTitle;
+    },
+    getUpdateTitle: () => _updateTitle
+  }
+
+  return Store;
+})();
+
+document.getElementById('manage-button').addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
 });
 
 chrome.tabs.query({active: true, currentWindow: true})
   .then((tabs) => {
     const activeTab = tabs[0];
-    pageURL = activeTab.url;
+    GlobalDataStore.setUrl(activeTab.url);
     let domain = new URL(activeTab.url).hostname;
     if (domain.startsWith('www.')) {
       domain = domain.substring(4);
     }
+    GlobalDataStore.setFolder(domain);
+    domainDisplay(domain);
     const title = activeTab.title;
     return findBookmark(title, domain)
-      .then((bookmark) => [bookmark, domain, title]);
+      .then((bookmark) => [bookmark, title]);
   })
-  .then(([bookmark, domain, title]) => {
-    domainDisplay(domain);
+  .then(([bookmark, title]) => {
     const numsInTitle = title.match(/\d+/g) || [];
     if (bookmark) {
       console.log('bookmark exists');
-      setActionDisplay(true);
-      updateBookmark = bookmark.title;
+      GlobalDataStore.setState('update');
       const bookmarkInfo = getBookmarkContents(bookmark.title);
+      GlobalDataStore.setData({
+        title: bookmarkInfo.title,
+        tags: bookmarkInfo.tags,
+        updateTitle: bookmark.title
+      });
+
+      setActionDisplay(true);
       titleDisplay(bookmarkInfo.title);
       chapterDisplay(numsInTitle, bookmarkInfo.chapter);
       tagDisplay(bookmarkInfo.tags);
     } else {
       console.log('new title');
+      GlobalDataStore.setState('create');
+      GlobalDataStore.setTitle(title);
+
       setActionDisplay(false);
       titleDisplay(title);
       chapterDisplay(numsInTitle);
@@ -57,7 +135,7 @@ chrome.tabs.query({active: true, currentWindow: true})
   .catch((err) => console.error(err));
 
 /**
- * Set domain name displayted in popup
+ * Set domain name displayed in popup
  * 
  * @param {string} domain name of current page's domain
  */
@@ -73,9 +151,11 @@ function domainDisplay(domain) {
  */
 function setActionDisplay(update) {
   const actionTitle = document.getElementById('bookmark-action');
+  const actionButton = document.getElementById('action-button');
   const oldChapter = document.getElementById('old-chapter');
   const chapterArrow = document.getElementById('chapter-arrow');
   const newChapter = document.getElementById('new-chapter');
+  const modeChangeButton = document.getElementById('change-mode');
   if (update) {
     actionTitle.textContent = 'Update Bookmark';
     actionButton.textContent = "Update";
@@ -127,7 +207,7 @@ function getBookmarkContents(bookmarkTitle) {
  */
 function titleDisplay(title) {
   const titleElement = document.getElementById('content-title');
-  titleElement.textContent = title.replace(/\n/g, '');
+  titleElement.textContent = title.trim();
 }
 
 /**
@@ -148,10 +228,12 @@ function chapterDisplay(numsInTitle, oldChapter) {
       return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
     });
     newChapter.textContent = defaultVal;
+    GlobalDataStore.setChapter(defaultVal);
   } else if (numsInTitle.length > 0) {
     newChapter.textContent = numsInTitle[0];
+    GlobalDataStore.setChapter(numsInTitle[0]);
   } else {
-    actionButton.disabled = true;
+    GlobalDataStore.setChapter('0');
   }
 
   if (numsInTitle.length > 0) {
@@ -175,69 +257,38 @@ function tagDisplay(tags) {
   bookmarkTags.replaceChildren(fragment);
 }
 
-/**
- * @typedef {Object} BookmarkData
- * @property {string} title - title of content
- * @property {string} chapter - chapter number
- * @property {string} folderName - name of folder
- * @property {string} url - url for bookmark
- * @property {Array.<string>} tags - list of tags
- */
-
-/**
- * Get all data for creating a bookmark
- * 
- * @returns {BookmarkData} Object with title of content, chapter number,
- * name of bookmark folder and bookmark url
- */
-function getData() {
-  const titleElement = document.getElementById('content-title');
-  const title = titleElement.textContent;
-  const newChapter = document.getElementById('new-chapter');
-  const chapter = newChapter.textContent;
-  const domainElement = document.getElementById('domain');
-  const folderName = domainElement.textContent;
-  const bookmarkTags = document.getElementById('bookmark-tags');
-  const tagList = Array.from(bookmarkTags.children, li => li.textContent);
-  return {
-    title: title,
-    chapter: chapter,
-    folderName: folderName,
-    url: pageURL,
-    tags: tagList
-  }
-}
-
-actionButton.addEventListener('click', () => {
-  const data = getData();
-  if (actionButton.textContent === 'Update') {
+document.getElementById('action-button').addEventListener('click', function() {
+  const state = GlobalDataStore.getState();
+  const data = GlobalDataStore.getData();
+  if (state === 'update') {
+    const updateBookmark = GlobalDataStore.getUpdateTitle();
     createBookmark(data)
       .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
-      .then(() => removeBookmark(updateBookmark, data.folderName))
+      .then(() => removeBookmark(data.folder, {bookmarkTitle: updateBookmark}))
       .catch((err) => console.error('Error updating bookmark', err));
   } else {
     createBookmark(data)
       .then((bookmarkTitle) => console.log(`Bookmark created: ${bookmarkTitle}`))
       .catch((err) => console.error('Error creating bookmark:', err));
   }
-  actionButton.disabled = true;
+  this.disabled = true;
 });
 
 /**
  * 
- * @param {BookmarkData} data information to create bookmark
+ * @param {Object} data information to create bookmark
  * @returns Promise resolves with title of bookmark created
  */
 function createBookmark(data) {
   const completeChecked = document.getElementById('completed').checked;
   if (completeChecked) {
-    return addBookmark(data.title, data.chapter, data.url, data.folderName, data.tags, 'completed');
+    return addBookmark(data.title, data.chapter, data.url, data.folder, data.tags, 'completed');
   } else {
-    return addBookmark(data.title, data.chapter, data.url, data.folderName, data.tags);
+    return addBookmark(data.title, data.chapter, data.url, data.folder, data.tags);
   }
 }
 
-editButton.addEventListener('click', () => {
+document.getElementById('edit-button').addEventListener('click', () => {
   const finishEditButtons = document.getElementById('finish-edit');
   finishEditButtons.classList.remove('hidden');
 
@@ -251,37 +302,52 @@ editButton.addEventListener('click', () => {
   newChapter.classList.add('hidden');
   const editChapter = document.getElementById('edit-chapter');
   editChapter.classList.remove('hidden');
+  editChapter.placeholder = GlobalDataStore.getChapter();
 
-  if (actionButton.textContent === 'Update') {
+  const state = GlobalDataStore.getState();
+  if (state === 'update') {
+    const findTitleButton = document.getElementById('find-update');
     findTitleButton.classList.remove('hidden');
   } else {
-    const titleElement = document.getElementById('content-title');
-    const editTitle = document.getElementById('title-edit');
-    editTitle.value = titleElement.textContent;
-    titleElement.classList.add('hidden');
-
-    const editTitleContainer = document.getElementById('title-edit-container');
-    editTitleContainer.classList.remove('hidden');
+    titleMode(true);
   }
 });
 
-cancelButton.addEventListener('click', () => hideEditElements());
-
-confirmButton.addEventListener('click', () => {
+function titleMode(editing) {
   const titleElement = document.getElementById('content-title');
-  if (actionButton.textContent ===  'Create') {
-    const editTitle = document.getElementById('title-edit');
-    const newTitle = editTitle.value.replace(/\n/g, '');
-    titleElement.textContent = newTitle;
+  const editTitleContainer = document.getElementById('title-edit-container');
+  const editTitle = document.getElementById('title-edit');
+  if (editing) {
+    editTitle.value = GlobalDataStore.getTitle();
+    titleElement.classList.add('hidden');
+    editTitleContainer.classList.remove('hidden');
+  } else {
+    editTitle.value = '';
+    titleElement.classList.remove('hidden');
+    editTitleContainer.classList.add('hidden');
+  }
+}
+
+document.getElementById('cancel-edit').addEventListener('click', () => hideEditElements());
+
+document.getElementById('confirm-edit').addEventListener('click', () => {
+  const state = GlobalDataStore.getState();
+  const newTitle = document.getElementById('title-edit').value;
+  if (state ===  'create' && newTitle !== '') {
+    titleDisplay(newTitle);
+    GlobalDataStore.setTitle(newTitle.trim());
   }
 
-  const editChapter = document.getElementById('edit-chapter');
-  const newChapter = document.getElementById('new-chapter');
-  if (editChapter.value) {
-    newChapter.textContent = editChapter.value;
+  const editValue = document.getElementById('edit-chapter').value;
+  const newChapterElement = document.getElementById('new-chapter');
+  if (editValue) {
+    newChapterElement.textContent = editValue;
+    GlobalDataStore.setChapter(editValue);
   }
 
-  if (titleElement.textContent === '' || newChapter.textContent === '') {
+  const title = GlobalDataStore.getTitle();
+  const actionButton = document.getElementById('action-button');
+  if (title === '') {
     actionButton.disabled = true;
   } else {
     actionButton.disabled = false;
@@ -300,13 +366,12 @@ function hideEditElements() {
   const finishEditButtons = document.getElementById('finish-edit');
   finishEditButtons.classList.add('hidden');
 
-  if (actionButton.textContent === 'Update') {
+  const state = GlobalDataStore.getState();
+  if (state === 'update') {
+    const findTitleButton = document.getElementById('find-update');
     findTitleButton.classList.add('hidden');
   } else {
-    const titleElement = document.getElementById('content-title');
-    const editTitleContainer = document.getElementById('title-edit-container');
-    editTitleContainer.classList.add('hidden');
-    titleElement.classList.remove('hidden');
+    titleMode(false);
   }
 
   const newChapter = document.getElementById('new-chapter');
@@ -316,15 +381,36 @@ function hideEditElements() {
   editChapter.value = '';
 }
 
-editTagsButton.addEventListener('click', () => {
-  const titleElement = document.getElementById('content-title');
-  const tagsScreen = document.getElementById('tags-screen');
-  const bookmarkTags = document.getElementById('bookmark-tags');
-  const tagList = Array.from(bookmarkTags.children, li => li.textContent);
-  tagsScreen.openScreen(titleElement.textContent, tagList);
+document.getElementById('edit-tags-mode').addEventListener('click', () => {
+  const tagsScreen = document.getElementById('tags-screen');  
+  const title = GlobalDataStore.getTitle();
+  const tags = GlobalDataStore.getTags();
+  tagsScreen.openScreen(title, tags);
   const updateCreateContainer = document.getElementById('update-create');
   updateCreateContainer.classList.add('hidden');
 });
+
+document.getElementById('change-mode').addEventListener('click', () => {
+  const findTitleButton = document.getElementById('find-update');
+  const state = GlobalDataStore.getState();
+  if (state === 'update') {
+    GlobalDataStore.setState('create');
+    GlobalDataStore.setUpdateTitle('');
+    setActionDisplay(false);
+    findTitleButton.classList.add('hidden');
+    titleMode(true);
+  } else {
+    switchToFindTitle();
+  }
+});
+
+function switchToFindTitle() {
+  const findTitleScreen = document.getElementById('find-title-screen');
+  const folder = GlobalDataStore.getFolder();
+  findTitleScreen.openScreen(folder);
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.add('hidden');
+}
 
 document.getElementById('tags-screen').addEventListener('finishEdit', (event) => {
   const updateCreateContainer = document.getElementById('update-create');
@@ -333,27 +419,32 @@ document.getElementById('tags-screen').addEventListener('finishEdit', (event) =>
   if (action === 'confirm') {
     const newTags = event.detail.bookmarkTags;
     tagDisplay(newTags);
+    GlobalDataStore.setTags(newTags);
   }
 });
 
-document.getElementById('find-update').addEventListener('click', () => {
-  const findTitleScreen = document.getElementById('find-title-screen');
-  const domain = document.getElementById('domain').textContent;
-  findTitleScreen.openScreen(domain);
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.add('hidden');
-});
+document.getElementById('find-update').addEventListener('click', () => switchToFindTitle());
 
 document.getElementById('find-title-screen').addEventListener('closeTitleScreen', (event) => {
   const updateCreateContainer = document.getElementById('update-create');
   updateCreateContainer.classList.remove('hidden');
   const action = event.detail.action;
   if (action === 'confirm') {
-    updateBookmark = event.detail.updateTitle;
     const bookmarkInfo = getBookmarkContents(event.detail.updateTitle);
     titleDisplay(bookmarkInfo.title);
     const oldChapterElement = document.getElementById('old-chapter');
     oldChapterElement.textContent = bookmarkInfo.chapter;
     tagDisplay(bookmarkInfo.tags);
+    GlobalDataStore.setData({
+      title: bookmarkInfo.title,
+      tags: bookmarkInfo.tags,
+      updateTitle: event.detail.updateTitle
+    });
   }
-})
+  const state = GlobalDataStore.getState();
+  if (action === 'confirm' && state === 'create') {
+    GlobalDataStore.setState('update');
+    setActionDisplay(true);
+    titleMode(false);
+  }
+});
