@@ -132,7 +132,7 @@ customElements.define(
         }
 
         const fragment = document.createDocumentFragment();
-        const titles = this.getFolderTitles(folder);
+        const titles = folder ? this.getFolderTitles(folder) : [];
         titles.forEach(title => {
           fragment.appendChild(this.createBookmarkListing(title));
         });
