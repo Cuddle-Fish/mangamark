@@ -11,6 +11,18 @@ body {
   align-items: center;
 }
 
+h1 {
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
+  font-size: 20px;
+  font-weight: normal;
+
+  & managamark-logo {
+    margin-right: -5px;
+  }
+}
+
 .update-create {
   display: flex;
   flex-direction: column;

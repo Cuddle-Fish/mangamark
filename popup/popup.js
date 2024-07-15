@@ -2,6 +2,7 @@ import { bookmarkRegex, findBookmark, addBookmark, removeBookmark } from "/exter
 import "/components/themed-button/themed-button.js";
 import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
+import "/components/svg/managamark-logo.js";
 import "/components/info-tooltip/info-tooltip.js";
 import "/popup/tags-screen/tags-screen.js";
 import "/popup/find-title-screen/find-title-screen.js";
