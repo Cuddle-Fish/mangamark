@@ -7,7 +7,9 @@ template.innerHTML = /* html */ `
   </style>
   <input id="input-area" class="input-area" />
   <expand-more></expand-more>
-  <div id="suggestions-container" class="suggestions-container hidden"></div>
+  <div id="suggestions-wrapper" class="suggestions-wrapper hidden">
+    <div id="suggestions-container" class="suggestions-container"></div>
+  </div>
   <datalist id="options">
     <slot></slot>
   </datalist>
@@ -17,7 +19,7 @@ customElements.define(
   'input-select',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['type', 'required', 'placeholder', 'step', 'input-width'];
+      return ['type', 'required', 'placeholder', 'readonly', 'step', 'input-width'];
     }
 
     get type() {
@@ -55,6 +57,14 @@ customElements.define(
       } else {
         this.removeAttribute('placeholder');
       }
+    }
+
+    get readonly() {
+      return this.hasAttribute('readonly') && this.getAttribute('readonly') !== false;
+    }
+
+    set readonly(value) {
+      value === true ? this.setAttribute('readonly', '') : this.removeAttribute('readonly');
     }
 
     get step() {
@@ -132,6 +142,19 @@ customElements.define(
         this.setPlaceholder();
       } else if (name === 'input-width') {
         this.style.setProperty('--input-width', newValue);
+      } else if (name === 'readonly') {
+        const input = this.shadowRoot.getElementById('input-area');
+        input.readOnly = this.readonly;
+
+        const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
+        const arrow = this.shadowRoot.querySelector('expand-more');
+        if (this.readonly) {
+          wrapper.classList.add('read-only');
+          arrow.classList.add('read-only');
+        } else {
+          wrapper.classList.remove('read-only');
+          arrow.classList.remove('read-only');
+        }
       }
     }
 
@@ -184,14 +207,14 @@ customElements.define(
     }
 
     populateSuggestions() {
-      const container = this.shadowRoot.getElementById('suggestions-container');
+      const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
       const arrow = this.shadowRoot.querySelector('expand-more');
       const options = this.querySelectorAll('option');
 
       if (options.length > 0) {
-        container.classList.remove('keep-hidden');
+        wrapper.classList.remove('keep-hidden');
         arrow.classList.remove('keep-hidden');
-
+        
         const fragement = document.createDocumentFragment();
         options.forEach(option => {
           const div = document.createElement('div');
@@ -202,49 +225,60 @@ customElements.define(
           });
           fragement.appendChild(div);
         });
+
+        const container = this.shadowRoot.getElementById('suggestions-container');
         container.replaceChildren(fragement);
       } else {
-        container.classList.add('keep-hidden');
+        wrapper.classList.add('keep-hidden');
         arrow.classList.add('keep-hidden');
       }
     }
 
     displaySuggestions() {
+      const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
       const container = this.shadowRoot.getElementById('suggestions-container');
 
-      if (!container.classList.contains('hidden') || container.classList.contains('keep-hidden')) {
+      if (
+        !wrapper.classList.contains('hidden') || 
+        wrapper.classList.contains('keep-hidden') || 
+        this.readonly) {
         return;
       }
-      container.classList.remove('hidden');
+      wrapper.classList.remove('hidden');
       const scrollHeight = container.scrollHeight;
-      container.classList.add('hidden');
+      wrapper.classList.add('hidden');
 
       const input = this.shadowRoot.getElementById('input-area');
       const rect = input.getBoundingClientRect();
       const availableSpaceBelow = window.innerHeight - rect.bottom - 10;
       const availableSpaceAbove = rect.top;
 
-      container.style.top = '';
-      container.style.bottom = '';
+      wrapper.style.top = '';
+      wrapper.style.bottom = '';
+      wrapper.classList.remove('top', 'bottom');
       container.style.maxHeight = '';
       if (availableSpaceBelow > scrollHeight) {
-        container.style.bottom = `-${scrollHeight + 10}px`;
+        wrapper.style.bottom = `-${scrollHeight + 10}px`;
+        wrapper.classList.add('bottom');
       } else if (availableSpaceAbove > scrollHeight) {
-        container.style.top = `-${scrollHeight + 10}px`;
+        wrapper.style.top = `-${scrollHeight + 10}px`;
+        wrapper.classList.add('top');
       } else if (availableSpaceBelow > availableSpaceAbove) {
-          container.style.bottom = `-${availableSpaceBelow}px`;
+          wrapper.style.bottom = `-${availableSpaceBelow}px`;
           container.style.maxHeight = `${availableSpaceBelow - 18}px`;
+          wrapper.classList.add('bottom');
       } else {
-        container.style.top = `-${availableSpaceAbove}px`;
+        wrapper.style.top = `-${availableSpaceAbove}px`;
         container.style.maxHeight = `${availableSpaceAbove - 18}px`;
+        wrapper.classList.add('top');
       }
 
-      container.classList.remove('hidden');
+      wrapper.classList.remove('hidden');
     }
 
     hideSuggestions() {
-      const container = this.shadowRoot.getElementById('suggestions-container');
-      container.classList.add('hidden');
+      const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
+      wrapper.classList.add('hidden');
     }
 
     flashWarning() {
@@ -254,8 +288,3 @@ customElements.define(
     }
   }
 );
-
-
-
-//TODO
-// suggestion arrow
