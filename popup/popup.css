@@ -74,59 +74,16 @@ h1 {
   grid-column: value;
 }
 
-.content-title-container {
+.title-input-container {
   display: grid;
   grid-template-columns: 1fr auto;
   column-gap: 10px;
-}
-
-.title-edit {
-  max-width: 305px;
-  field-sizing: content;
-  resize: none;
-  overflow: hidden;
-  padding: 5px 8px;
-  border-radius: 5px;
-  border: none;
-  background-color: var(--secondary-background);
-  color: inherit;
-  font-size: 16px;
-  font-family: inherit;
 }
 
 .chapter-container {
   display: flex;
   align-items: center;
   gap: 20px;
-}
-
-.chapter-input::-webkit-outer-spin-button,
-.chapter-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.chapter-input::-webkit-calendar-picker-indicator {
-  padding-bottom: 10px;
-}
-
-.chapter-input {
-  padding: 2px 5px;
-  background-color: var(--secondary-background);
-  width: 5em;
-  border: none;
-  border-radius: 5px;
-  font-family: var(--font-family);
-  font-size: 16px;
-  color: var(--offWhite);
-}
-
-.chapter-input::placeholder {
-  color: var(--offWhite30);
-}
-
-.chapter-input:focus, .title-edit:focus {
-  outline: 1px solid var(--accent-bright);
 }
 
 ul {
@@ -148,19 +105,31 @@ li {
   background-color: var(--offWhite10);
 }
 
-.edit-options {
+.edit-options, .action-wrapper {
   display: flex;
   justify-content: space-between;
 }
 
-.finish-edit {
+.completed-container {
   display: flex;
+  justify-content: center;
   align-items: center;
-  justify-content: flex-end;
   gap: 10px;
+  font-size: 20px;
+
+  & done-icon {
+    color: var(--approval);
+  }
+}
+
+.error-text {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--warning);
 }
 
 .action-button-container {
+  padding: 1px 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -169,10 +138,6 @@ li {
 
 .hidden {
   display: none;
-}
-
-.bright-text {
-  color: var(--accent-bright);
 }
 
 .grey-text {

@@ -4,13 +4,12 @@ import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
 import "/components/svg/managamark-logo.js";
 import "/components/info-tooltip/info-tooltip.js";
+import "/components/input-select/input-select.js";
 import "/popup/tags-screen/tags-screen.js";
 import "/popup/find-title-screen/find-title-screen.js";
 
 const GlobalDataStore = (() => {
   let _state = '';
-  let _title = '';
-  let _chapter = '';
   let _folder  = '';
   let _url = '';
   let _tags = [];
@@ -30,8 +29,6 @@ const GlobalDataStore = (() => {
     getState: () => _state,
     setData: data => {
       hasArg(data);
-      _title = data.title ?? _title;
-      _chapter = data.chapter ?? _chapter;
       _folder = data.folder ?? _folder;
       _url = data.url ?? _url;
       _updateTitle = data.updateTitle ?? _updateTitle;
@@ -44,23 +41,11 @@ const GlobalDataStore = (() => {
       }
     },
     getData: () => ({
-      title: _title,
-      chapter: _chapter,
       folder: _folder,
       url: _url,
       tags: [..._tags],
       updateTitle: _updateTitle
     }),
-    setTitle: title => {
-      hasArg(title);
-      _title = title;
-    },
-    getTitle: () => _title,
-    setChapter: chapter => {
-      hasArg(chapter);
-      _chapter = chapter;
-    },
-    getChapter: () => _chapter,
     setFolder: folder => {
       hasArg(folder);
       _folder = folder;
@@ -114,7 +99,6 @@ chrome.tabs.query({active: true, currentWindow: true})
       GlobalDataStore.setState('update');
       const bookmarkInfo = getBookmarkContents(bookmark.title);
       GlobalDataStore.setData({
-        title: bookmarkInfo.title,
         tags: bookmarkInfo.tags,
         updateTitle: bookmark.title
       });
@@ -126,7 +110,6 @@ chrome.tabs.query({active: true, currentWindow: true})
     } else {
       console.log('new title');
       GlobalDataStore.setState('create');
-      GlobalDataStore.setTitle(title);
 
       setActionDisplay(false);
       titleDisplay(title);
@@ -155,24 +138,27 @@ function setActionDisplay(update) {
   const actionButton = document.getElementById('action-button');
   const oldChapter = document.getElementById('old-chapter');
   const chapterArrow = document.getElementById('chapter-arrow');
-  const newChapter = document.getElementById('new-chapter');
+  const chapterInput = document.getElementById('chapter-input');
   const modeChangeButton = document.getElementById('change-mode');
+  const completedText = document.getElementById('completed-text');
   if (update) {
     actionTitle.textContent = 'Update Bookmark';
     actionButton.textContent = "Update";
+    completedText.textContent = "Bookmark Updated";
 
     oldChapter.classList.remove('hidden');
     chapterArrow.classList.remove('hidden');
-    newChapter.classList.add('bright-text');
+    chapterInput.inputStyle = 'color: var(--accent-bright)';
 
     modeChangeButton.textContent = 'Create Mode';
   } else {
     actionTitle.textContent = 'Create Bookmark';
     actionButton.textContent = "Create";
+    completedText.textContent = "Bookmark Created";
     
     oldChapter.classList.add('hidden');
     chapterArrow.classList.add('hidden');
-    newChapter.classList.remove('bright-text');
+    chapterInput.inputStyle = '';
 
     modeChangeButton.textContent = 'Update Mode';
   }
@@ -207,8 +193,8 @@ function getBookmarkContents(bookmarkTitle) {
  * @param {string} title 
  */
 function titleDisplay(title) {
-  const titleElement = document.getElementById('content-title');
-  titleElement.textContent = title.trim();
+  const titleInput = document.getElementById('title-input');
+  titleInput.value = title;
 }
 
 /**
@@ -223,26 +209,23 @@ function chapterDisplay(numsInTitle, oldChapter) {
     oldChapterElement.textContent = oldChapter;
   }
 
-  const newChapter = document.getElementById('new-chapter');
+  const chapterInput = document.getElementById('chapter-input');
   if (oldChapter && numsInTitle.length > 1) {
     var defaultVal = numsInTitle.reduce((prev, curr) => {
       return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
     });
-    newChapter.textContent = defaultVal;
-    GlobalDataStore.setChapter(defaultVal);
+    chapterInput.value = defaultVal;
   } else if (numsInTitle.length > 0) {
-    newChapter.textContent = numsInTitle[0];
-    GlobalDataStore.setChapter(numsInTitle[0]);
+    chapterInput.value = numsInTitle[0];
   } else {
-    GlobalDataStore.setChapter('0');
+    chapterInput.value = '1';
   }
 
   if (numsInTitle.length > 0) {
-    const chapterSelect = document.getElementById('detected-nums');
     numsInTitle.forEach(number => {
       const option = document.createElement('option');
       option.value = number;
-      chapterSelect.appendChild(option);
+      chapterInput.appendChild(option);
     });
   }
 }
@@ -259,20 +242,48 @@ function tagDisplay(tags) {
 }
 
 document.getElementById('action-button').addEventListener('click', function() {
+  const titleInput = document.getElementById('title-input');
+  titleInput.value = titleInput.value.replace(/\s+/g, ' ').trim();
+  const invalidTitle = document.getElementById('invalid-title');
+  const chapterInput = document.getElementById('chapter-input');
+  const invalidChapter = document.getElementById('invalid-chapter');
+  let isInvalid = false;
+  if (titleInput.checkValidity()) {
+    invalidTitle.classList.add('hidden');
+  } else {
+    invalidTitle.classList.remove('hidden');
+    titleInput.flashWarning();
+    isInvalid = true;
+  }
+  if (chapterInput.checkValidity()) {
+    invalidChapter.classList.add('hidden');
+  } else {
+    invalidChapter.classList.remove('hidden');
+    chapterInput.flashWarning();
+    isInvalid = true;
+  }
+  if (isInvalid) {
+    return;
+  }
+
   const state = GlobalDataStore.getState();
   const data = GlobalDataStore.getData();
   if (state === 'update') {
-    const updateBookmark = GlobalDataStore.getUpdateTitle();
     createBookmark(data)
       .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
-      .then(() => removeBookmark(data.folder, {bookmarkTitle: updateBookmark}))
+      .then(() => removeBookmark(data.folder, {bookmarkTitle: data.updateTitle}))
       .catch((err) => console.error('Error updating bookmark', err));
   } else {
     createBookmark(data)
       .then((bookmarkTitle) => console.log(`Bookmark created: ${bookmarkTitle}`))
       .catch((err) => console.error('Error creating bookmark:', err));
   }
-  this.disabled = true;
+
+  hideEditElements();
+  const actionContainer = document.getElementById('action-button-container');
+  const completedContainer = document.getElementById('completed-container');
+  actionContainer.classList.add('hidden');
+  completedContainer.classList.remove('hidden');
 });
 
 /**
@@ -282,109 +293,70 @@ document.getElementById('action-button').addEventListener('click', function() {
  */
 function createBookmark(data) {
   const completeChecked = document.getElementById('completed').checked;
+  const title = document.getElementById('title-input').value;
+  const chapter = document.getElementById('chapter-input').value;
   if (completeChecked) {
-    return addBookmark(data.title, data.chapter, data.url, data.folder, data.tags, 'completed');
+    return addBookmark(title, chapter, data.url, data.folder, data.tags, 'completed');
   } else {
-    return addBookmark(data.title, data.chapter, data.url, data.folder, data.tags);
+    return addBookmark(title, chapter, data.url, data.folder, data.tags);
   }
 }
 
-document.getElementById('edit-button').addEventListener('click', () => {
-  const finishEditButtons = document.getElementById('finish-edit');
-  finishEditButtons.classList.remove('hidden');
+document.getElementById('edit-button').addEventListener('click', function() {
+  this.classList.add('hidden');
 
   const editOptions = document.getElementById('edit-options');
   editOptions.classList.remove('hidden');
 
-  const actionContainer = document.getElementById('action-button-container');
-  actionContainer.classList.add('hidden');
+  const chapterInput = document.getElementById('chapter-input');
+  chapterInput.readonly = false;
 
-  const newChapter = document.getElementById('new-chapter');
-  newChapter.classList.add('hidden');
-  const editChapter = document.getElementById('edit-chapter');
-  editChapter.classList.remove('hidden');
-  editChapter.placeholder = GlobalDataStore.getChapter();
-
-  const state = GlobalDataStore.getState();
-  if (state === 'update') {
-    const findTitleButton = document.getElementById('find-update');
-    findTitleButton.classList.remove('hidden');
-  } else {
-    titleMode(true);
-  }
+  titleEditing(true);
 });
 
-function titleMode(editing) {
-  const titleElement = document.getElementById('content-title');
-  const editTitleContainer = document.getElementById('title-edit-container');
-  const editTitle = document.getElementById('title-edit');
-  if (editing) {
-    editTitle.value = GlobalDataStore.getTitle();
-    titleElement.classList.add('hidden');
-    editTitleContainer.classList.remove('hidden');
+function titleEditing(isEditing) {
+  const titleInput = document.getElementById('title-input');
+  const titleTooltip = document.getElementById('title-tooltip');
+  const findUpdateButton = document.getElementById('find-update');
+  const state = GlobalDataStore.getState();
+  if (state === 'update') {
+    titleInput.readonly = true;
+    titleTooltip.classList.add('hidden');
+    if (isEditing) {
+      titleInput.inputWidth = '270px';
+      findUpdateButton.classList.remove('hidden');
+    } else {
+      titleInput.inputWidth = '370px';
+      findUpdateButton.classList.add('hidden');
+    }
   } else {
-    editTitle.value = '';
-    titleElement.classList.remove('hidden');
-    editTitleContainer.classList.add('hidden');
+    findUpdateButton.classList.add('hidden');
+    if (isEditing) {
+      titleInput.inputWidth = '336px';
+      titleInput.readonly = false;
+      titleTooltip.classList.remove('hidden');
+    } else {
+      titleInput.inputWidth = '370px';
+      titleInput.readonly = true;
+      titleTooltip.classList.add('hidden');
+    }
   }
 }
 
-document.getElementById('cancel-edit').addEventListener('click', () => hideEditElements());
-
-document.getElementById('confirm-edit').addEventListener('click', () => {
-  const state = GlobalDataStore.getState();
-  const newTitle = document.getElementById('title-edit').value;
-  if (state ===  'create' && newTitle !== '') {
-    titleDisplay(newTitle);
-    GlobalDataStore.setTitle(newTitle.trim());
-  }
-
-  const editValue = document.getElementById('edit-chapter').value;
-  const newChapterElement = document.getElementById('new-chapter');
-  if (editValue) {
-    newChapterElement.textContent = editValue;
-    GlobalDataStore.setChapter(editValue);
-  }
-
-  const title = GlobalDataStore.getTitle();
-  const actionButton = document.getElementById('action-button');
-  if (title === '') {
-    actionButton.disabled = true;
-  } else {
-    actionButton.disabled = false;
-  }
-
-  hideEditElements();
-});
-
 function hideEditElements() {
-  const actionContainer = document.getElementById('action-button-container');
-  actionContainer.classList.remove('hidden');
-
   const editOptions = document.getElementById('edit-options');
   editOptions.classList.add('hidden');
 
-  const finishEditButtons = document.getElementById('finish-edit');
-  finishEditButtons.classList.add('hidden');
+  titleEditing(false);
 
-  const state = GlobalDataStore.getState();
-  if (state === 'update') {
-    const findTitleButton = document.getElementById('find-update');
-    findTitleButton.classList.add('hidden');
-  } else {
-    titleMode(false);
-  }
-
-  const newChapter = document.getElementById('new-chapter');
-  newChapter.classList.remove('hidden');
-  const editChapter = document.getElementById('edit-chapter');
-  editChapter.classList.add('hidden');
-  editChapter.value = '';
+  const chapterInput = document.getElementById('chapter-input');
+  chapterInput.readonly = true;
 }
 
 document.getElementById('edit-tags-mode').addEventListener('click', () => {
-  const tagsScreen = document.getElementById('tags-screen');  
-  const title = GlobalDataStore.getTitle();
+  const tagsScreen = document.getElementById('tags-screen');
+  const titleInput = document.getElementById('title-input');
+  const title = titleInput.value;
   const tags = GlobalDataStore.getTags();
   tagsScreen.openScreen(title, tags);
   const updateCreateContainer = document.getElementById('update-create');
@@ -392,14 +364,12 @@ document.getElementById('edit-tags-mode').addEventListener('click', () => {
 });
 
 document.getElementById('change-mode').addEventListener('click', () => {
-  const findTitleButton = document.getElementById('find-update');
   const state = GlobalDataStore.getState();
   if (state === 'update') {
     GlobalDataStore.setState('create');
     GlobalDataStore.setUpdateTitle('');
     setActionDisplay(false);
-    findTitleButton.classList.add('hidden');
-    titleMode(true);
+    titleEditing(true);
   } else {
     switchToFindTitle();
   }
@@ -437,7 +407,6 @@ document.getElementById('find-title-screen').addEventListener('closeTitleScreen'
     oldChapterElement.textContent = bookmarkInfo.chapter;
     tagDisplay(bookmarkInfo.tags);
     GlobalDataStore.setData({
-      title: bookmarkInfo.title,
       tags: bookmarkInfo.tags,
       updateTitle: event.detail.updateTitle
     });
@@ -446,6 +415,6 @@ document.getElementById('find-title-screen').addEventListener('closeTitleScreen'
   if (action === 'confirm' && state === 'create') {
     GlobalDataStore.setState('update');
     setActionDisplay(true);
-    titleMode(false);
+    titleEditing(true);
   }
 });

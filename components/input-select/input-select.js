@@ -19,7 +19,7 @@ customElements.define(
   'input-select',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['type', 'required', 'placeholder', 'readonly', 'step', 'input-width'];
+      return ['type', 'required', 'placeholder', 'readonly', 'step', 'input-style'];
     }
 
     get type() {
@@ -79,13 +79,33 @@ customElements.define(
       } 
     }
 
+    get inputWidth() {
+      return this.style.getPropertyValue('--input-width');
+    }
+
+    set inputWidth(value) {
+      if (value) {
+        this.style.setProperty('--input-width', value);
+      } else {
+        this.style.removeProperty('--input-width');
+      }
+    }
+
+    get inputStyle() {
+      return this.getAttribute('input-style') || '';
+    }
+
+    set inputStyle(value) {
+      if (value) {
+        this.setAttribute('input-style', value);
+      } else {
+        this.removeAttribute('input-style');
+      }
+    }
+
     get value() {
       const input = this.shadowRoot.getElementById('input-area');
-      const isValid = input.checkValidity();
-      return {
-        valid: isValid,
-        value: input.value
-      };
+      return input.value;
     }
 
     set value(value) {
@@ -140,8 +160,6 @@ customElements.define(
         input.required = this.required;
       } else if (name === 'placeholder') {
         this.setPlaceholder();
-      } else if (name === 'input-width') {
-        this.style.setProperty('--input-width', newValue);
       } else if (name === 'readonly') {
         const input = this.shadowRoot.getElementById('input-area');
         input.readOnly = this.readonly;
@@ -155,6 +173,8 @@ customElements.define(
           wrapper.classList.remove('read-only');
           arrow.classList.remove('read-only');
         }
+      } else if (name === 'input-style') {
+        this.setInputStyle();
       }
     }
 
@@ -180,12 +200,14 @@ customElements.define(
       }
 
       newInputeArea.required = this.required;
+      newInputeArea.readOnly = this.readonly;
       if (this.type === 'number') {
         this.setStep();
       } else {
         this.step = '';
       }
       this.setPlaceholder();
+      this.setInputStyle();
     }
     
     setStep() {
@@ -203,6 +225,16 @@ customElements.define(
         inputArea.placeholder = this.placeholder;
       } else {
         inputArea.removeAttribute('placeholder');
+      }
+    }
+
+    setInputStyle() {
+      const inputArea = this.shadowRoot.getElementById('input-area');
+      if (this.inputStyle) {
+        inputArea.style = this.inputStyle;
+      } else {
+        inputArea.getAttribute('style');
+        inputArea.removeAttribute('style');
       }
     }
 
@@ -279,6 +311,11 @@ customElements.define(
     hideSuggestions() {
       const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
       wrapper.classList.add('hidden');
+    }
+
+    checkValidity() {
+      const input = this.shadowRoot.getElementById('input-area');
+      return input.checkValidity();
     }
 
     flashWarning() {

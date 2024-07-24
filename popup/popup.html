@@ -28,34 +28,32 @@
       </div>
 
       <div class="content-container">
+
         <div class="identifier">Title</div>
-        <div class="value">
-          <div class="content-title-container">
-            <span id="content-title">&lt;Bookmark title&gt;</span>
-            <themed-button id="find-update" variant="secondary" size="small" class="hidden">Find Title</themed-button>
-          </div>
-          <div id="title-edit-container" class="content-title-container hidden">
-            <textarea id="title-edit" class="title-edit">&lt;Bookmark title&gt;</textarea>
-            <info-tooltip>
-              <p>
-                Automatic detection for updates will only work if the bookmark title entered
-                matches the title present on the web page, in either the page tab title or URL.
-              </p>
-            </info-tooltip>
-          </div>
+        <div class="value title-input-container">
+          <input-select id="title-input" type="textarea" required  readonly style="--input-width: 370px"></input-select>
+          <themed-button id="find-update" variant="secondary" size="small" class="hidden">Find Title</themed-button>
+          <info-tooltip id="title-tooltip" class="hidden">
+            <p>
+              Automatic detection for updates will only work if the bookmark title entered
+              matches the title present on the web page, in either the page tab title or URL.
+            </p>
+          </info-tooltip>
         </div>
+
         <div class="identifier">Site</div>
         <div id="domain" class="value">&lt;Domain Name&gt;</div>
+
         <div class="identifier">Chapter</div>
         <div class="value chapter-container">
           <span id="old-chapter" class="grey-text">&lt;##&gt;</span>
           <span id="chapter-arrow">--&gt;</span>
-          <span id="new-chapter">0</span>
-          <input id="edit-chapter" type="number" list="detected-nums" step="0.01" class="chapter-input hidden"/>
-          <datalist id="detected-nums"></datalist>
+          <input-select id="chapter-input" type="number" step="0.01" readonly required style="--input-width: 5em"></input-select>
         </div>
+
         <div class="identifier">Tags</div>
         <ul id="bookmark-tags" class="value"></ul>
+
       </div>
 
       <div id="edit-options" class="edit-options hidden">
@@ -63,14 +61,21 @@
         <themed-button id="change-mode" variant="secondary">&lt;Mode Change&gt;</themed-button>
       </div>
 
-      <div id="action-button-container" class="action-button-container">
-        <themed-button id="edit-button">Edit</themed-button>
-        <themed-button id="action-button">&lt;Action&gt;</themed-button>
+      <div class="action-wrapper">
+        <div>
+          <div id="invalid-title" class="error-text hidden">Error: Title required</div>
+          <div id="invalid-chapter" class="error-text hidden">Error: Chapter required</div>
+        </div>
+        <div id="action-button-container" class="action-button-container">
+          <themed-button id="edit-button" variant="secondary">Edit</themed-button>
+          <themed-button id="action-button">&lt;Action&gt;</themed-button>
+        </div>        
       </div>
 
-      <div id="finish-edit" class="finish-edit hidden">
-        <themed-button id="cancel-edit">Cancel</themed-button>
-        <themed-button id="confirm-edit">Confirm</themed-button>
+
+      <div id="completed-container" class="completed-container hidden">
+        <done-icon size="36px"></done-icon>
+        <span id="completed-text">Bookmark &lt;Action&gt;</span>
       </div>
     </div>
 
