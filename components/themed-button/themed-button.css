@@ -34,6 +34,12 @@
   &:hover {
     background-color: var(--button-secondary-hover);
   }
+
+  :host([disabled]) & {
+    cursor: not-allowed;
+    color: var(--offWhite30);
+    background-color: var(--button-secondary-disabled);
+  }
 }
 
 :host([variant="warning"]) button {

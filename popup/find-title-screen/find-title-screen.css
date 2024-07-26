@@ -12,6 +12,16 @@
   font-size: 20px;
 }
 
+.folder-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.folder-container div {
+  font-size: 20px;
+}
+
 .selection-container {
   display: flex;
   flex-direction: column;
@@ -23,6 +33,20 @@
   padding: 5px;
   background-color: var(--offWhite30);
   font-size: 16px;
+}
+
+.empty-indicator {
+  padding: 10px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 20px;
+  color: var(--offWhite);
+
+  span {
+    font-weight: bold;
+    color: var(--warning);
+  }
 }
 
 .search-container {
@@ -56,10 +80,10 @@
   }
 }
 
-.bookmark-list {
+.list-container {
   padding-bottom: 10px;
   max-height: 205px;
-  overflow-y: scroll;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--offWhite30) var(--secondary-background);
 }
@@ -98,6 +122,17 @@
   }
 }
 
+.folder-selection {
+  margin: 0 5px;
+  border-radius: 12px;
+  padding: 8px 15px;
+  font-size: 16px;
+
+  &:hover {
+    background-color: var(--offWhite10);
+  }
+}
+
 .buttons-container {
   display: flex;
   align-items: center;
@@ -107,6 +142,14 @@
 
 .red-text {
   color: var(--warning);
+}
+
+.blur-text {
+  color: var(--offWhite30);
+}
+
+.blur-text.red-text {
+  color: var(--warning30);
 }
 
 .hidden {

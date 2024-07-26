@@ -34,6 +34,12 @@ function getMangamarkFolderId() {
   });
 }
 
+function getFolderNames() {
+  return getMangamarkFolderId()
+    .then((mangamarkId) => chrome.bookmarks.getChildren(mangamarkId))
+    .then((children) => children.filter(child => child.url === undefined).map(folder => folder.title));
+}
+
 /**
  * Gets the Id of a given folder within the parentId
  * 
@@ -244,4 +250,4 @@ function moveBookmark(title, chapter, domain, tags, readingStatus) {
   })
 }
 
-export {bookmarkRegex, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, moveBookmark}
+export {bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, moveBookmark}

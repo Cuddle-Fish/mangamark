@@ -16,6 +16,7 @@
   --offWhite10-match: #41444B;
   
   --warning: #CF6161;
+  --warning30: #CF61614d;
   --approval: #92bd3b;
 
   --font-family: "Poppins", sans-serif;
@@ -26,6 +27,7 @@
 
   --button-secondary-color: var(--offWhite30);
   --button-secondary-hover: #dcdedf80;
+  --button-secondary-disabled: var(--offWhite10);
 
   --button-warning-color: #cf6161cc;
   --button-warning-hover: var(--warning);
