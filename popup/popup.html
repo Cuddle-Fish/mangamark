@@ -32,17 +32,21 @@
         <div class="identifier">Title</div>
         <div class="value title-input-container">
           <input-select id="title-input" type="textarea" required  readonly style="--input-width: 370px"></input-select>
-          <themed-button id="find-update" variant="secondary" size="small" class="hidden">Find Title</themed-button>
-          <info-tooltip id="title-tooltip" class="hidden">
-            <p>
-              Automatic detection for updates will only work if the bookmark title entered
-              matches the title present on the web page, in either the page tab title or URL.
+          <themed-button id="find-update" variant="secondary" size="small" class="title-column2 hidden">Find Title</themed-button>
+          <info-tooltip id="title-tooltip" class="title-column2 hidden">
+            <div slot="title">Create Title:</div>
+            <p slot="description">
+              For future updates, bookmarks can only be automatically matched if the created title 
+              matches the reading title present in either the tab title or URL.
             </p>
           </info-tooltip>
         </div>
 
-        <div class="identifier">Site</div>
-        <div id="domain" class="value">&lt;Domain Name&gt;</div>
+        <div class="identifier">Folder</div>
+        <div class="value folder-container">
+          <div id="domain" class="folder-grid-full">&lt;Domain Name&gt;</div>
+          <themed-button id="change-folder-button" variant="secondary" size="small" class="hidden">Change Folder</themed-button>
+        </div>
 
         <div class="identifier">Chapter</div>
         <div class="value chapter-container">
@@ -78,6 +82,8 @@
         <span id="completed-text">Bookmark &lt;Action&gt;</span>
       </div>
     </div>
+
+    <change-folder id="change-folder-screen"></change-folder>
 
     <tags-screen id="tags-screen"></tags-screen>
 

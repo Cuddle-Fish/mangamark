@@ -1,5 +1,5 @@
 import { getTags } from "/externs/tags.js";
-import { updateBookmarkTags, moveBookmark, removeBookmark } from "/externs/bookmark.js";
+import { updateBookmarkTags, changeSubFolder, removeBookmark } from "/externs/bookmark.js";
 import "/components/svg/edit-icon.js";
 import "/components/svg/info-icon.js";
 import "/components/themed-button/themed-button.js";
@@ -8,6 +8,8 @@ import "/components/tag-button/tag-button.js";
 customElements.define(
   'bookmark-card',
   class extends HTMLElement {
+    #folderName;
+
     static get observedAttributes() {
       return ['state', 'readingStatus'];
     }
@@ -43,7 +45,8 @@ customElements.define(
       this.attachShadow({ mode: 'open'});
     }
 
-    initialize(title, chapterNumber, url, date, readingStatus, activeTags, folderName) {
+    initialize(title, chapterNumber, url, date, readingStatus, activeTags, domain, folderName) {
+      this.#folderName = folderName;
       this.state = 'default';
       this.readingStatus = readingStatus;
 
@@ -72,7 +75,7 @@ customElements.define(
                   <span id="bookmark-chapter">${chapterNumber}</span>
                 </div>
                 <div class="domain-date">
-                  <div id="bookmark-domain">${folderName}</div>
+                  <div id="bookmark-domain">${domain}</div>
                   <time datetime="${datetimeValue}">${displayDate}</time>
                 </div>
               </div>
@@ -136,19 +139,18 @@ customElements.define(
       confirmButton.addEventListener('click', () => {
         const title = this.shadowRoot.getElementById('bookmark-title').textContent;
         const chapter = this.shadowRoot.getElementById('bookmark-chapter').textContent;
-        const folder = this.shadowRoot.getElementById('bookmark-domain').textContent;
         const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
         const tags = Array.from(bookmarkTags.children, li => li.textContent);    
 
         switch(this.state) {
           case 'tags':
-            this.handleTagsChange(title, chapter, folder, tags);
+            this.handleTagsChange(title, chapter, tags);
             break;
           case 'readingStatus':
-            this.handleReadingStatusChange(title, chapter, folder, tags);
+            this.handleReadingStatusChange(title, chapter, tags);
             break;
           case 'delete':
-            removeBookmark(folder, {title: title, chapter: chapter, tags: tags});
+            removeBookmark(this.#folderName, {title: title, chapter: chapter, tags: tags});
             break;
           default:
             console.error('Error, bookmark-card confirm pressed in invalid state', this.state);
@@ -233,14 +235,14 @@ customElements.define(
       infoText.innerHTML = string;
     }
 
-    handleTagsChange(title, chapter, folder, tags) {
+    handleTagsChange(title, chapter, tags) {
       const extensionTags = this.shadowRoot.getElementById('extension-tags');
       const tagButtons = Array.from(extensionTags.querySelectorAll('tag-button'));
       const newTags = tagButtons.filter(tagButton => 
         (tagButton.selected && tagButton.variant !== 'active') ||
         (!tagButton.selected && tagButton.variant === 'active')
       ).map(tagButton => tagButton.textContent);
-      updateBookmarkTags(title, chapter, folder, tags, newTags)
+      updateBookmarkTags(title, chapter, this.#folderName, tags, newTags)
       .then(() => {
         const fragment = document.createDocumentFragment();
         newTags.forEach(tag => {
@@ -253,9 +255,9 @@ customElements.define(
       });
     }
 
-    handleReadingStatusChange(title, chapter, folder, tags) {
+    handleReadingStatusChange(title, chapter, tags) {
       const newReadingStatus = this.readingStatus === 'reading' ? 'completed' : 'reading';
-      moveBookmark(title, chapter, folder, tags, newReadingStatus)
+      changeSubFolder(title, chapter, this.#folderName, tags, newReadingStatus)
       .then(() => this.readingStatus = newReadingStatus);
     }
   }

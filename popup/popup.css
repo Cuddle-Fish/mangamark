@@ -76,8 +76,23 @@ h1 {
 
 .title-input-container {
   display: grid;
-  grid-template-columns: 1fr auto;
   column-gap: 10px;
+}
+
+.title-column2 {
+  grid-area: 1/2;
+}
+
+.folder-container {
+  display: grid;
+  grid-template-columns: auto 138px;
+  div {
+    word-break: break-all;
+  }
+}
+
+.folder-grid-full {
+  grid-column: span 2;
 }
 
 .chapter-container {

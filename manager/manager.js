@@ -122,7 +122,10 @@ class Bookmark {
     this.date = dateCreated
     this.readingStatus = readingStatus || null;
     this.tags = tags || [];
-
+    this.domain = new URL(url).hostname;
+    if (this.domain.startsWith('www.')) {
+      this.domain = this.domain.substring(4);
+    }
     this.folder = folderName;
   }
 
@@ -135,6 +138,7 @@ class Bookmark {
       this.date,
       this.readingStatus,
       this.tags,
+      this.domain,
       this.folder
     );
 

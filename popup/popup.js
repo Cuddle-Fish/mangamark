@@ -1,4 +1,5 @@
 import { bookmarkRegex, findBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
+import { findFolderWithDomain } from "/externs/folder.js";
 import "/components/themed-button/themed-button.js";
 import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
@@ -7,6 +8,7 @@ import "/components/info-tooltip/info-tooltip.js";
 import "/components/input-select/input-select.js";
 import "/popup/tags-screen/tags-screen.js";
 import "/popup/find-title-screen/find-title-screen.js";
+import "/popup/change-folder/change-folder.js";
 
 const GlobalDataStore = (() => {
   let _state = '';
@@ -78,24 +80,32 @@ document.getElementById('manage-button').addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
 });
 
-chrome.tabs.query({active: true, currentWindow: true})
-  .then((tabs) => {
+processTab();
+
+async function processTab() {
+  try {
+    const tabs = await chrome.tabs.query({active: true, currentWindow: true});
     const activeTab = tabs[0];
+
     GlobalDataStore.setUrl(activeTab.url);
-    let domain = new URL(activeTab.url).hostname;
-    if (domain.startsWith('www.')) {
-      domain = domain.substring(4);
-    }
-    GlobalDataStore.setFolder(domain);
-    domainDisplay(domain);
+    const domain = new URL(activeTab.url).hostname;
     const title = activeTab.title;
-    return findBookmark(title, domain)
-      .then((bookmark) => [bookmark, title]);
-  })
-  .then(([bookmark, title]) => {
+
+    const customFolder = await findFolderWithDomain(domain);
+    let bookmarkFolder;
+    if (customFolder) {
+      bookmarkFolder = customFolder;
+    } else if (domain.startsWith('www.')) {
+      bookmarkFolder = domain.substring(4);
+    } else {
+      bookmarkFolder = domain;
+    }
+    GlobalDataStore.setFolder(bookmarkFolder);
+    domainDisplay(bookmarkFolder);
+
     const numsInTitle = title.match(/\d+/g) || [];
+    const bookmark = await findBookmark(title, bookmarkFolder);
     if (bookmark) {
-      console.log('bookmark exists');
       GlobalDataStore.setState('update');
       const bookmarkInfo = getBookmarkContents(bookmark.title);
       GlobalDataStore.setData({
@@ -108,15 +118,16 @@ chrome.tabs.query({active: true, currentWindow: true})
       chapterDisplay(numsInTitle, bookmarkInfo.chapter);
       tagDisplay(bookmarkInfo.tags);
     } else {
-      console.log('new title');
       GlobalDataStore.setState('create');
 
       setActionDisplay(false);
       titleDisplay(title);
       chapterDisplay(numsInTitle);
     }
-  })
-  .catch((err) => console.error(err));
+  } catch (error) {
+    console.error('Error processing tab:', error);
+  }
+}
 
 /**
  * Set domain name displayed in popup
@@ -183,7 +194,6 @@ function getBookmarkContents(bookmarkTitle) {
   const matches = bookmarkTitle.match(bookmarkRegex());
     const [, title, chapter] = matches;
     const tags = matches[3] ? matches[3].split(',') : [];
-    console.log(`'${title}' - '${chapter}' - ${tags}`);
     return { title: title, chapter: chapter, tags: tags};
 }
 
@@ -311,6 +321,11 @@ document.getElementById('edit-button').addEventListener('click', function() {
   const chapterInput = document.getElementById('chapter-input');
   chapterInput.readonly = false;
 
+  const domainElement = document.getElementById('domain');
+  domainElement.classList.remove('folder-grid-full');
+  const changeFolderButton = document.getElementById('change-folder-button');
+  changeFolderButton.classList.remove('hidden');
+
   titleEditing(true);
 });
 
@@ -351,6 +366,11 @@ function hideEditElements() {
 
   const chapterInput = document.getElementById('chapter-input');
   chapterInput.readonly = true;
+
+  const domainElement = document.getElementById('domain');
+  domainElement.classList.add('folder-grid-full');
+  const changeFolderButton = document.getElementById('change-folder-button');
+  changeFolderButton.classList.add('hidden');
 }
 
 document.getElementById('edit-tags-mode').addEventListener('click', () => {
@@ -416,5 +436,25 @@ document.getElementById('find-title-screen').addEventListener('closeTitleScreen'
     GlobalDataStore.setState('update');
     setActionDisplay(true);
     titleEditing(true);
+  }
+});
+
+document.getElementById('change-folder-button').addEventListener('click', () => {
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.add('hidden');
+  const url = GlobalDataStore.getUrl();
+  const domain = new URL(url).hostname;
+  const changeFolderScreen = document.getElementById('change-folder-screen');
+  changeFolderScreen.openScreen(domain);
+});
+
+document.getElementById('change-folder-screen').addEventListener('closeScreen', (event) => {
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.remove('hidden');
+  const action = event.detail.action;
+  if (action === 'change') {
+    const folder = event.detail.folder
+    GlobalDataStore.setFolder(folder);
+    domainDisplay(folder);
   }
 });

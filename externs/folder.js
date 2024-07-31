@@ -1,9 +1,11 @@
+import { moveBookmarksWithDomain } from "/externs/bookmark.js"
+
 /**
  * get all custom folder names associated with extension
  * 
  * @returns a Set of all folder names
  */
-async function getAllFolders() {
+async function getCustomFolderNames() {
   const result = await chrome.storage.sync.get('folders');
   if (result.folders) {
     const folderSet = new Set(result.folders);
@@ -14,22 +16,21 @@ async function getAllFolders() {
 }
 
 /**
- * add a unique folder name to extension, all names will be converted to lowercase
+ * add a unique folder name to extension
  * 
  * @param {string} folderName name of folder to add
  */
 function addFolder(folderName) {
-  return getAllFolders()
+  return getCustomFolderNames()
     .then((folders) => {
-      const nameToLower = folderName.toLowerCase();
-      if (folders.has(nameToLower)) {
+      if (folders.has(folderName)) {
         throw new Error(`Duplicate folder name ${folderName} cannot be added`);
       }
-      folders.add(nameToLower);
+      folders.add(folderName);
       const folderList = Array.from(folders);
 
       return chrome.storage.sync.set({ 'folders': folderList })
-        .then(() => chrome.storage.sync.set({ [nameToLower]: [] }));
+        .then(() => chrome.storage.sync.set({ [folderName]: [] }));
     })
     .catch((error) => console.error('Error adding folder to storage:', error));
 }
@@ -40,17 +41,16 @@ function addFolder(folderName) {
  * @param {string} folderName name of folder to remove
  */
 function removeFolder(folderName) {
-  const nameToLower = folderName.toLowerCase();
-  return getAllFolders()
+  return getCustomFolderNames()
     .then((folders) => {
-      if (!folders.has(nameToLower)) {
+      if (!folders.has(folderName)) {
         throw new Error(`Folder name ${folderName} does not exist`);
       }
-      return chrome.storage.sync.remove(nameToLower)
+      return chrome.storage.sync.remove(folderName)
         .then(() => folders);
     })
     .then((folders) => {
-      folders.delete(nameToLower);
+      folders.delete(folderName);
       const folderList = Array.from(folders);
       return chrome.storage.sync.set({ 'folders': folderList });
     })
@@ -64,13 +64,13 @@ function removeFolder(folderName) {
  * @returns folder containing domain or if no folder contains domain an empty string
  */
 async function findFolderWithDomain(domain) {
-  const folders = await getAllFolders();
-  folders.forEach(async folder => {
+  const folders = await getCustomFolderNames();
+  for (const folder of folders) {
     const domains = await getFolderDomains(folder);
-    if (domain.has(domain)) {
+    if (domains.has(domain)) {
       return folder;
     }
-  });
+  }
   return '';
 }
 
@@ -81,18 +81,18 @@ async function findFolderWithDomain(domain) {
  * @returns a Set of all domains
  */
 async function getFolderDomains(folderName) {
-  const nameToLower = folderName.toLowerCase();
-  const result = await chrome.storage.sync.get(nameToLower);
-  if (result[nameToLower]) {
-    const domainSet = new Set(result[nameToLower]);
-    return domainSet;
-  } else {
+  const result = await chrome.storage.sync.get(folderName);
+
+  if (!result.hasOwnProperty(folderName)) {
     throw new Error(`Folder ${folderName} not found`);
+  } else {
+    const domainSet = new Set(result[folderName]);
+    return domainSet;
   }
 }
 
 /**
- * add a domain from folder
+ * add a domain from folder, will move all extension bookmarks under domain to folder
  * 
  * @param {string} folderName folder that contains domain
  * @param {string} domain domain to add
@@ -100,17 +100,17 @@ async function getFolderDomains(folderName) {
 function addDomain(folderName, domain) {
   return findFolderWithDomain(domain)
     .then((folderWithDomain) =>{
-      if (!folderWithDomain) {
+      if (folderWithDomain) {
         throw new Error(`Domain ${domain} already associated with folder`);
       }
     })
     .then(() => getFolderDomains(folderName))
     .then((folderDomains) =>{
-      const nameToLower = folderName.toLowerCase();
       folderDomains.add(domain);
       const domainList = Array.from(folderDomains);
-      return chrome.storage.sync.set({ [nameToLower]: domainList });
+      return chrome.storage.sync.set({ [folderName]: domainList });
     })
+    .then(() => moveBookmarksWithDomain(domain, folderName))
     .catch((error) => console.error('Error adding domain', error));
 }
 
@@ -123,10 +123,26 @@ function addDomain(folderName, domain) {
 function removeDomain(folderName, domain) {
   return getFolderDomains(folderName)
   .then((folderDomains) => {
-    const nameToLower = folderName.toLowerCase();
+    if (!folderDomains.has(domain)) {
+      throw new Error(`Domain ${domain} not associated with folder ${folderName}`);
+    }
     folderDomains.delete(domain);
     const domainList = Array.from(folderDomains);
-    return chrome.storage.sync.set({ [nameToLower]: domainList });
+    return chrome.storage.sync.set({ [folderName]: domainList });
   })
   .catch((error) => console.error('Error removing domain:', error));
 }
+
+function moveDomain(newFolder, domain) {
+  return findFolderWithDomain(domain)
+    .then((folderWithDomain) => {
+      if (!folderWithDomain) {
+        throw new Error(`Domain ${domain} not associated with any folder`);
+      }
+      return removeDomain(folderWithDomain, domain);
+    })
+    .then(() => addDomain(newFolder, domain))
+    .catch((error) => console.error('Error moving domain:', error));
+}
+
+export { getCustomFolderNames, addFolder, findFolderWithDomain, addDomain, moveDomain }

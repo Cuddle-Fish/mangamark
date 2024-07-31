@@ -6,7 +6,12 @@ template.innerHTML = /* html */ `
     @import "/components/info-tooltip/info-tooltip.css";
   </style>
   <info-icon></info-icon>
-  <slot></slot>
+  <div class="message-container">
+    <slot name="title"></slot>
+    <div class="description-container">
+      <slot name="description" class="description"></slot>
+    </div>
+  </div>
 `;
 
 customElements.define(

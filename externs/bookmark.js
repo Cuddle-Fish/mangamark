@@ -1,3 +1,5 @@
+import { getCustomFolderNames, findFolderWithDomain } from "/externs/folder.js";
+
 /**
  * @returns regex for matching bookmark, if string matches regex values will be:
  *  1. Title
@@ -211,7 +213,6 @@ function removeBookmark(folderName, details) {
  */
 function updateBookmarkTags(title, chapterNum, folderName, oldTags, newTags) {
   const oldBookmarkTitle = createBookmarkTitle(title, chapterNum, oldTags);
-  console.log(oldBookmarkTitle);
   const newBookmarkTitle = createBookmarkTitle(title, chapterNum, newTags);
   return getMangamarkFolderId()
   .then((mangamarkId) => getFolderId(mangamarkId, folderName))
@@ -231,7 +232,7 @@ function updateBookmarkTags(title, chapterNum, folderName, oldTags, newTags) {
  * @param {Array.<string>} tags tags associated with bookmark 
  * @param {string} readingStatus indicates name of subFolder to move bookmark to or 'reading' for main folder
  */
-function moveBookmark(title, chapter, domain, tags, readingStatus) {
+function changeSubFolder(title, chapter, domain, tags, readingStatus) {
   const bookmarkTitle = createBookmarkTitle(title, chapter, tags);
   return getMangamarkFolderId()
   .then((mangamarkId) => getFolderId(mangamarkId, domain))
@@ -242,7 +243,6 @@ function moveBookmark(title, chapter, domain, tags, readingStatus) {
     const destinationId = readingStatus === 'reading' ? folderId : getFolderId(folderId, readingStatus, true);
 
     Promise.all([bookmark, destinationId]).then((values) => {
-      console.log(values[0].parentId, values[1]);
       chrome.bookmarks.move(values[0].id, {parentId: values[1]})
       .then(() => chrome.bookmarks.getChildren(values[0].parentId))
       .then((children) => children.length === 0 ? chrome.bookmarks.remove(values[0].parentId) : Promise.resolve());
@@ -250,4 +250,60 @@ function moveBookmark(title, chapter, domain, tags, readingStatus) {
   })
 }
 
-export {bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, moveBookmark}
+/**
+ * Move all bookmarks associated with domain to a new folder
+ * 
+ * @param {string} domain target domain to be moved
+ * @param {string} folder destination folder name
+ */
+async function moveBookmarksWithDomain(domain, folder) {
+  try {
+    const folders = await getCustomFolderNames();
+    if (folders.has(folder)) {
+      const associatedFolder = await findFolderWithDomain(domain);
+      if (associatedFolder !== folder) {
+        throw new Error(`Attempt to move unassociated domain ${domain} to custom folder ${folder}`);
+      }
+    }
+
+    const tree = await getMangamarkSubTree();
+    const folderId = await getFolderId(tree[0].id, folder, true);
+
+    const folderMovePromises = tree[0].children.map(node => {
+      if (node.children) {
+        return moveFromFolder(node, domain, folderId);
+      } else {
+        return Promise.resolve();
+      }
+    });
+
+    await Promise.all(folderMovePromises);
+  } catch (error) {
+    console.error('Error moving domain:', error);
+  }
+}
+
+/**
+ * move all bookmarks for a domain within given folder tree to a new folder
+ * 
+ * @param {chrome.bookmarks.BookmarkTreeNode} folderTree folder subTree
+ * @param {string} domain target domain to move
+ * @param {string} destinationId bookmark Id for destination
+ */
+function moveFromFolder(folderTree, domain, destinationId) {
+  const movePromises = [];
+  folderTree.children.forEach(node => {
+    if (node.url && new URL(node.url).hostname.includes(domain)) {
+      movePromises.push(chrome.bookmarks.move(node.id, {parentId: destinationId}));
+    } else if (node.children) {
+      movePromises.push(moveFromFolder(node, domain, destinationId));
+    }
+  });
+
+  return Promise.all(movePromises)
+    .then(() => chrome.bookmarks.getChildren(folderTree.id))
+    .then((children) => children.length === 0 ? chrome.bookmarks.remove(folderTree.id) : Promise.resolve())
+    .catch((error) => console.error('Error faild to move domain out of folder:', error));
+}
+
+export { bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, moveBookmarksWithDomain }
