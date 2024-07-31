@@ -88,6 +88,48 @@
   }
 }
 
+.list-container {
+  padding-bottom: 10px;
+  max-height: 205px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite30) var(--secondary-background);
+}
+
+.folder-container {
+  padding: 0 5px;
+  font-size: 16px;
+
+  input {
+    display: none;
+  }
+
+  label {
+    border-radius: 12px;
+    padding: 8px 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  label:hover {
+    background-color: var(--offWhite10);
+  }
+
+  label done-icon {
+    display: none;
+    color: var(--approval);
+  }
+
+  input:checked + label done-icon {
+    display: block;
+  }
+
+  input:checked + label {
+    background-color: var(--accent-subdued30);
+  }
+} 
+
 .use-selected-container {
   display: grid;
   grid-template-columns: 1fr auto;

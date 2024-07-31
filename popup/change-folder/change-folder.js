@@ -202,6 +202,9 @@ customElements.define(
       searchInput.value = '';
       const listContainer = this.shadowRoot.getElementById('list-container');
       listContainer.replaceChildren();
+      const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
+      selectedFolderElement.textContent = 'No Folder Selected';
+      selectedFolderElement.classList.add('red-text');
       const selectedButton = this.shadowRoot.getElementById('selected-button');
       selectedButton.disabled = true;
       const createInput = this.shadowRoot.getElementById('create-input');
@@ -293,6 +296,7 @@ customElements.define(
         console.log(`input event selected ${folderName} ... #selectedFolder = ${this.#selectedFolder}`);
         const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
         selectedFolderElement.textContent = folderName;
+        selectedFolderElement.classList.remove('red-text');
         const selectedButton = this.shadowRoot.getElementById('selected-button');
         selectedButton.disabled = false;
       });
