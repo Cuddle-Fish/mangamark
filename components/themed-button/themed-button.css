@@ -49,4 +49,10 @@
   &:hover {
     background-color: var(--button-warning-hover);
   }
+
+  :host([disabled]) & {
+    cursor: not-allowed;
+    color: var(--offWhite30);
+    background-color: var(--button-warning-disabled);
+  }
 }
