@@ -1,4 +1,3 @@
-import "/components/option-data/option-data.js";
 import '/components/svg/expand-more.js';
 import '/components/svg/expand-less.js';
 import '/components/svg/done-icon.js';
@@ -9,9 +8,10 @@ template.innerHTML = /* html */ `
     @import "/components/dropdown-menu/dropdown-menu.css";
   </style>
   <button></button>
-  <div class="optionsContainer">
+  <div class="options-container"></div>
+  <datalist>
     <slot></slot>
-  </div>
+  </datalist>
 `;
 
 customElements.define(
@@ -81,8 +81,8 @@ customElements.define(
     }
 
     createOptions() {
-      const options = this.querySelectorAll('option-data');
-      const optionsContainer = this.shadowRoot.querySelector('.optionsContainer');
+      const options = this.querySelectorAll('option');
+      const optionsContainer = this.shadowRoot.querySelector('.options-container');
 
       options.forEach((option, index) => {
         const input = document.createElement('input');
@@ -102,7 +102,7 @@ customElements.define(
         label.appendChild(icon);
         icon.setAttribute('class', 'labelIcon');
         const span = document.createElement('span');
-        span.innerHTML = option.label;
+        span.innerHTML = option.textContent;
         span.setAttribute('class', 'labelText');
         label.appendChild(span);
 

@@ -2,7 +2,6 @@ import { bookmarkRegex, getMangamarkSubTree } from "/externs/bookmark.js";
 import "/components/svg/close-icon.js";
 import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/toggle-menu/toggle-menu.js";
-import "/components/option-data/option-data.js";
 import "/components/bookmark-card/bookmark-card.js";
 import "/components/svg/search-icon.js";
 
@@ -38,7 +37,7 @@ class Folder {
     return allBookmarks;
   }
 
-  getSubFolderBookmarks(subFolderName='completed') {
+  getSubFolderBookmarks(subFolderName) {
     const subFolder = this.subFolders.find(subFolder => subFolder.name === subFolderName);
     if (subFolder) {
       return [...subFolder.bookmarks];
@@ -68,7 +67,7 @@ class Folder {
     return filteredBookmarks;
   }
 
-  searchSubFolderBookmarks(filter, subFolderName='completed') {
+  searchSubFolderBookmarks(filter, subFolderName) {
     const subFolder = this.subFolders.find(subFolder => subFolder.name === subFolderName);
     if (subFolder) {
       return subFolder.searchMainBookmarks(filter);
@@ -295,7 +294,7 @@ function compileMainBookmarks(folders) {
 function compileCompletedBookmarks(folders) {
   const completedBookmarks = [];
   folders.forEach(folder => {
-    completedBookmarks.push(...folder.getSubFolderBookmarks());
+    completedBookmarks.push(...folder.getSubFolderBookmarks('Completed'));
   });
   return completedBookmarks;
 }
@@ -457,7 +456,7 @@ function performSearch() {
           break;
         case 'completed':
           bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value));
+            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Completed'));
           });
           break;
         default:

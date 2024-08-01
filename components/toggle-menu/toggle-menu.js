@@ -1,13 +1,12 @@
-import "/components/option-data/option-data.js";
-
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
   <style>
     @import "/components/toggle-menu/toggle-menu.css";
   </style>
-  <div>
-    <slot></slot>  
-  </div>
+  <div></div>
+  <datalist>
+    <slot></slot>
+  </datalist>
 `;
 
 customElements.define(
@@ -46,7 +45,7 @@ customElements.define(
     }
 
     createOptions() {
-      const options = this.querySelectorAll('option-data');
+      const options = this.querySelectorAll('option');
       const div = this.shadowRoot.querySelector('div');
 
       options.forEach((option, index) => {
@@ -63,7 +62,7 @@ customElements.define(
         }
 
         label.setAttribute('for', input.id);
-        label.textContent = option.label;
+        label.textContent = option.textContent;
 
         div.appendChild(input);
         div.appendChild(label);
