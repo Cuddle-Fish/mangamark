@@ -17,14 +17,13 @@
     <div id="update-create" class="update-create">
       <div class="action-title-container">
         <div id="bookmark-action">&lt;Bookmark Action&gt;</div>
-        <div class="completed-option">
-          <input type="checkbox" id="completed" name="completed">
-          <label for="completed">
-            <check-box></check-box>
-            <done-icon></done-icon>
-            <span>Completed</span>
-          </label>
-        </div>
+        <dropdown-menu id="reading-status-menu" selected="Reading" width="154px" variant="small">
+          <option value="Reading">Reading</option>
+          <option value="Completed">Completed</option>
+          <option value="Plan to Read">Plan to Read</option>
+          <option value="Re-Reading">Re-Reading</option>
+          <option value="On Hold">On Hold</option>
+        </dropdown-menu>
       </div>
 
       <div class="content-container">

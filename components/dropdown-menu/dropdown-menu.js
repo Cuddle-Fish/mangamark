@@ -18,7 +18,7 @@ customElements.define(
   'dropdown-menu',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['placeholder', 'open', 'selected', 'width'];
+      return ['placeholder', 'open', 'selected', 'width', 'variant'];
     }
 
     get placeholder() {
@@ -58,10 +58,23 @@ customElements.define(
       this.setAttribute('width', value);
     }
 
+    get variant() {
+      return this.getAttribute('variant') || '';
+    }
+
+    set variant(value) {
+      if (value === '') {
+        this.removeAttribute('variant');
+      } else {
+        this.setAttribute('variant', value);
+      }
+    }
+
     constructor() {
       super();
       const shadowRoot = this.attachShadow({mode: 'open'});
       shadowRoot.appendChild(template.content.cloneNode(true));
+      this.tabIndex = 0;
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
@@ -78,6 +91,12 @@ customElements.define(
         .addEventListener('click', (event) => this.toggle());
       this.createOptions();
       this.render();
+
+      this.addEventListener('focusout', (event) => {
+        if (!this.contains(event.relatedTarget)) {
+          this.open = false;
+        }
+      });
     }
 
     createOptions() {

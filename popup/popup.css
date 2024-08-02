@@ -34,31 +34,6 @@ h1 {
   font-weight: bold;
 }
 
-.completed-option input {
-  display: none;
-}
-
-.completed-option label {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  font-size: 16px;
-  gap: 5px;
-}
-
-.completed-option input:checked + label check-box {
-  display: none;
-}
-
-.completed-option label done-icon {
-  display: none;
-  color: var(--approval);
-}
-
-.completed-option input:checked + label done-icon {
-  display: block;
-}
-
 .content-container {
   display: grid;
   grid-template-columns: [identifier] 80px [value] auto;

@@ -5,7 +5,11 @@
   font-size: 20px;
 }
 
-:host button {
+:host([variant="small"]) {
+  font-size: 16px;
+}
+
+button {
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -21,7 +25,7 @@
   font-size: inherit;
 }
 
-:host button:hover {
+button:hover {
   background-color: var(--offWhite30);
 }
 
@@ -30,28 +34,33 @@
   border-radius: 3px 3px 0px 0px;
 }
 
-:host .options-container {
+.options-container {
   display: none;
   position: absolute;
   border-radius: 0px 0px 3px 3px;
   background-color: var(--offWhite10-match);
+  z-index: 30;
 }
 
 :host([open]) .options-container {
   display: block;
 }
 
-:host input {
+input {
   display: none;
 }
 
-:host label {
+label {
   cursor: pointer;
   display: grid;
   width: var(--dropdown-width, auto);
   grid-template-columns: 10px [labelIcon] 30px [labelText] 1fr [end];
   column-gap: 10px;
   padding: 5px 0;
+}
+
+:host([variant="small"]) label {
+  grid-template-columns: 0 [labelIcon] 24px [labelText] 1fr [end];
 }
 
 .labelIcon {
@@ -62,16 +71,16 @@
   grid-column: labelText;
 }
 
-:host label:hover {
+label:hover {
   background-color: var(--offWhite30);
 }
 
-:host label done-icon {
+label done-icon {
   display: none;
   color: var(--approval);
 }
 
-:host input:checked + label done-icon {
+input:checked + label done-icon {
   display: flex;
   justify-content: center;
   align-items: center;

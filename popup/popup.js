@@ -1,6 +1,7 @@
 import { bookmarkRegex, findBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
 import { findFolderWithDomain } from "/externs/folder.js";
 import "/components/themed-button/themed-button.js";
+import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
 import "/components/svg/managamark-logo.js";
@@ -104,8 +105,14 @@ async function processTab() {
     domainDisplay(bookmarkFolder);
 
     const numsInTitle = title.match(/\d+/g) || [];
-    const bookmark = await findBookmark(title, bookmarkFolder);
-    if (bookmark) {
+    const result = await findBookmark(title, bookmarkFolder);
+    if (result) {
+      const bookmark = result.bookmark;
+      const subFolder = result.subFolder;
+      if (subFolder) {
+        const readingStatusMenu = document.getElementById('reading-status-menu');
+        readingStatusMenu.selected = subFolder;
+      }
       GlobalDataStore.setState('update');
       const bookmarkInfo = getBookmarkContents(bookmark.title);
       GlobalDataStore.setData({
@@ -302,11 +309,11 @@ document.getElementById('action-button').addEventListener('click', function() {
  * @returns Promise resolves with title of bookmark created
  */
 function createBookmark(data) {
-  const completeChecked = document.getElementById('completed').checked;
+  const readingStatus = document.getElementById('reading-status-menu').selected;
   const title = document.getElementById('title-input').value;
   const chapter = document.getElementById('chapter-input').value;
-  if (completeChecked) {
-    return addBookmark(title, chapter, data.url, data.folder, data.tags, 'Completed');
+  if (readingStatus !== 'Reading') {
+    return addBookmark(title, chapter, data.url, data.folder, data.tags, readingStatus);
   } else {
     return addBookmark(title, chapter, data.url, data.folder, data.tags);
   }
