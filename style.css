@@ -19,6 +19,10 @@
   --warning30: #CF61614d;
   --approval: #92bd3b;
 
+  --highlight-orange: #EC9D0C;
+  --highlight-purple: #A953B3;
+  --highlight-red: #CB346B;
+
   --font-family: "Poppins", sans-serif;
 
   --button-primary-color: #3c5b7fb3;
@@ -31,4 +35,5 @@
 
   --button-warning-color: #cf6161cc;
   --button-warning-hover: var(--warning);
+  --button-warning-disabled: var(--warning30);
 }

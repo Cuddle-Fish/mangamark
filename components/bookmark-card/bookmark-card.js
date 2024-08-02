@@ -32,11 +32,12 @@ customElements.define(
     }
 
     set readingStatus(value) {
-      const validStatuses = ['reading', 'completed'];
-      if (value === '') {
+      const formattedValue = value.replace(/\s+/g, '-').toLowerCase();
+      const validStatuses = ['reading', 'completed', 'plan-to-read', 're-reading', 'on-hold'];
+      if (formattedValue === '') {
         this.removeAttribute('readingStatus');
-      } else if (validStatuses.includes(value)) {
-        this.setAttribute('readingStatus', value);
+      } else if (validStatuses.includes(formattedValue)) {
+        this.setAttribute('readingStatus', formattedValue);
       }
     }
 
@@ -98,13 +99,33 @@ customElements.define(
           </div>
           <div class="edit-nav">
             <themed-button id="tag-option">Edit Tags</themed-button>
-            <themed-button id="status-option">
-              Mark ${readingStatus === 'reading' ? 'Completed' : 'Reading'}
-            </themed-button>
+            <themed-button id="status-option">Reading Status</themed-button>
             <themed-button id="delete-option" variant="warning">Delete Bookmark</themed-button>
             <themed-button id="close-button">Close</themed-button>        
           </div>
           <div id="extension-tags" class="tag-list"></div>
+          <div class="reading-status-container">
+            <div>
+              <input type="radio" id="reading" name="reading-status-input" value="reading" />
+              <label for="reading">Reading</label>
+            </div>
+            <div>
+              <input type="radio" id="completed" name="reading-status-input" value="completed" />
+              <label for="completed" class="green-highlight">Completed</label>
+            </div>
+            <div>
+              <input type="radio" id="plan-to-read" name="reading-status-input" value="plan-to-read" />
+              <label for="plan-to-read" class="orange-highlight">Plan to Read</label>
+            </div>
+            <div>
+              <input type="radio" id="re-reading" name="reading-status-input" value="re-reading" />
+              <label for="re-reading" class="purple-highlight">Re-Reading</label>
+            </div>
+            <div>
+              <input type="radio" id="on-hold" name="reading-status-input" value="on-hold" />
+              <label for="on-hold" class="red-highlight">On Hold</label>
+            </div>
+          </div>
           <div class="warning-text">WARNING: This action is permanent</div>
           <div class="edit-options">
             <themed-button id="confirm-button">Confirm</themed-button>
@@ -114,6 +135,7 @@ customElements.define(
       `;
 
       this.initializeButtons();
+      this.initializeReadingInput(readingStatus);
     }
 
     initializeButtons() {
@@ -155,6 +177,24 @@ customElements.define(
           default:
             console.error('Error, bookmark-card confirm pressed in invalid state', this.state);
         }
+      });
+    }
+
+    initializeReadingInput(currentStatus) {
+      const inputs = this.shadowRoot.querySelectorAll('input[name="reading-status-input"]');
+      inputs.forEach(input => {
+        if (input.value === currentStatus) {
+          input.checked = true;
+        }
+
+        input.addEventListener('change', () => {
+          const confirmButton = this.shadowRoot.getElementById('confirm-button');
+          if (input.value === this.readingStatus) {
+            confirmButton.disabled = true;
+          } else {
+            confirmButton.disabled = false;
+          }
+        });
       });
     }
 
@@ -218,8 +258,13 @@ customElements.define(
     }
 
     setEditReadingStatus() {
-      const statusChange = this.readingStatus === 'reading' ? 'completed' : 'reading';
-      this.changeInfoText(`Confirm you wish to mark this bookmark as ${statusChange}`);
+      const currentStatusInput = this.shadowRoot.querySelector(`input[name="reading-status-input"][value="${this.readingStatus}"]`);
+      if (currentStatusInput) {
+        currentStatusInput.checked = true;
+      }
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      confirmButton.disabled = true;
+      this.changeInfoText('Select a new reading status.');
       this.state = 'readingStatus';
     }
 
@@ -228,6 +273,7 @@ customElements.define(
       this.state = 'delete';
       const confirmButton = this.shadowRoot.getElementById('confirm-button');
       confirmButton.variant = 'warning';
+      confirmButton.disabled = false;
     }
 
     changeInfoText(string) {
@@ -256,9 +302,18 @@ customElements.define(
     }
 
     handleReadingStatusChange(title, chapter, tags) {
-      const newReadingStatus = this.readingStatus === 'reading' ? 'completed' : 'reading';
-      changeSubFolder(title, chapter, this.#folderName, tags, newReadingStatus)
-      .then(() => this.readingStatus = newReadingStatus);
+      const statusMap = {
+        'reading': 'reading',
+        'completed': 'Completed',
+        'plan-to-read': 'Plan to Read',
+        're-reading': 'Re-Reading',
+        'on-hold': 'On Hold'
+      };
+      const checkedInput = this.shadowRoot.querySelector('input[name="reading-status-input"]:checked');
+      const newSubFolder = statusMap[checkedInput.value];
+
+      changeSubFolder(title, chapter, this.#folderName, tags, newSubFolder)
+      .then(() => this.readingStatus = checkedInput.value);
     }
   }
 );

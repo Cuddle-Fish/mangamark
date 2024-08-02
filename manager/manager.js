@@ -260,7 +260,16 @@ function displayBookmarks(folders, type='all', sortBy='Recent') {
       bookmarks = compileMainBookmarks(folders);
       break;
     case 'completed':
-      bookmarks = compileCompletedBookmarks(folders);
+      bookmarks = compileSubFolderBookmarks(folders, 'Completed');
+      break;
+    case 'plan-to-read':
+      bookmarks = compileSubFolderBookmarks(folders, 'Plan to Read');
+      break;
+    case 're-reading':
+      bookmarks = compileSubFolderBookmarks(folders, 'Re-Reading');
+      break;
+    case 'on-hold':
+      bookmarks = compileSubFolderBookmarks(folders, 'On Hold');
       break;
     case 'search':
       bookmarks = folders;
@@ -291,12 +300,12 @@ function compileMainBookmarks(folders) {
   return mainBookmarks;
 }
 
-function compileCompletedBookmarks(folders) {
-  const completedBookmarks = [];
+function compileSubFolderBookmarks(folders, subFolderName) {
+  const subFolderBookmarks = [];
   folders.forEach(folder => {
-    completedBookmarks.push(...folder.getSubFolderBookmarks('Completed'));
+    subFolderBookmarks.push(...folder.getSubFolderBookmarks(subFolderName));
   });
-  return completedBookmarks;
+  return subFolderBookmarks;
 }
 
 function sortBookmarks(bookmarks, sortBy) {
@@ -457,6 +466,21 @@ function performSearch() {
         case 'completed':
           bookmarkFolders.forEach(folder => {
             searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Completed'));
+          });
+          break;
+        case 'plan-to-read':
+          bookmarkFolders.forEach(folder => {
+            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Plan to Read'));
+          });
+          break;
+        case 're-reading':
+          bookmarkFolders.forEach(folder => {
+            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Re-Reading'));
+          });
+          break;
+        case 'on-hold':
+          bookmarkFolders.forEach(folder => {
+            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'On Hold'));
           });
           break;
         default:

@@ -1,4 +1,4 @@
-:host .highlight-container {
+.highlight-container {
   border-radius: 5px;
 }
 
@@ -6,7 +6,19 @@
   background-color: var(--approval);
 }
 
-:host .card-container {
+:host([readingStatus="plan-to-read"]) .highlight-container {
+  background-color: var(--highlight-orange);
+}
+
+:host([readingStatus="re-reading"]) .highlight-container {
+  background-color: var(--highlight-purple);
+}
+
+:host([readingStatus="on-hold"]) .highlight-container {
+  background-color: var(--highlight-red);
+}
+
+.card-container {
   display: flex;
   flex-direction: column;
   gap: 10px;  
@@ -14,42 +26,42 @@
   background-color: var(--item-background);
 }
 
-:host .link-container, .active-tags-edit, .edit-container {
+.link-container, .active-tags-edit, .edit-container {
   padding: 0 10px;
 }
 
-:host .link-container {
+.link-container {
   padding-top: 5px;
 }
 
-:host .link-container:hover {
+.link-container:hover {
   background-color: var(--offWhite10);
 }
 
-:host .active-tags-edit {
+.active-tags-edit {
   display: flex;
   justify-content: space-between;
   padding-bottom: 10px;
 }
 
-:host a {
+a {
   color: inherit;
   text-decoration: inherit;
   font-family: inherit;
 }
 
-:host .title-container {
+.title-container {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-:host .title {
+.title {
   font-size: 24px;
   font-weight: bold;
 }
 
-:host .readingStatus {
+.readingStatus {
   padding: 0px 5px;
   border-radius: 3px;
   text-transform: uppercase;
@@ -62,16 +74,28 @@
   background-color: var(--approval);
 }
 
-:host .chapter, .domain-date {
+:host([readingStatus="plan-to-read"]) .readingStatus {
+  background-color: var(--highlight-orange);
+}
+
+:host([readingStatus="re-reading"]) .readingStatus {
+  background-color: var(--highlight-purple);
+}
+
+:host([readingStatus="on-hold"]) .readingStatus {
+  background-color: var(--highlight-red);
+}
+
+.chapter, .domain-date {
   font-size: 16px;
 }
 
-:host .domain-date {
+.domain-date {
   display: flex;
   justify-content: space-between;
 }
 
-:host ul {
+ul {
   list-style-type: none;
   margin: 0;
   padding: 0;
@@ -79,7 +103,7 @@
   gap: 10px;
 }
 
-:host li {
+li {
   display: flex;
   align-items: center;
   padding: 0px 3px;
@@ -90,7 +114,7 @@
   background-color: var(--offWhite10);
 }
 
-:host button {
+button {
   cursor: pointer;
   border: none;
   background-color: transparent;
@@ -98,11 +122,11 @@
   border-radius: 3px;
 }
 
-:host button:hover {
+button:hover {
   background-color: var(--offWhite30);
 }
 
-:host .edit-container {
+.edit-container {
   display: none;
   flex-direction: column;
   gap: 10px;
@@ -116,14 +140,14 @@
   display: flex;
 }
 
-:host .info-container {
+.info-container {
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 16px;
 }
 
-:host .edit-nav, .edit-options {
+.edit-nav, .edit-options {
   display: none;
   gap: 10px;
   justify-content: flex-end;
@@ -139,7 +163,79 @@
   display: flex;
 }
 
-:host .tag-list {
+:host(:not([state="readingStatus"])) .reading-status-container {
+  display: none;
+}
+
+:host([state="readingStatus"]) .reading-status-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 200px));
+  gap: 10px;
+  padding: 0 30px;
+
+  div {
+    display: block;
+
+    input {
+      display: none;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 5px 8px;
+      border-radius: 5px;
+      background-color: var(--offWhite30);
+      border-left: 4px solid transparent;
+    }
+
+    label:hover, input:checked + label {
+      border-radius: 0 5px 5px 0;      
+      background-color: var(--button-secondary-hover);
+    }
+
+    input:checked + label {
+      font-weight: 600;
+    }
+
+    label:hover.green-highlight, input:checked + label.green-highlight {
+      border-left: 4px solid var(--approval);
+    }
+
+    input:checked + label.green-highlight {
+      color: var(--approval);
+    }
+
+    label:hover.orange-highlight, input:checked + label.orange-highlight {
+      border-left: 4px solid var(--highlight-orange);
+    }
+
+    input:checked + label.orange-highlight {
+      color: var(--highlight-orange);
+    }
+
+    label:hover.purple-highlight, input:checked + label.purple-highlight {
+      border-left: 4px solid var(--highlight-purple);
+    }
+
+    input:checked + label.purple-highlight {
+      color: var(--highlight-purple);
+    }
+
+    label:hover.red-highlight, input:checked + label.red-highlight {
+      border-left: 4px solid var(--highlight-red);
+    }
+
+    input:checked + label.red-highlight {
+      color: var(--highlight-red);
+    }
+  }
+}
+
+.tag-list {
   display: none;
 }
 
@@ -149,7 +245,7 @@
   gap: 10px;
 }
 
-:host .warning-text {
+.warning-text {
   display: none;
   justify-content: flex-end;
   text-transform: uppercase;

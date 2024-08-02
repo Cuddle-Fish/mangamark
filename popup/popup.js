@@ -306,7 +306,7 @@ function createBookmark(data) {
   const title = document.getElementById('title-input').value;
   const chapter = document.getElementById('chapter-input').value;
   if (completeChecked) {
-    return addBookmark(title, chapter, data.url, data.folder, data.tags, 'completed');
+    return addBookmark(title, chapter, data.url, data.folder, data.tags, 'Completed');
   } else {
     return addBookmark(title, chapter, data.url, data.folder, data.tags);
   }
