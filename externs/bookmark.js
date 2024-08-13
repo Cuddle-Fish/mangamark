@@ -166,7 +166,7 @@ function addBookmark(title, chapterNum, url, folderName, tags, subFolderName) {
 /**
  * removes bookmark and associated folder if empty
  * 
- * @param {BookmarkTreeNode} bookmark chrome bookmark to be removed
+ * @param {chrome.bookmarks.BookmarkTreeNode} bookmark chrome bookmark to be removed
  */
 function performRemove(bookmark) {
   chrome.bookmarks.remove(bookmark.id)
@@ -323,4 +323,35 @@ function moveFromFolder(folderTree, domain, destinationId, subFolderName) {
     .catch((error) => console.error('Error faild to move domain out of folder:', error));
 }
 
-export { bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, moveBookmarksWithDomain }
+/**
+ * get all existing unique bookmark tags
+ * 
+ * @returns Set of all bookmark tags
+ */
+function getAllBookmarkTags() {
+  return getMangamarkSubTree()
+    .then((tree) => getTagsFromFolder(tree[0]));
+}
+
+/**
+ * find all unique bookmark tags within folder tree structure
+ * 
+ * @param {chrome.bookmarks.BookmarkTreeNode} folderBookmark bookmark folder to searcg through
+ */
+function getTagsFromFolder(folderBookmark) {
+  let tags = new Set();
+  folderBookmark.children.forEach(node => {
+    if (node.url) {
+      const matches = node.title.match(bookmarkRegex());
+      if (matches && matches[3]) {
+        const bookmarkTags = new Set(matches[3].split(','));
+        tags = tags.union(bookmarkTags);
+      }
+    } else if (node.children) {
+      tags = tags.union(getTagsFromFolder(node));
+    }
+  });
+  return tags;
+}
+
+export { bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, moveBookmarksWithDomain, getAllBookmarkTags }

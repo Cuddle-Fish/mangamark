@@ -1,9 +1,9 @@
-import { getTags } from "/externs/tags.js";
 import { updateBookmarkTags, changeSubFolder, removeBookmark } from "/externs/bookmark.js";
 import "/components/svg/edit-icon.js";
 import "/components/svg/info-icon.js";
 import "/components/themed-button/themed-button.js";
-import "/components/tag-button/tag-button.js";
+import "/components/tag-input/tag-input.js";
+import "/components/tag-elements/tag-li.js";
 
 customElements.define(
   'bookmark-card',
@@ -81,10 +81,10 @@ customElements.define(
                 </div>
               </div>
             </a>
-            <div class="active-tags-edit">
+            <div class="tags-and-edit-button-container">
               <ul id="bookmark-tags">
                 ${activeTags.length > 0
-                  ? activeTags.map(tag => `<li>${tag}</li>`).join('')
+                  ? activeTags.map(tag => `<tag-li>${tag}</tag-li>`).join('')
                   : ''
                 }
               </ul>
@@ -103,7 +103,7 @@ customElements.define(
             <themed-button id="delete-option" variant="warning">Delete Bookmark</themed-button>
             <themed-button id="close-button">Close</themed-button>        
           </div>
-          <div id="extension-tags" class="tag-list"></div>
+          <tag-input id="edit-tags"></tag-input>
           <div class="reading-status-container">
             <div>
               <input type="radio" id="reading" name="reading-status-input" value="reading" />
@@ -136,6 +136,7 @@ customElements.define(
 
       this.initializeButtons();
       this.initializeReadingInput(readingStatus);
+      this.initializeTagInput();
     }
 
     initializeButtons() {
@@ -162,7 +163,7 @@ customElements.define(
         const title = this.shadowRoot.getElementById('bookmark-title').textContent;
         const chapter = this.shadowRoot.getElementById('bookmark-chapter').textContent;
         const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-        const tags = Array.from(bookmarkTags.children, li => li.textContent);    
+        const tags = Array.from(bookmarkTags.children, li => li.textContent);
 
         switch(this.state) {
           case 'tags':
@@ -198,6 +199,20 @@ customElements.define(
       });
     }
 
+    initializeTagInput() {
+      const tagsInput = this.shadowRoot.getElementById('edit-tags');
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');      
+      tagsInput.addEventListener('tagChange', (event) => {
+        const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
+        const currentTags = Array.from(bookmarkTags.children, li => li.textContent);
+        if (event.target.equals(currentTags)) {
+          confirmButton.disabled = false;
+        } else {
+          confirmButton.disabled = true;
+        }
+      });
+    }
+
     toggleOptions() {
       if (this.state === 'default') {
         this.setEditing();
@@ -211,7 +226,10 @@ customElements.define(
     }
 
     setEditing() {
-      if (this.state === 'delete') {
+      if (this.state === 'tags') {
+        const tagsInput = this.shadowRoot.getElementById('edit-tags');
+        tagsInput.clearInput();
+      } else if (this.state === 'delete') {
         const confirmButton = this.shadowRoot.getElementById('confirm-button');
         confirmButton.variant = '';
       } 
@@ -220,41 +238,14 @@ customElements.define(
     }
 
     setEditTags() {
-      this.changeInfoText('Click any unmarked tag to add it. Click any selected tag to remove it');
+      this.changeInfoText('Input any desired tag name or click on an existing tag to remove.');
       this.state = 'tags';
+      const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
+      const tagList = Array.from(bookmarkTags.children, li => li.textContent);
+      const tagsInput = this.shadowRoot.getElementById('edit-tags');
+      tagsInput.replaceAllTags(tagList);
       const confirmButton = this.shadowRoot.getElementById('confirm-button');
       confirmButton.disabled = true;
-      
-      getTags()
-      .then((tags) => {
-        const extensionTags = this.shadowRoot.getElementById('extension-tags');
-        const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-        const tagList = Array.from(bookmarkTags.children, li => li.textContent);
-        
-        const fragment = document.createDocumentFragment();
-        tags.forEach((tag) => {
-          const tagButton = document.createElement('tag-button');
-          tagButton.textContent = tag;
-          if (tagList.includes(tag)) {
-            tagButton.variant = 'active';
-          }
-          tagButton.addEventListener('click', () => {
-            if (this.hasBookmarkTagsChanged()) {
-              confirmButton.disabled = false;
-            } else {
-              confirmButton.disabled = true;
-            }
-          });
-          fragment.appendChild(tagButton);
-        });
-        extensionTags.replaceChildren(fragment);
-      });
-    }
-
-    hasBookmarkTagsChanged() {
-      const extensionTags = this.shadowRoot.getElementById('extension-tags');
-      return Array.from(extensionTags.querySelectorAll('tag-button'))
-        .some(tagButton => tagButton.selected);
     }
 
     setEditReadingStatus() {
@@ -282,17 +273,12 @@ customElements.define(
     }
 
     handleTagsChange(title, chapter, tags) {
-      const extensionTags = this.shadowRoot.getElementById('extension-tags');
-      const tagButtons = Array.from(extensionTags.querySelectorAll('tag-button'));
-      const newTags = tagButtons.filter(tagButton => 
-        (tagButton.selected && tagButton.variant !== 'active') ||
-        (!tagButton.selected && tagButton.variant === 'active')
-      ).map(tagButton => tagButton.textContent);
+      const newTags = this.shadowRoot.getElementById('edit-tags').getTags();
       updateBookmarkTags(title, chapter, this.#folderName, tags, newTags)
       .then(() => {
         const fragment = document.createDocumentFragment();
         newTags.forEach(tag => {
-          const li = document.createElement('li');
+          const li = document.createElement('tag-li');
           li.textContent = tag;
           fragment.appendChild(li);
         });

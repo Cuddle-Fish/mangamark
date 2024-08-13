@@ -4,6 +4,10 @@ import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/toggle-menu/toggle-menu.js";
 import "/components/bookmark-card/bookmark-card.js";
 import "/components/svg/search-icon.js";
+import "/components/tag-input/tag-input.js";
+import "/components/themed-button/themed-button.js"
+import '/components/svg/expand-more.js';
+import '/components/svg/expand-less.js';
 
 var searchTypingTimer;
 const searchBar = document.getElementById('search-input');
@@ -22,11 +26,7 @@ class Folder {
   constructor(name, bookmarks, subFolders) {
     this.name = name;
     this.bookmarks = bookmarks;
-    if (subFolders) {
-      this.subFolders = subFolders;      
-    } else {
-      this.subFolders = [];
-    }
+    this.subFolders = subFolders ? subFolders : [];
   }
 
   getAllBookmarks() {
@@ -260,16 +260,17 @@ function displayBookmarks(folders, type='all', sortBy='Recent') {
       bookmarks = compileMainBookmarks(folders);
       break;
     case 'completed':
-      bookmarks = compileSubFolderBookmarks(folders, 'Completed');
-      break;
     case 'plan-to-read':
-      bookmarks = compileSubFolderBookmarks(folders, 'Plan to Read');
-      break;
     case 're-reading':
-      bookmarks = compileSubFolderBookmarks(folders, 'Re-Reading');
-      break;
     case 'on-hold':
-      bookmarks = compileSubFolderBookmarks(folders, 'On Hold');
+      const statusMap = {
+        'completed': 'Completed',
+        'plan-to-read': 'Plan to Read',
+        're-reading': 'Re-Reading',
+        'on-hold': 'On Hold'
+      };
+      const subFolderName = statusMap[type];
+      bookmarks = compileSubFolderBookmarks(folders, subFolderName);
       break;
     case 'search':
       bookmarks = folders;
@@ -506,6 +507,46 @@ function clearSearch() {
     }
   });
 }
+
+document.getElementById('show-filter-input').addEventListener('click', (event) => {
+  const button = document.getElementById('show-filter-input');
+  button.active = !button.active;
+
+  const arrow = document.getElementById('filter-arrow-icon');
+  if (button.active) {
+    const expandLess = document.createElement('expand-less');
+    expandLess.id = 'filter-arrow-icon';
+    arrow.replaceWith(expandLess);
+  } else {
+    const expandMore = document.createElement('expand-more');
+    expandMore.id = 'filter-arrow-icon';
+    arrow.replaceWith(expandMore);
+  }
+
+  const container = document.getElementById('tag-filter-container');
+  container.classList.toggle('allow-input');
+
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.inputHidden = !tagsInput.inputHidden;
+  tagsInput.clearInput();
+});
+
+document.getElementById('filter-tags-input').addEventListener('tagChange', (event) => {
+  const removeFilters = document.getElementById('remove-filters');
+  if (event.target.getTags().length === 0) {
+    removeFilters.disabled = true;
+  } else {
+    removeFilters.disabled = false;
+  }
+  //TODO change display
+});
+
+document.getElementById('remove-filters').addEventListener('click', (event) => {
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.replaceAllTags([]);
+  event.target.disabled = true;
+  //TODO change display
+});
 
 chrome.bookmarks.onChanged.addListener(handleBookmarkChange);
 chrome.bookmarks.onChildrenReordered.addListener(handleBookmarkChange);

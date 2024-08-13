@@ -1,0 +1,45 @@
+.input-container {
+  display: flex;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 10px;
+  background-color: var(--secondary-background);
+  font-family: var(--font-family);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+input {
+  min-width: 180px;
+  flex: 2;
+  box-sizing: border-box;
+  padding: 2px 5px;
+  border: none;
+  border-radius: 5px;
+  background-color: transparent;
+  color: var(--offWhite);
+  font-size: 20px;
+  font-family: inherit;
+}
+
+input::-webkit-calendar-picker-indicator {
+  margin-bottom: 9px;
+}
+
+input:focus {
+  outline: 1px solid var(--accent-bright);
+}
+
+.description-container {
+  margin-left: 20px;
+  font-size: 12px;
+}
+
+:host([inputHidden]) .input-container {
+  background-color: transparent;
+}
+
+:host([inputHidden]) input,  :host([inputHidden]) .description-container {
+  display: none;
+}

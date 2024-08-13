@@ -26,11 +26,11 @@
         <div class="search-area">
           <input type="text" placeholder="Search" name="search-input" id="search-input" />
           <label id="search-label" for="search-input"><search-icon></search-icon></label>
-          <button id="clear-search-button" class="hidden"><close-icon></close-icon></button>
+          <button id="clear-search-button" class="hidden"><close-icon size="12px"></close-icon></button>
         </div>
       </div>
 
-      <div class="orderContainer">
+      <div class="order-container">
         <toggle-menu id="toggle-reading-type">
           <option value="all">All</option>
           <option value="reading">Reading</option>
@@ -48,14 +48,16 @@
         </dropdown-menu>
       </div>
 
-      <!-- <div>
-        <toggle-menu id="tagToggleMenu" selected="FilterTags">
-          <option value="FilterTags">Filter Tags</option>
-          <option value="AddNavTag">Add to Navigation</option>
-          <option value="DeleteTags">Delete Tags</option>
-          <option value="CreateTag">Create Tag</option>
-        </toggle-menu>
-      </div> -->
+      <div id="tag-filter-container" class="tag-filter-container">
+        <tag-input id="filter-tags-input" inputHidden></tag-input>
+        <div>
+          <themed-button id="remove-filters" variant="brightText" disabled>Remove Filters</themed-button>
+          <themed-button id ="show-filter-input" variant="indicateActive">
+            <span>Filter Tags</span>
+            <expand-more id="filter-arrow-icon"></expand-more>
+          </themed-button>
+        </div>
+      </div>
 
     </div>
 

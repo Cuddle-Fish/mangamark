@@ -10,6 +10,7 @@ import "/components/input-select/input-select.js";
 import "/popup/tags-screen/tags-screen.js";
 import "/popup/find-title-screen/find-title-screen.js";
 import "/popup/change-folder/change-folder.js";
+import "/components/tag-elements/tag-li.js";
 
 const GlobalDataStore = (() => {
   let _state = '';
@@ -250,7 +251,8 @@ function chapterDisplay(numsInTitle, oldChapter) {
 function tagDisplay(tags) {
   const fragment = document.createDocumentFragment();
   tags.forEach(tag => {
-    const li = document.createElement('li');
+    const li = document.createElement('tag-li');
+    li.variant = 'small';
     li.textContent = tag;
     fragment.appendChild(li);
   });

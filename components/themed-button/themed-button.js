@@ -12,7 +12,15 @@ customElements.define(
   'themed-button',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['disabled', 'variant', 'size'];
+      return ['active', 'disabled', 'variant', 'size'];
+    }
+
+    get active() {
+      return this.hasAttribute('active') && this.getAttribute('active') !== false;
+    }
+
+    set active(value) {
+      value === true ? this.setAttribute('active', '') : this.removeAttribute('active');
     }
 
     get disabled() {
@@ -28,7 +36,7 @@ customElements.define(
     }
 
     set variant(value) {
-      const validVariants = ['primary', 'secondary', 'warning'];
+      const validVariants = ['primary', 'secondary', 'warning', 'brightText', 'indicateActive'];
       if (value === '') {
         this.removeAttribute('variant');
       } else if (validVariants.includes(value)) {

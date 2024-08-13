@@ -133,10 +133,30 @@ body {
   justify-content: flex-end;
 }
 
-.orderContainer {
+.order-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.tag-filter-container {
+  display: flex;
+  gap: 10px;
+  padding: 10px;
+
+  tag-input {
+    flex: 2;
+  }
+
+  div {
+    display: flex;
+    gap: 10px;
+    margin-top: 7px;
+  }
+}
+
+.tag-filter-container.allow-input {
+  background-color: var(--offWhite10);
 }
 
 .list {

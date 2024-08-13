@@ -1,5 +1,12 @@
+:host {
+  height: fit-content;
+}
+
 :host button {
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 5px 10px;
   border-radius: 5px;
   border: none;
@@ -54,5 +61,39 @@
     cursor: not-allowed;
     color: var(--offWhite30);
     background-color: var(--button-warning-disabled);
+  }
+}
+
+:host([variant="brightText"]) button {
+  background-color: var(--button-primary-color);
+  color: var(--accent-bright);
+
+  &:hover {
+    background-color: var(--button-primary-hover);
+  }
+
+  :host([disabled]) & {
+    cursor: not-allowed;
+    color: var(--accent-bright30);
+    background-color: var(--button-primary-disabled);
+  }
+}
+
+:host([variant="indicateActive"]) button {
+  background-color: var(--offWhite10);
+  color: var(--offWhite);
+
+  &:hover {
+    background-color: var(--offWhite30);
+  }
+
+  :host([active]) & {
+    background-color: var(--button-primary-color);
+  }
+
+  :host([disabled]) & {
+    cursor: not-allowed;
+    color: var(--offWhite30);
+    background-color: var(--offWhite10);
   }
 }

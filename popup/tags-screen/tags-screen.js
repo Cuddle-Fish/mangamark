@@ -1,11 +1,12 @@
-import { createNewTag, getTags, hasTag } from "/externs/tags.js";
 import "/components/themed-button/themed-button.js";
 import "/components/svg/info-icon.js";
-import "/components/tag-button/tag-button.js";
+import "/components/tag-input/tag-input.js";
 
 customElements.define(
   'tags-screen',
   class extends HTMLElement {
+    #bookmarkTags = [];
+
     static get observedAttributes() {
       return ['open'];
     }
@@ -36,13 +37,9 @@ customElements.define(
           <div class="tags-title-container">Edit Tags</div>
           <div class="tags-info-container">
             <info-icon></info-icon>
-            <span>Click any unmarked tag to add it. Click any selected tag to remove it.</span>
+            <span>Input any desired tag name or click on an existing tag to remove.</span>
           </div>
-          <div id="extension-tags"></div>
-          <div class="tags-creation-container">
-            <input id="create-tag" class="create-tag" type="text" placeholder="Create New Tag"/>
-            <themed-button id="create-tag-button" size="small" disabled>Create</themed-button>
-          </div>
+          <tag-input id="tags-input"></tag-input>
         </div>
         <div class="finish-edit">
           <themed-button id="cancel-tag-edit">Cancel</themed-button>
@@ -50,38 +47,19 @@ customElements.define(
         </div>
       `;
 
-      this.setupCreate();
+      this.setupTagInput();
       this.setupFinishButtons();
     }
 
-    setupCreate() {
-      const createButton = this.shadowRoot.getElementById('create-tag-button');
-      const createTagInput = this.shadowRoot.getElementById('create-tag');
-      createTagInput.addEventListener('input', (event) => {
-        const value = event.target.value;
-        hasTag(value)
-        .then((hasTagResult) => {
-          if (value === '' || hasTagResult) {
-            createButton.disabled = true;
-          } else {
-            createButton.disabled = false;
-          }
-        });
-      });
-      
-      createButton.addEventListener('click', () => {
-        createNewTag(createTagInput.value)
-        .then((tagCreated) => {
-          if (tagCreated) {
-            const extensionTags = this.shadowRoot.getElementById('extension-tags');
-            const tagButton = document.createElement('tag-button');
-            tagButton.textContent = createTagInput.value.toLowerCase();
-            tagButton.addEventListener('click', () => this.tagChangeHandler());
-            extensionTags.appendChild(tagButton);
-          }
-          createTagInput.value = '';
-          createButton.disabled = true;
-        });
+    setupTagInput() {
+      const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
+      const tagsInput = this.shadowRoot.getElementById('tags-input');
+      tagsInput.addEventListener('tagChange', (event) => {
+        if (tagsInput.equals(this.#bookmarkTags)) {
+          confirmButton.disabled = false;
+        } else {
+          confirmButton.disabled = true;
+        }
       });
     }
 
@@ -90,13 +68,7 @@ customElements.define(
       const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
 
       confirmButton.addEventListener('click', () => {
-        const tagsContainer = this.shadowRoot.getElementById('extension-tags');
-        const tags = Array.from(tagsContainer.querySelectorAll('tag-button'));
-        const bookmarkTags = tags.filter(tagButton => 
-          (tagButton.selected && tagButton.variant !== 'active') ||
-          (!tagButton.selected && tagButton.variant === 'active')
-        ).map(tagButton => tagButton.textContent);
-
+        const bookmarkTags = this.shadowRoot.getElementById('tags-input').getTags();
         this.dispatchEvent(
           new CustomEvent('finishEdit', {
             detail: {
@@ -123,7 +95,8 @@ customElements.define(
 
     openScreen(title, bookmarkTags) {
       this.setTitle(title);
-      this.setTags(bookmarkTags);
+      this.#bookmarkTags = bookmarkTags;
+      this.shadowRoot.getElementById('tags-input').replaceAllTags(bookmarkTags);
       const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
       confirmButton.disabled = true;
       this.open = true;
@@ -133,43 +106,10 @@ customElements.define(
       this.shadowRoot.getElementById('bookmark-title').textContent = title;
     }
 
-    setTags(bookmarkTags) {
-      getTags()
-      .then((tags) => {
-        const extensionTags = this.shadowRoot.getElementById('extension-tags');
-        const fragment = document.createDocumentFragment();
-        tags.forEach((tag) => {
-          const tagButton = document.createElement('tag-button');
-          tagButton.textContent = tag;
-          if (bookmarkTags.includes(tag)) {
-            tagButton.variant = 'active';
-          }
-          tagButton.addEventListener('click', () => this.tagChangeHandler());
-          fragment.appendChild(tagButton);
-        });
-        extensionTags.replaceChildren(fragment);
-      });
-    }
-
-    tagChangeHandler() {
-      const confirmButton = this.shadowRoot.getElementById('confirm-tag-edit');
-      if (this.bookmarkTagsChanged()) {
-        confirmButton.disabled = false;
-      } else {
-        confirmButton.disabled = true;
-      }
-    }
-
-    bookmarkTagsChanged() {
-      const tagsContainer = this.shadowRoot.getElementById('extension-tags');
-      return Array.from(tagsContainer.querySelectorAll('tag-button'))
-        .some(tagButton => tagButton.selected);
-    }
-
     closeScreen() {
       this.open = false;
-      const createTagInput = this.shadowRoot.getElementById('create-tag');
-      createTagInput.value = '';
+      const tagsInput = this.shadowRoot.getElementById('tags-input');
+      tagsInput.clearInput();
     }
   }
 )

@@ -26,7 +26,7 @@
   background-color: var(--item-background);
 }
 
-.link-container, .active-tags-edit, .edit-container {
+.link-container, .tags-and-edit-button-container, .edit-container {
   padding: 0 10px;
 }
 
@@ -38,7 +38,7 @@
   background-color: var(--offWhite10);
 }
 
-.active-tags-edit {
+.tags-and-edit-button-container {
   display: flex;
   justify-content: space-between;
   padding-bottom: 10px;
@@ -101,17 +101,6 @@ ul {
   padding: 0;
   display: flex;
   gap: 10px;
-}
-
-li {
-  display: flex;
-  align-items: center;
-  padding: 0px 3px;
-  border-radius: 3px;
-  text-transform: uppercase;
-  font-size: 18px;
-  font-weight: bold;
-  background-color: var(--offWhite10);
 }
 
 button {
@@ -235,14 +224,13 @@ button:hover {
   }
 }
 
-.tag-list {
+tag-input {
   display: none;
+  padding: 0 30px;
 }
 
-:host([state="tags"]) .tag-list {
-  display: flex;
-  padding: 0 30px;
-  gap: 10px;
+:host([state="tags"]) tag-input {
+  display: block;
 }
 
 .warning-text {
