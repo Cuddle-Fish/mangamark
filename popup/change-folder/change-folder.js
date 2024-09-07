@@ -293,7 +293,6 @@ customElements.define(
       
       input.addEventListener('change', () => {
         this.#selectedFolder = folderName;
-        console.log(`input event selected ${folderName} ... #selectedFolder = ${this.#selectedFolder}`);
         const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
         selectedFolderElement.textContent = folderName;
         selectedFolderElement.classList.remove('red-text');

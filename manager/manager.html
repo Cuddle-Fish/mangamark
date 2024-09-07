@@ -9,60 +9,60 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div id="sidePanel" class="sidePanel">
-    <input type="radio" id="navAll" name="folderNav" value="all" checked />
-    <label for="navAll">
-      <div class="circleText">All</div>
-      <div class="labelText">Display All</div>
-    </label>
-    <div id="navFolders"></div>
-  </div>
+  <side-navigation id="side-nav"></side-navigation>
 
-  <div class="main">
+  <div id="main-content" class="main">
 
-    <div class="header">
-
-      <div class="search-container">
-        <div class="search-area">
-          <input type="text" placeholder="Search" name="search-input" id="search-input" />
-          <label id="search-label" for="search-input"><search-icon></search-icon></label>
-          <button id="clear-search-button" class="hidden"><close-icon size="12px"></close-icon></button>
-        </div>
-      </div>
-
-      <div class="order-container">
-        <toggle-menu id="toggle-reading-type">
-          <option value="all">All</option>
-          <option value="reading">Reading</option>
-          <option value="completed">Completed</option>
-          <option value="plan-to-read">Plan to Read</option>
-          <option value="re-reading">Re-Reading</option>
-          <option value="on-hold">On Hold</option>
-        </toggle-menu>
-
-        <dropdown-menu id="order-dropdown" placeholder="Order by" width="211px">
-          <option value="Recent">Most Recent</option>
-          <option value="Oldest">Least Recent</option>
-          <option value="Az">Title A-Z</option>
-          <option value="Za">Title Z-A</option>
-        </dropdown-menu>
-      </div>
-
-      <div id="tag-filter-container" class="tag-filter-container">
-        <tag-input id="filter-tags-input" inputHidden></tag-input>
-        <div>
-          <themed-button id="remove-filters" variant="brightText" disabled>Remove Filters</themed-button>
-          <themed-button id ="show-filter-input" variant="indicateActive">
-            <span>Filter Tags</span>
-            <expand-more id="filter-arrow-icon"></expand-more>
-          </themed-button>
-        </div>
-      </div>
-
+    <div class="search-container">
+      <div class="search-area">
+        <input type="text" placeholder="Search" name="search-input" id="search-input" />
+        <label id="search-label" for="search-input"><search-icon></search-icon></label>
+        <button id="clear-search-button" class="hidden"><close-icon size="12px"></close-icon></button>
+      </div>   
+      <button id="open-nav" class="open-button hidden"><menu-icon size="32px"></menu-icon></button>
     </div>
 
-    <div id="bookmarkList" class="list"></div>
+    <div class="order-container">
+      <toggle-menu id="toggle-status-display">
+        <option value="all">All</option>
+        <option value="reading">Reading</option>
+        <option value="Completed">Completed</option>
+        <option value="Plan to Read">Plan to Read</option>
+        <option value="Re-Reading">Re-Reading</option>
+        <option value="On Hold">On Hold</option>
+      </toggle-menu>
+      <dropdown-menu id="order-dropdown" placeholder="Order by" width="211px">
+        <option value="Recent">Most Recent</option>
+        <option value="Oldest">Least Recent</option>
+        <option value="Az">Title A-Z</option>
+        <option value="Za">Title Z-A</option>
+      </dropdown-menu>
+    </div>
+
+    <div id="tag-filter-container" class="tag-filter-container">
+      <tag-input id="filter-tags-input" inputHidden></tag-input>
+      <div>
+        <themed-button id="remove-filters" variant="brightText" disabled>Remove Filters</themed-button>
+        <themed-button id ="toggle-filter-input" variant="indicateActive" class="toggle-filter-input">
+          <span>Filter Tags</span>
+          <expand-more></expand-more>
+          <expand-less></expand-less>
+        </themed-button>
+      </div>
+    </div>
+
+    <div id="invalid-container" class="invalid-container">
+      <div class="warning-title">Warning Invalid Bookmaks</div>
+      <div class="warning--list-container">
+        Your Mangamark bookmark folder contains bookmarks not created by this extension.The following bookmarks should be removed from the Mangamark folder:
+        <ul id="invalid-list"></ul>
+      </div>
+    </div>
+
+    <div id="bookmark-list" class="bookmark-list"></div>
+
   </div>
+
   <script src="manager.js" type="module"></script>
 </body>
 </html>

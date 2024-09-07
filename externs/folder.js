@@ -1,4 +1,4 @@
-import { moveBookmarksWithDomain } from "/externs/bookmark.js"
+import { moveBookmarksWithDomain } from "/externs/bookmark.js";
 
 /**
  * get all custom folder names associated with extension
@@ -6,9 +6,9 @@ import { moveBookmarksWithDomain } from "/externs/bookmark.js"
  * @returns a Set of all folder names
  */
 async function getCustomFolderNames() {
-  const result = await chrome.storage.sync.get('folders');
-  if (result.folders) {
-    const folderSet = new Set(result.folders);
+  const result = await chrome.storage.sync.get('_int_folders');
+  if (result._int_folders) {
+    const folderSet = new Set(result._int_folders);
     return folderSet;
   } else {
     return new Set();
@@ -29,8 +29,8 @@ function addFolder(folderName) {
       folders.add(folderName);
       const folderList = Array.from(folders);
 
-      return chrome.storage.sync.set({ 'folders': folderList })
-        .then(() => chrome.storage.sync.set({ [folderName]: [] }));
+      return chrome.storage.sync.set({ '_int_folders': folderList })
+        .then(() => chrome.storage.sync.set({ [`_f_${folderName}`]: [] }));
     })
     .catch((error) => console.error('Error adding folder to storage:', error));
 }
@@ -46,13 +46,13 @@ function removeFolder(folderName) {
       if (!folders.has(folderName)) {
         throw new Error(`Folder name ${folderName} does not exist`);
       }
-      return chrome.storage.sync.remove(folderName)
+      return chrome.storage.sync.remove(`_f_${folderName}`)
         .then(() => folders);
     })
     .then((folders) => {
       folders.delete(folderName);
       const folderList = Array.from(folders);
-      return chrome.storage.sync.set({ 'folders': folderList });
+      return chrome.storage.sync.set({ '_int_folders': folderList });
     })
     .catch((error) => console.error('Error removing folder:', error));
 }
@@ -81,7 +81,7 @@ async function findFolderWithDomain(domain) {
  * @returns a Set of all domains
  */
 async function getFolderDomains(folderName) {
-  const result = await chrome.storage.sync.get(folderName);
+  const result = await chrome.storage.sync.get(`_f_${folderName}`);
 
   if (!result.hasOwnProperty(folderName)) {
     throw new Error(`Folder ${folderName} not found`);
@@ -105,10 +105,10 @@ function addDomain(folderName, domain) {
       }
     })
     .then(() => getFolderDomains(folderName))
-    .then((folderDomains) =>{
+    .then((folderDomains) => {
       folderDomains.add(domain);
       const domainList = Array.from(folderDomains);
-      return chrome.storage.sync.set({ [folderName]: domainList });
+      return chrome.storage.sync.set({ [`_f_${folderName}`]: domainList });
     })
     .then(() => moveBookmarksWithDomain(domain, folderName))
     .catch((error) => console.error('Error adding domain', error));
@@ -128,7 +128,7 @@ function removeDomain(folderName, domain) {
     }
     folderDomains.delete(domain);
     const domainList = Array.from(folderDomains);
-    return chrome.storage.sync.set({ [folderName]: domainList });
+    return chrome.storage.sync.set({ [`_f_${folderName}`]: domainList });
   })
   .catch((error) => console.error('Error removing domain:', error));
 }

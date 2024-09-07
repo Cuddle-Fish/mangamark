@@ -1,3 +1,5 @@
+
+
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
   <style>
@@ -8,12 +10,12 @@ template.innerHTML = /* html */ `
     }
   </style>
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
-    <path d="m296-345-56-56 240-240 240 240-56 56-184-184-184 184Z"/>
+    <path d="M120-240v-80h520v80H120Zm664-40L584-480l200-200 56 56-144 144 144 144-56 56ZM120-440v-80h400v80H120Zm0-200v-80h520v80H120Z"/>
   </svg>
 `;
 
 customElements.define(
-  'expand-less',
+  'menu-icon',
   class extends HTMLElement {
     static get observedAttributes() {
       return ['fill', 'size'];

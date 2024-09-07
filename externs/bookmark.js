@@ -1,5 +1,7 @@
 import { getCustomFolderNames, findFolderWithDomain } from "/externs/folder.js";
 
+let _preventListeners = false;
+
 /**
  * @returns regex for matching bookmark, if string matches regex values will be:
  *  1. Title
@@ -354,4 +356,18 @@ function getTagsFromFolder(folderBookmark) {
   return tags;
 }
 
-export { bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, moveBookmarksWithDomain, getAllBookmarkTags }
+function registerBookmarkListener(listenerFn) {
+  const wrapperFn = () => {
+    if (!_preventListeners) {
+      listenerFn();
+    }
+  }
+
+  chrome.bookmarks.onChanged.addListener(wrapperFn);
+  chrome.bookmarks.onChildrenReordered.addListener(wrapperFn);
+  chrome.bookmarks.onCreated.addListener(wrapperFn);
+  chrome.bookmarks.onMoved.addListener(wrapperFn);
+  chrome.bookmarks.onRemoved.addListener(wrapperFn);
+}
+
+export { bookmarkRegex, getFolderNames, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, moveBookmarksWithDomain, getAllBookmarkTags, registerBookmarkListener }

@@ -1,118 +1,117 @@
-import { bookmarkRegex, getMangamarkSubTree } from "/externs/bookmark.js";
-import "/components/svg/close-icon.js";
-import "/components/dropdown-menu/dropdown-menu.js";
-import "/components/toggle-menu/toggle-menu.js";
-import "/components/bookmark-card/bookmark-card.js";
+import { setStatusFilter, setDisplayOrder, getDisplaySettings } from "/externs/settings.js";
+import { bookmarkRegex, getMangamarkSubTree, registerBookmarkListener } from "/externs/bookmark.js";
+
+import "/manager/sideNavigation/sideNavigation.js"
+
 import "/components/svg/search-icon.js";
-import "/components/tag-input/tag-input.js";
-import "/components/themed-button/themed-button.js"
+import "/components/svg/close-icon.js";
+import "/components/svg/menu-icon.js";
 import '/components/svg/expand-more.js';
 import '/components/svg/expand-less.js';
 
-var searchTypingTimer;
-const searchBar = document.getElementById('search-input');
-
-var extensionChange = false;
-var bookmarkFolders;
-var activeNavFolder;
+import "/components/toggle-menu/toggle-menu.js";
+import "/components/dropdown-menu/dropdown-menu.js";
+import "/components/tag-input/tag-input.js";
+import "/components/themed-button/themed-button.js"
+import "/components/bookmark-card/bookmark-card.js";
 
 class Folder {
   /**
    * 
-   * @param {string} name 
-   * @param {Bookmark[]} bookmarks 
-   * @param {Folder[]} subFolders 
+   * @param {string} name Folder name
+   * @param {Bookmark[]} bookmarks bookmarks directly contained in folder
+   * @param {Folder[]} subfolders subfolder within this folder
    */
-  constructor(name, bookmarks, subFolders) {
+  constructor(name, bookmarks, subfolders) {
     this.name = name;
     this.bookmarks = bookmarks;
-    this.subFolders = subFolders ? subFolders : [];
+    this.subfolders = subfolders ? subfolders : [];
   }
 
-  getAllBookmarks() {
+  /**
+   * Get all bookmarks in folder and subfolders, optionally filter by tags and and/or title query tokens
+   * 
+   * @param {Object} filters Filtering options
+   * @param {string[]} filters.tags Tags to filter by
+   * @param {string[]} filters.queryTokens Tokenized search query to filter by
+   * @returns {Bookmark[]} Filtered bookmarks
+   */
+  getAllBookmarks(filters = {}) {
+    const { tags = [], queryTokens = [] } = filters;
     const allBookmarks = [...this.bookmarks];
-    this.subFolders.forEach(subFolder => {
-      allBookmarks.push(...subFolder.bookmarks);
+    this.subfolders.forEach(subfolder => {
+      allBookmarks.push(...subfolder.bookmarks);
     });
-    return allBookmarks;
+    return (tags.length || queryTokens.length)
+      ? this.filterBookmarks(allBookmarks, tags, queryTokens)
+      : allBookmarks;
   }
 
-  getSubFolderBookmarks(subFolderName) {
-    const subFolder = this.subFolders.find(subFolder => subFolder.name === subFolderName);
-    if (subFolder) {
-      return [...subFolder.bookmarks];
+  /**
+   * Get direct bookmarks in folder, optionally filter by tags and and/or title query tokens
+   * 
+   * @param {Object} filters Filtering options
+   * @param {string[]} filters.tags Tags to filter by
+   * @param {string[]} filters.queryTokens Tokenized search query to filter by
+   * @returns {Bookmark[]} Filtered bookmarks
+   */
+  getMainBookmarks(filters = {}) {
+    const { tags = [], queryTokens = [] } = filters;
+    const mainBookmarks = [...this.bookmarks];
+    return (tags.length || queryTokens.length)
+      ? this.filterBookmarks(mainBookmarks, tags, queryTokens)
+      : mainBookmarks;
+  }
+
+  /**
+   * Get bookmarks in specified subfolder, optionally filter by tags and and/or title query tokens
+   * 
+   * @param {string} subfolderName Name of subfolder
+   * @param {Object} filters Filtering options
+   * @param {string[]} filters.tags Tags to filter by
+   * @param {string[]} filters.queryTokens Tokenized search query to filter by
+   * @returns {Bookmark[]} Filtered bookmarks
+   */
+  getSubFolderBookmarks(subfolderName, filters = {}) {
+    const { tags = [], queryTokens = [] } = filters;
+    const subfolder = this.subfolders.find(subfolder => subfolder.name === subfolderName);
+    if (subfolder) {
+      const subfolderBookmarks = [...subfolder.bookmarks];
+      return (tags.length || queryTokens.length)
+        ? this.filterBookmarks(subfolderBookmarks, tags, queryTokens)
+        : subfolderBookmarks;
     } else {
       return [];
     }
   }
 
-  searchAllBookmarks(filter) {
-    const filteredBookmarks = this.searchMainBookmarks(filter);
-    this.subFolders.forEach(subFolder => {
-      filteredBookmarks.push(...subFolder.searchAllBookmarks(filter));
+  /**
+   * Filter bookmarks by tags and/or title query tokens
+   * 
+   * @param {Bookmark[]} bookmarks Bookmarks to filter
+   * @param {string[]} tags Tags to filter by
+   * @param {string[]} queryTokens Tokenized search query to filter by
+   * @returns {Bookmark[]} Filtered bookmarks
+   */
+  filterBookmarks(bookmarks, tags, queryTokens) {
+    return bookmarks.filter(bookmark => {
+      const matchesTags = tags.length ? bookmark.hasTags(tags) : true;
+      const matchesTokens = queryTokens.length ? bookmark.matchesTokens(queryTokens) : true;
+      return matchesTags && matchesTokens;
     });
-
-    return filteredBookmarks;
-  }
-
-  searchMainBookmarks(filter) {
-    const filteredBookmarks = [];
-    const searhFilter = filter.toLowerCase();
-    this.bookmarks.forEach(bookmark => {
-      if (bookmark.title.toLowerCase().includes(searhFilter)) {
-        filteredBookmarks.push(bookmark);
-      }
-    });
-
-    return filteredBookmarks;
-  }
-
-  searchSubFolderBookmarks(filter, subFolderName) {
-    const subFolder = this.subFolders.find(subFolder => subFolder.name === subFolderName);
-    if (subFolder) {
-      return subFolder.searchMainBookmarks(filter);
-    } else {
-      return [];
-    }
-  }
-
-  navElement() {
-    const input = document.createElement('input');
-    input.type = 'radio';
-    input.id = 'nav' + this.name;
-    input.name = 'folderNav';
-    input.value = this.name;
-
-    const label = document.createElement('label');
-    label.htmlFor = 'nav' + this.name;
-
-    const circleText = document.createElement('div');
-    var circleString = this.name.substring(0, 4);
-    circleString = circleString.charAt(0).toUpperCase() + circleString.slice(1);
-    circleText.textContent = circleString;
-    circleText.classList.add('circleText');
-
-    const labelText = document.createElement('div');
-    labelText.textContent = this.name;
-    labelText.classList.add('labelText');
-
-    label.appendChild(circleText);
-    label.appendChild(labelText);
-    
-    return {input, label};
   }
 }
 
 class Bookmark {
   /**
    * 
-   * @param {string} title The bookmark contents title
-   * @param {string} chapter The chapter number of the bookmark
-   * @param {string} url The url used for navigation
-   * @param {number} dateCreated The date the bookmark was created
-   * @param {string} readingStatus Status associated with bookmark
-   * @param {Array.<string>} tags List of tags associated with bookmark
-   * @param {string} folderName Name of containing folder
+   * @param {string} title Bookmark contents title
+   * @param {string} chapter Chapter number of the bookmark
+   * @param {string} url Url for bookmark
+   * @param {number} dateCreated Date bookmark was created
+   * @param {string} readingStatus Reading Status associated with bookmark
+   * @param {string[]} tags Tags associated with bookmark
+   * @param {string} folderName Name of main containing folder
    */
   constructor(title, chapter, url, dateCreated, readingStatus, tags, folderName) {
     this.title = title;
@@ -128,6 +127,28 @@ class Bookmark {
     this.folder = folderName;
   }
 
+  /**
+   * @param {string[]} filterTags Name(s) of tags to check
+   * @returns boolean indicating whether bookmark has the specifed tags
+   */
+  hasTags(filterTags) {
+    return filterTags.every(tag => this.tags.includes(tag));
+  }
+
+  /**
+   * @param {string[]} queryTokens tokens to match against bookmark title
+   * @returns boolean indicating whether bookmark title has all query tokens
+   */
+  matchesTokens(queryTokens) {
+    const normalizedTitle = this.title.toLowerCase();
+    return queryTokens.every(token => normalizedTitle.includes(token));
+  }
+
+  /**
+   * Create an HTML element to represent this bookmark
+   * 
+   * @returns {HTMLElement} Instance of the `bookmark-card` custom element, with this bookmarks properties
+   */
   bookmarkElement() {
     const bookmarkCard = document.createElement('bookmark-card');
     bookmarkCard.initialize(
@@ -146,57 +167,161 @@ class Bookmark {
 }
 
 addEventListener('DOMContentLoaded', () => {
-  setOptions()
-  .then(() => getMarks())
+  setupSavedSettings();
+  setupEventListeners();
+  getMarks().then(() => displayBookmarks());
 });
 
-function setOptions() {
-  return new Promise((resolve, reject) => {
-    chrome.storage.sync.get(['managerType', 'managerOrder'])
-    .then((result) => {
-      const { managerType, managerOrder } = result;
-
-      if (!managerType || !managerOrder) {
-        reject(new Error('Type or order for manager page not found in storage'));
-        return;
-      }
-
-      document.getElementById('toggle-reading-type').selected = managerType;
-      document.getElementById('order-dropdown').selected = managerOrder;
-      resolve();
+function setupSavedSettings() {
+  getDisplaySettings()
+    .then((settings) => {
+      document.getElementById('toggle-status-display').selected = settings.status;
+      document.getElementById('order-dropdown').selected = settings.order;
     });
-  });
 }
 
-function getMarks() {
-  getMangamarkSubTree()
-  .then((mangamarkTree) => getFolders(mangamarkTree[0].children))
-  .then((folders) => {
-    bookmarkFolders = folders;
-    if (
-      !activeNavFolder || 
-      Array.isArray(activeNavFolder) ||
-      !folders.some(currentFolder => currentFolder.name === activeNavFolder.name)
-    ) {
-      navAll.checked = true;
-      activeNavFolder = folders;
-    } else {
-      activeNavFolder = folders.find(currentFolder => currentFolder.name === activeNavFolder.name);
-    }
-    return chrome.storage.sync.get(['managerType', 'managerOrder'])
-      .then((result) => {
-        const { managerType, managerOrder } = result;
-        return {folders, managerType, managerOrder};
-      });
-  })
-  .then(({folders, managerType, managerOrder}) => {
-    displayBookmarks(activeNavFolder, managerType, managerOrder)
-    return folders;
-  })
-  .then((folders) => populateFolderNav(folders));
+function setupEventListeners() {
+  document.getElementById('open-nav').addEventListener('click', openSideNav);
+  document.getElementById('side-nav').addEventListener('navClosed', showOpenNavButton);
+  document.getElementById('side-nav').addEventListener('navChange', navChangeHandler);
+
+  document.getElementById('search-input').addEventListener('keyup', searchHandler);
+  document.getElementById('clear-search-button').addEventListener('click', clearSearchHandler);
+
+  document.getElementById('toggle-status-display').addEventListener('toggleMenuChange', readingStatusHandler);
+  document.getElementById('order-dropdown').addEventListener('DropdownChange', displayOrderHandler);
+
+  document.getElementById('filter-tags-input').addEventListener('tagChange', tagFilterHandler);
+  document.getElementById('toggle-filter-input').addEventListener('click', toggleFilterHandler);
+  document.getElementById('remove-filters').addEventListener('click', removeTagFiltersHandler);
 }
 
-function getFolders(tree) {
+function openSideNav() {
+  document.getElementById('side-nav').openNav();
+  const openButton = document.getElementById('open-nav');
+  openButton.classList.add('hidden');
+  const main = document.getElementById('main-content');
+  main.style.marginLeft = '270px';
+}
+
+function showOpenNavButton() {
+  const openButton = document.getElementById('open-nav');
+  openButton.classList.remove('hidden');
+  const main = document.getElementById('main-content');
+  main.style.marginLeft = '10px';
+}
+
+function navChangeHandler(event) {
+  const searchInput = document.getElementById('search-input');
+  const searchValue = searchInput.value;
+  if (searchValue !== '') {
+    searchInput.value = '';
+    setSearchIcon();
+  }
+
+  displayBookmarks();
+}
+
+let _searchTypingTimer;
+
+function searchHandler(event) {
+  clearTimeout(_searchTypingTimer);
+  const searchValue = event.target.value;
+  searchValue === '' ? setSearchIcon() : setSearchIcon(false);
+  _searchTypingTimer = setTimeout(filterBySearch, 400);
+}
+
+function clearSearchHandler(event) {
+  const searchInput = document.getElementById('search-input');
+  searchInput.value = '';
+  setSearchIcon();
+  filterBySearch();
+}
+
+function setSearchIcon(searchCleared=true) {
+  const clearSearchButton = document.getElementById('clear-search-button');
+  const searchLabel = document.getElementById('search-label');
+  if (searchCleared) {
+    clearSearchButton.classList.add('hidden');
+    searchLabel.classList.remove('hidden');        
+  } else {
+    searchLabel.classList.add('hidden');
+    clearSearchButton.classList.remove('hidden');   
+  }
+}
+
+function filterBySearch() {
+  const searchTokens = getSearchTokens();
+  const sideNav = document.getElementById('side-nav');
+  searchTokens.length ? sideNav.hideSelected() : sideNav.showSelected();
+  displayBookmarks();
+}
+
+function getSearchTokens() {
+  const searchValue = document.getElementById('search-input').value.trim();
+  if (searchValue === '') {
+    return [];
+  } else {
+    return searchValue.toLowerCase().split(/\s+/);
+  }
+}
+
+async function readingStatusHandler(event) {
+  try {
+    await setStatusFilter(event.detail);
+    displayBookmarks();    
+  } catch (error) {
+    console.error(`Error changing reading status display: ${error}`);
+  }
+}
+
+async function displayOrderHandler(event) {
+  try {
+    await setDisplayOrder(event.detail);
+    displayBookmarks();
+  } catch (error) {
+    console.error(`Error changing bookmark display order: ${error}`);
+  }
+}
+
+function tagFilterHandler(event) {
+  const removeFilters = document.getElementById('remove-filters');
+  if (event.target.getTags().length) {
+    removeFilters.disabled = false;
+  } else {
+    removeFilters.disabled = true;
+  }
+  displayBookmarks();
+}
+
+function toggleFilterHandler(event) {
+  const button = event.currentTarget;
+  button.active = !button.active;
+
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.inputHidden = !tagsInput.inputHidden;
+  tagsInput.clearInput();
+}
+
+function removeTagFiltersHandler(event) {
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.replaceAllTags([]);
+  event.target.disabled = true;
+  displayBookmarks();
+}
+
+let _bookmarkFolders;
+
+async function getMarks() {
+  const invalidContainer = document.getElementById('invalid-container');
+  invalidContainer.classList.add('hidden');
+  const invalidList = document.getElementById('invalid-list');
+  invalidList.replaceChildren();
+  const mangamarkTree = await getMangamarkSubTree();
+  _bookmarkFolders = createFolders(mangamarkTree[0].children);
+}
+
+function createFolders(tree) {
   const folders = [];
   tree.forEach(node => {
     if (node.children) {
@@ -208,33 +333,34 @@ function getFolders(tree) {
   return folders;
 }
 
-function getBookmarks(tree, folderName, getSubFolders=true, subFolderName) {
+function getBookmarks(tree, mainFolderName, subFolderName) {
   const bookmarks = [];
   const folders = [];
   tree.forEach(node => {
     if (node.url) {
-      let bookmark;
-      if (subFolderName) {
-        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, folderName, subFolderName);
-      } else {
-        bookmark = createBookmarkObject(node.title, node.url, node.dateAdded, folderName);
-      }
+      const bookmark = createBookmark(node.title, node.url, node.dateAdded, mainFolderName, subFolderName);
+
       if (bookmark) {
         bookmarks.push(bookmark);
       } else {
-        console.log(`Error, bookmark: '${node.title}' has an invalid title.`);
-        //TODO display somewhere on page
+        console.log(`Warning, bookmark: "${node.title}" has an invalid title`);
+        const li = document.createElement('li');
+        li.textContent = node.title;
+        const invalidList = document.getElementById('invalid-list');
+        invalidList.appendChild(li);
+        const invalidContainer = document.getElementById('invalid-container');
+        invalidContainer.classList.remove('hidden');
       }
-    } else if (node.children && getSubFolders) {
-      const {bookmarks: folderBookmarks} = getBookmarks(node.children, folderName, false, node.title);
-      const folder = new Folder(node.title, folderBookmarks);
+    } else if (node.children  && !subFolderName) {
+      const subFolderBookmarks = getBookmarks(node.children, mainFolderName, node.title).bookmarks;
+      const folder = new Folder(node.title, subFolderBookmarks);
       folders.push(folder);
     }
   });
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function createBookmarkObject(bookmarkTitle, url, dateAdded, folderName, subFolderName) {
+function createBookmark(bookmarkTitle, url, dateAdded, folderName, subFolderName) {
   const matches = bookmarkTitle.match(bookmarkRegex());
   if (!matches) {
     return null;
@@ -247,66 +373,53 @@ function createBookmarkObject(bookmarkTitle, url, dateAdded, folderName, subFold
   }
 }
 
-function displayBookmarks(folders, type='all', sortBy='Recent') {
-  var bookmarks;
-  if (!Array.isArray(folders)) {
-    folders = [folders];
+async function displayBookmarks() {
+  const folderName = document.getElementById('side-nav').selected;
+  const searchTokens = getSearchTokens();
+  const { order, status } = await getDisplaySettings();
+  const tags = document.getElementById('filter-tags-input').getTags();
+
+  const folders = searchTokens.length || !folderName 
+    ? [..._bookmarkFolders] 
+    : [_bookmarkFolders.find((folder) => folder.name === folderName)];
+
+  let bookmarks;
+  if (status === 'all') {
+    bookmarks = filterAllBookmarks(folders, searchTokens, tags);
+  } else if (status === 'reading') {
+    bookmarks = filterMainBookmarks(folders, searchTokens, tags);
+  } else {
+    bookmarks = filterSubfolderBookmarks(folders, status, searchTokens, tags);
   }
-  switch (type) {
-    case 'all':
-      bookmarks = compileAllBookmarks(folders);
-      break;
-    case 'reading':
-      bookmarks = compileMainBookmarks(folders);
-      break;
-    case 'completed':
-    case 'plan-to-read':
-    case 're-reading':
-    case 'on-hold':
-      const statusMap = {
-        'completed': 'Completed',
-        'plan-to-read': 'Plan to Read',
-        're-reading': 'Re-Reading',
-        'on-hold': 'On Hold'
-      };
-      const subFolderName = statusMap[type];
-      bookmarks = compileSubFolderBookmarks(folders, subFolderName);
-      break;
-    case 'search':
-      bookmarks = folders;
-      break;
-    default:
-      throw new Error('Invalid display type');
-  }
-  bookmarks = sortBookmarks(bookmarks, sortBy);
-  console.log(bookmarks);
+
+  bookmarks = sortBookmarks(bookmarks, order);
   const bookmarkDisplay = bookmarks.map(bookmark => bookmark.bookmarkElement());
-  const bookmarkList = document.getElementById('bookmarkList');
+  const bookmarkList = document.getElementById('bookmark-list');
   bookmarkList.replaceChildren(...bookmarkDisplay);
 }
 
-function compileAllBookmarks(folders) {
-  const allBookmarks = [];
+function filterAllBookmarks(folders, searchTokens, tags) {
+  const bookmarks = [];
   folders.forEach(folder => {
-    allBookmarks.push(...folder.getAllBookmarks());
+    bookmarks.push(...folder.getAllBookmarks({ tags: tags, queryTokens: searchTokens }));
   });
-  return allBookmarks;
+  return bookmarks;
 }
 
-function compileMainBookmarks(folders) {
-  const mainBookmarks = [];
+function filterMainBookmarks(folders, searchTokens, tags) {
+  const bookmarks = [];
   folders.forEach(folder => {
-    mainBookmarks.push(...folder.bookmarks);
+    bookmarks.push(...folder.getMainBookmarks({ tags: tags, queryTokens: searchTokens }));
   });
-  return mainBookmarks;
+  return bookmarks;
 }
 
-function compileSubFolderBookmarks(folders, subFolderName) {
-  const subFolderBookmarks = [];
+function filterSubfolderBookmarks(folders, subFolderName, searchTokens, tags) {
+  const bookmarks = [];
   folders.forEach(folder => {
-    subFolderBookmarks.push(...folder.getSubFolderBookmarks(subFolderName));
+    bookmarks.push(...folder.getSubFolderBookmarks(subFolderName, { tags: tags, queryTokens: searchTokens }));
   });
-  return subFolderBookmarks;
+  return bookmarks;
 }
 
 function sortBookmarks(bookmarks, sortBy) {
@@ -326,238 +439,15 @@ function sortBookmarks(bookmarks, sortBy) {
   });
 }
 
-document.getElementById('toggle-reading-type')
-.addEventListener('toggleMenuChange', (event) => {
-  chrome.storage.sync.set({'managerType': event.detail})
-  .then(() => {
-    if (searchBar.value === '') {
-      chrome.storage.sync.get('managerOrder')
-      .then((result) => displayBookmarks(activeNavFolder, event.detail, result.managerOrder));
-    } else {
-      performSearch();
-    }
-  });
-});
+registerBookmarkListener(updatePage);
 
-document.getElementById('order-dropdown')
-.addEventListener('DropdownChange', (event) => {
-  chrome.storage.sync.set({'managerOrder': event.detail})
-  .then(() => {
-    if (searchBar.value === '') {
-      chrome.storage.sync.get('managerType')
-      .then((result) => displayBookmarks(activeNavFolder, result.managerType, event.detail));   
-    } else {
-      performSearch();
-    }
-  });
-});
-
-const navAll = document.getElementById('navAll');
-navAll.addEventListener('change', () => {
-  console.log('Nav: all');
-  chrome.storage.sync.get(['managerType', 'managerOrder'])
-  .then((result) => {
-    if (searchBar.value !== '') {
-      searchBar.value = '';
-      setSearchIcon();
-    }
-    const { managerType, managerOrder } = result;
-    activeNavFolder = bookmarkFolders;
-    displayBookmarks(bookmarkFolders, managerType, managerOrder);
-  });
-});
-
-function populateFolderNav(folders) {
-  const navFolders = document.getElementById('navFolders');
-  clearNavFolders(navFolders.children);
-  folders.forEach(folder => {
-    const {input, label} = folder.navElement();
-    if (folder.name === activeNavFolder.name) {
-      console.log('names match');
-      input.checked = true;
-    }
-    input.addEventListener('change', navListener);
-    navFolders.appendChild(input);
-    navFolders.appendChild(label);
-  });
-}
-
-function clearNavFolders(folderChildren) {
-  if (!folderChildren || folderChildren.length === 0) {
-    return;
+async function updatePage() {
+  const sideNav = document.getElementById('side-nav');
+  await sideNav.renderGroups();
+  const searchTokens = getSearchTokens();
+  if (!searchTokens.length) {
+    sideNav.showSelected();
   }
-  for (var i = folderChildren.length - 1; i >= 0; i--) {
-    const child = folderChildren[i];
-    child.removeEventListener('change', navListener);
-    child.remove();
-  }
-}
-
-function navListener() {
-  if (searchBar.value !== '') {
-    searchBar.value = '';
-    setSearchIcon();
-  }
-  const value = this.value;
-  console.log(`Nav: ${this.value}`);
-  chrome.storage.sync.get(['managerType', 'managerOrder'])
-  .then((result) => {
-    const { managerType, managerOrder } = result;
-    const folder = bookmarkFolders.find(currentFolder => currentFolder.name === value);
-    activeNavFolder = folder;
-    displayBookmarks(folder, managerType, managerOrder);
-  });
-}
-
-
-searchBar.addEventListener('keydown', () => {
-  clearTimeout(searchTypingTimer);
-
-  setTimeout(() => {
-    searchBar.value !== '' ? setSearchIcon(false) : setSearchIcon();
-  }, 0);
-
-  searchTypingTimer = setTimeout(performSearch, 400);
-});
-
-document.getElementById('clear-search-button')
-.addEventListener('click', () => {
-  searchBar.value = '';
-  clearSearch();
-  setSearchIcon();
-});
-
-function setSearchIcon(searchCleared=true) {
-  const clearSearchButton = document.getElementById('clear-search-button');
-  const searchLabel = document.getElementById('search-label');
-  if (searchCleared) {
-    clearSearchButton.classList.add('hidden');
-    searchLabel.classList.remove('hidden');        
-  } else {
-    searchLabel.classList.add('hidden');
-    clearSearchButton.classList.remove('hidden');   
-  }
-}
-
-function performSearch() {
-  console.log(`search value: '${searchBar.value}'`);
-  if (searchBar.value === '') {
-    clearSearch();
-  } else {
-    const navFolders = Array.from(document.getElementsByName('folderNav'));
-    const selectedNav = navFolders.find(input => input.checked);
-    if (selectedNav) {
-      selectedNav.checked = false;      
-    }
-
-    const searchResults = [];
-    chrome.storage.sync.get('managerType')
-    .then((result) => {
-      switch (result.managerType) {
-        case 'all':
-          bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchAllBookmarks(searchBar.value));
-          });
-          break;
-        case 'reading':
-          bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchMainBookmarks(searchBar.value));
-          });
-          break;
-        case 'completed':
-          bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Completed'));
-          });
-          break;
-        case 'plan-to-read':
-          bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Plan to Read'));
-          });
-          break;
-        case 're-reading':
-          bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'Re-Reading'));
-          });
-          break;
-        case 'on-hold':
-          bookmarkFolders.forEach(folder => {
-            searchResults.push(...folder.searchSubFolderBookmarks(searchBar.value, 'On Hold'));
-          });
-          break;
-        default:
-          throw new Error('Invalid display type');
-      }
-    });
-    chrome.storage.sync.get('managerOrder')
-    .then((result) => displayBookmarks(searchResults, 'search', result.managerOrder));
-  }
-}
-
-function clearSearch() {
-  chrome.storage.sync.get(['managerType', 'managerOrder'])
-  .then((result) => {
-    const { managerType, managerOrder } = result;
-    displayBookmarks(activeNavFolder, managerType, managerOrder);
-    if (Array.isArray(activeNavFolder)) {
-      navAll.checked = true;
-    } else {
-      const navFolders = Array.from(document.getElementsByName('folderNav'));
-      const matchingInput = navFolders.find(input => input.value === activeNavFolder.name);
-      matchingInput.checked = true;
-    }
-  });
-}
-
-document.getElementById('show-filter-input').addEventListener('click', (event) => {
-  const button = document.getElementById('show-filter-input');
-  button.active = !button.active;
-
-  const arrow = document.getElementById('filter-arrow-icon');
-  if (button.active) {
-    const expandLess = document.createElement('expand-less');
-    expandLess.id = 'filter-arrow-icon';
-    arrow.replaceWith(expandLess);
-  } else {
-    const expandMore = document.createElement('expand-more');
-    expandMore.id = 'filter-arrow-icon';
-    arrow.replaceWith(expandMore);
-  }
-
-  const container = document.getElementById('tag-filter-container');
-  container.classList.toggle('allow-input');
-
-  const tagsInput = document.getElementById('filter-tags-input');
-  tagsInput.inputHidden = !tagsInput.inputHidden;
-  tagsInput.clearInput();
-});
-
-document.getElementById('filter-tags-input').addEventListener('tagChange', (event) => {
-  const removeFilters = document.getElementById('remove-filters');
-  if (event.target.getTags().length === 0) {
-    removeFilters.disabled = true;
-  } else {
-    removeFilters.disabled = false;
-  }
-  //TODO change display
-});
-
-document.getElementById('remove-filters').addEventListener('click', (event) => {
-  const tagsInput = document.getElementById('filter-tags-input');
-  tagsInput.replaceAllTags([]);
-  event.target.disabled = true;
-  //TODO change display
-});
-
-chrome.bookmarks.onChanged.addListener(handleBookmarkChange);
-chrome.bookmarks.onChildrenReordered.addListener(handleBookmarkChange);
-chrome.bookmarks.onCreated.addListener(handleBookmarkChange);
-chrome.bookmarks.onMoved.addListener(handleBookmarkChange);
-chrome.bookmarks.onRemoved.addListener(handleBookmarkChange);
-
-function handleBookmarkChange() {
-  console.log(`bookmark changed extensionChange = ${extensionChange}`);
-  if (!extensionChange) {
-    getMarks();
-  }
-  extensionChange = false;
+  await getMarks();
+  displayBookmarks();
 }

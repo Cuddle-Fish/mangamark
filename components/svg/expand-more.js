@@ -3,8 +3,8 @@ template.innerHTML = /* html */ `
   <style>
     :host svg {
       display: flex;
-      height: 24px;
-      width: 24px;
+      height: var(--icon-size, 24px);
+      width: var(--icon-size, 24px);
     }
   </style>
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
@@ -16,7 +16,7 @@ customElements.define(
   'expand-more',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['fill'];
+      return ['fill', 'size'];
     }
 
     constructor() {
@@ -28,12 +28,8 @@ customElements.define(
     attributeChangedCallback(name, oldValue, newValue) {
       if (name === 'fill') {
         this.shadowRoot.querySelector('svg').setAttribute('fill', newValue);
-      }
-    }
-
-    connectedCallback() {
-      if (this.hasAttribute('fill')) {
-        this.attributeChangedCallback('fill', null, this.getAttribute('fill'));
+      } else if (name === 'size') {
+        this.style.setProperty('--icon-size', newValue);
       }
     }
   }

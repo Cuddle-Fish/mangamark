@@ -21,7 +21,6 @@ customElements.define(
     }
     
     set selected(value) {
-      console.log('called set selected');
       if (!this.hasAttribute('selected') || this.getAttribute('selected') !== value) {
         const inputs = this.shadowRoot.querySelectorAll('input');
         for (const input of inputs) {

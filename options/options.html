@@ -1,19 +1,80 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Mangamark - Options</title>
+    <title>Mangamark - Settings</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" type="text/css" href="options.css">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
   </head>
   <body>
-    <h1>Options:</h1>
-    <div>
-      <h2>Sync Storage:</h2>
-      <div id="sync-list"></div>      
+    <div class="side-bar">
+      <a href="/manager/manager.html" class="icon-button"><arrow-back></arrow-back></a>
+      <h1>Settings</h1>
+      <a href="#folder-settings">Folders</a>
+      <a href="#navigation-settings">Navigation</a>
     </div>
 
+    <div class="main">
+      <div class="main-container">
+
+      <div>
+        <h2>Sync Storage:</h2>
+        <div id="sync-list"></div>      
+      </div>
+
+      <h2 id="folder-settings">Folders</h2>
+
+      <div>
+        <div>Create Folder:</div>
+      </div>
+
+      <div>
+        <div>Rename Folder:</div>
+      </div>
+
+      <div>
+        <div>Move Domain:</div>
+      </div>
+
+      <h2 id="navigation-settings">Navigation</h2>
+
+      <h3>Groups</h3>
+      <div>
+        <div>New Group:</div>
+        <input id="input-group" type="text"/>
+        <button id="create-group" disabled>Create</button>
+      </div>
+
+      <div>
+        <div>Default Group:</div>
+        <select id="select-default"></select>
+        <button id="change-default" disabled>Change</button>
+      </div>
+
+      <div>
+        <div>Remove Group:</div>
+        <span>Remove:</span>
+        <select id="select-remove"></select>
+        <div>
+          <span id="relocate-text" class="obscure">Move Contents to:</span>
+          <select id="select-relocation" disabled></select>
+          <button id="remove-group" disabled>Confirm</button>        
+        </div>
+      </div>
+
+
+      <h3>Display: </h3>
+      <ul id="group-list"></ul>
+
+      <button id="reset-display">Reset</button>
+      <button id="confirm-display">Confirm</button>        
+
+      </div>
+    </div>
+
+    <div class="right"></div>
+    
     <script src="options.js" type="module"></script>
   </body>
 </html>

@@ -1,6 +1,4 @@
 chrome.runtime.onInstalled.addListener(() => {
-  checkSettings();
-
   chrome.bookmarks.search({title: 'Mangamark'}, (result) => {
     if (result.length == 1) {
       console.log(result[0]);
@@ -16,18 +14,3 @@ chrome.runtime.onInstalled.addListener(() => {
     }
   });
 });
-
-function checkSettings() {
-  chrome.storage.sync.get(['managerType', 'managerOrder'])
-  .then((result) => {
-    const { managerType, managerOrder } = result;
-    if (!managerType) {
-      chrome.storage.sync.set({'managerType': 'reading'});
-      console.log('setting type');
-    }
-    if (!managerOrder) {
-      chrome.storage.sync.set({'managerOrder': 'Recent'});
-      console.log('setting order')
-    }
-  });
-}

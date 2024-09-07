@@ -1,0 +1,133 @@
+:host {
+  position: fixed;
+  width: 260px;
+  box-sizing: border-box;
+  background-color: var(--secondary-background);
+  color: var(--offWhite);
+  font-family: var(--font-family);
+  flex-shrink: 0;
+  transition: margin-left 150ms ease-in-out;
+}
+
+.wrapper {
+  display: flex;
+  height: 100vh;
+  box-sizing: border-box;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.close-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.icon-button {
+  height: 42px;
+  width: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--offWhite);
+
+  &:hover {
+    background-color: var(--offWhite10);
+  }
+
+  &:active {
+    background-color: var(--offWhite30);
+  }
+}
+
+.all-selection {
+  overflow-x: hidden;
+  flex-shrink: 0;
+}
+
+.groups-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite30) var(--secondary-background);
+}
+
+input {
+  display: none;
+}
+
+label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 10px 5px 10px 20px;
+  border-radius: 8px;
+  word-break: break-all;
+  font-size: 20px;
+}
+
+label:hover {
+  background-color: var(--offWhite10);
+}
+
+label:active {
+  background-color: var(--offWhite30);
+}
+
+input:checked + label {
+  background-color: var(--accent-subdued30);
+}
+
+.section-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.collapse-button {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 10px;
+  border: none;
+  border-radius: 5px;
+  background-color: var(--offWhite30);
+  color: var(--offWhite);
+  opacity: 50%;
+  font-size: 14px;
+  font-family: inherit;
+
+  &:hover {
+    opacity: 100%;
+  }
+
+  &:active {
+    opacity: 80%;
+  }
+}
+
+.collapse-button:has(~ .items-container[collapsed]) expand-less {
+  display: none;
+}
+
+.collapse-button:has(~ .items-container:not([collapsed])) expand-more {
+  display: none;
+}
+
+.items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* transition: max-height 0.2s; */
+  overflow-y: hidden;
+}
+
+.items-container:not([collapsed]) {
+  margin-bottom: 10px;
+}
