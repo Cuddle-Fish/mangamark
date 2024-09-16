@@ -1,9 +1,5 @@
-import { 
-  getNavigationGroups, addNavigationGroup, changeNavigationGroupOrder ,removeNavigationGroup, 
-  getDefaultGroupName, changeDefaultGroup, 
-  getGroupFolders, updateGroupFolders, moveGroupFolders, removeDeadFolders
-} from "/externs/settings.js";
-
+import { getGroupsWithFolders, addGroup, getDefaultGroupName, setDefaultGroupName, setAllGroups } from "/externs/settings.js";
+import { getFolderNames, reorderFolders } from "/externs/bookmark.js";
 import "/components/svg/arrow-back.js";
 
 addEventListener('DOMContentLoaded', () => {
@@ -12,9 +8,19 @@ addEventListener('DOMContentLoaded', () => {
       console.log(results);
       const listContainer = document.getElementById('sync-list');
       Object.entries(results).forEach(([key, value]) => {
-        const div = document.createElement('div');
-        div.textContent = `key: ${key} : value: ${value}`;
-        listContainer.appendChild(div);
+        const outerDiv = document.createElement('div');
+        outerDiv.textContent = key;
+        outerDiv.style.fontWeight = 'bold';
+        const innerDiv = document.createElement('div');
+        if (typeof value === 'object') {
+          innerDiv.textContent = JSON.stringify(value);
+        } else {
+          innerDiv.textContent = value;          
+        }
+        innerDiv.style.fontWeight = 'normal';
+        innerDiv.style.marginLeft = '10px';
+        outerDiv.appendChild(innerDiv);
+        listContainer.appendChild(outerDiv);
       });
     });
 
@@ -24,7 +30,7 @@ addEventListener('DOMContentLoaded', () => {
 // #region Folder Options
 
 function setupFolderOptions() {
-
+  // rename folders
 }
 
 // #endregion
@@ -34,7 +40,6 @@ function setupFolderOptions() {
 let _groups = [];
 
 async function setupNavigationOptions() {
-  await removeDeadFolders();
   await updateNavigationDisplay();
 
   document.getElementById('input-group').addEventListener('input', groupInputHandler);
@@ -51,7 +56,7 @@ async function setupNavigationOptions() {
 }
 
 async function updateNavigationDisplay() {
-  _groups = await getNavigationGroups();
+  _groups = await getGroupsWithFolders();
   updateDefaultSelection();
   updateRemoveDisplay();
   updateGroupList();
@@ -60,13 +65,14 @@ async function updateNavigationDisplay() {
 function groupInputHandler(event) {
   const createGroup = document.getElementById('create-group');
   const value = event.target.value;
-  createGroup.disabled = value === '' || _groups.includes(value);
+  const result = _groups.some(({ name }) => name === value);
+  createGroup.disabled = result;
 }
 
 async function createGroupHandler(event) {
   const inputGroup = document.getElementById('input-group');
   const newGroupName = inputGroup.value;
-  await addNavigationGroup(newGroupName);
+  await addGroup(newGroupName);
   inputGroup.value = '';
   event.target.disabled = true;
 
@@ -82,21 +88,21 @@ async function selectDefaultHandler(event) {
 async function changeDefaultHandler(event) {
   const defaultSelection = document.getElementById('select-default');
   const newDefault = defaultSelection.value;
-  await changeDefaultGroup(newDefault);
+  await setDefaultGroupName(newDefault);
   await updateNavigationDisplay();
 }
 
-function selectRemoveHandler(event) {
+async function selectRemoveHandler(event) {
   const selectedValue = event.target.value;
-  const prefix = selectedValue.substring(0, 3);
-  const actualValue = selectedValue.substring(3);
 
-  const removeGroup = document.getElementById('remove-group');
-  removeGroup.disabled = selectedValue === '' || prefix === '_d_';
+  const removeGroupElement = document.getElementById('remove-group');
+  const defaultGroupName = await getDefaultGroupName();
+  removeGroupElement.disabled = selectedValue === '' || selectedValue === defaultGroupName;
+  const selectedGroup = _groups.find(({ name }) => name === selectedValue);
 
   const relocateText = document.getElementById('relocate-text');
   const relocateSelect = document.getElementById('select-relocation');
-  if (prefix === '_f_') {
+  if (selectedGroup?.numFolders) {
     relocateText.classList.remove('obscure');
     relocateSelect.disabled = false;
   } else {
@@ -104,13 +110,12 @@ function selectRemoveHandler(event) {
     relocateSelect.disabled = true;
   }
 
-  if (relocateSelect.value === actualValue) {
-    const defaultOption = event.target.querySelector(`option[value^='_d_']`);
-    relocateSelect.value = defaultOption.value.substring(3);
+  if (relocateSelect.value === selectedValue) {
+    relocateSelect.value = defaultGroupName;
   }
 
   for (const option of relocateSelect.options) {
-    if (option.value === actualValue) {
+    if (option.value === selectedValue) {
       option.disabled = true;
     } else {
       option.disabled = false;
@@ -119,42 +124,53 @@ function selectRemoveHandler(event) {
 }
 
 async function removeGroupHandler(event) {
-  const selectedRemoveValue = document.getElementById('select-remove').value;
-  const prefix = selectedRemoveValue.substring(0, 3);
-  const groupToRemove = selectedRemoveValue.substring(3);
+  try {
+    const removeName = document.getElementById('select-remove').value;
+    const groups = await getGroupsWithFolders();
+    const removeGroup  = groups.find(({ name }) => name === removeName);
+    if (removeGroup.numFolders) {
+      const relocationName = document.getElementById('select-relocation').value;
+      const relocationGroup = groups.find(({ name }) => name === relocationName);
 
-  if (prefix === '_f_') {
-    const relocationFolder = document.getElementById('select-relocation').value;
-    await moveGroupFolders(relocationFolder, groupToRemove);
+      relocationGroup.folders.push(...removeGroup.folders);
+      relocationGroup.numFolders += removeGroup.numFolders;
+
+      const removeIndex = groups.findIndex(({ name }) => name === removeName);
+      groups.splice(removeIndex, 1);
+
+      const updatedFolders = groups.flatMap(({ folders }) => folders);
+      const updateGroups = groups.map(({ name, numFolders }) => ({ name, numFolders }));
+
+      await reorderFolders(updatedFolders);
+      await setAllGroups(updateGroups);
+      await updateNavigationDisplay();
+    }
+  } catch (error) {
+    console.error('Error performing remove group action:', error);
   }
-
-  await removeNavigationGroup(groupToRemove);
-  await updateNavigationDisplay();
 }
 
 async function confirmDisplayHandler(event) {
   const groupList = document.querySelectorAll('#group-list > .group-item');
-  const groups = {};
+  const updatedGroups = [];
+  const updatedFolders = [];
 
-  groupList.forEach(group => {
-    const groupName = group.childNodes[0].nodeValue.trim();
-    const folderList = group.querySelectorAll('.folder-list > li');
-    const folders = [];
+  groupList.forEach(groupElement => {
+    const groupName = groupElement.childNodes[0].nodeValue.trim();
+    const folderList = groupElement.querySelectorAll('.folder-list > li');
+
+    const group = { name: groupName, numFolders: folderList.length };
+    updatedGroups.push(group);
 
     folderList.forEach(folder => {
       const folderName = folder.textContent.trim();
-      folders.push(folderName);
+      updatedFolders.push(folderName);
     });
-
-    groups[groupName] = folders;
   });
 
-  console.log(Object.keys(groups));
-  await changeNavigationGroupOrder(Object.keys(groups));
+  await setAllGroups(updatedGroups);
+  await reorderFolders(updatedFolders);
 
-  for (const [groupName, folders] of Object.entries(groups)) {
-    await updateGroupFolders(groupName, folders);
-  }
   await updateNavigationDisplay();
 }
 
@@ -163,10 +179,10 @@ async function updateDefaultSelection() {
   const fragment = document.createDocumentFragment();
   _groups.forEach(group => {
     const option = document.createElement('option');
-    option.value = group;
-    option.textContent = group;
+    option.value = group.name;
+    option.textContent = group.name;
 
-    if (group === defaultGroup) {
+    if (group.name === defaultGroup) {
       option.selected = true;
       option.textContent += ' - (default)';
     }
@@ -196,29 +212,19 @@ async function updateRemoveDisplay() {
     const removeOption = document.createElement('option');
     const relocateOption = document.createElement('option');
 
-    removeOption.textContent = group;
-    relocateOption.textContent = group;
+    removeOption.textContent = group.name;
+    relocateOption.textContent = group.name;
+    removeOption.value = group.name;
+    relocateOption.value = group.name;
 
-    if (group === defaultGroup) {
+    if (group.name === defaultGroup) {
       removeOption.disabled = true;
       relocateOption.selected = true;
-
-      removeOption.textContent += ' - (default';
-      relocateOption.textContent += ' - (default)'
-
-      removeOption.value = '_d_';
-    } else {
-      const folders = await getGroupFolders(group);
-      if (folders.length === 0) {
-        removeOption.textContent += ' - (empty)';
-        removeOption.value = '_e_';
-      } else {
-        removeOption.value = '_f_';
-      }
+      removeOption.textContent += ' - (default)';
+      relocateOption.textContent += ' - (default)';
+    } else if (!group.numFolders) {
+      removeOption.textContent += ' - (empty)';
     }
-
-    removeOption.value += group;
-    relocateOption.value = group;
 
     removeOptionsFrag.appendChild(removeOption);
     relocateOptionsFrag.appendChild(relocateOption);
@@ -245,14 +251,13 @@ async function updateGroupList() {
     const groupItem = document.createElement('li');
     groupItem.classList.add('group-item');
     groupItem.draggable = true;
-    groupItem.textContent = group;
+    groupItem.textContent = group.name;
 
     const folderList = document.createElement('ul');
     folderList.classList.add('folder-list');
     groupItem.appendChild(folderList);
 
-    const folders = await getGroupFolders(group);
-    for (const folder of folders) {
+    for (const folder of group.folders) {
       const folderItem = document.createElement('li');
       const span = document.createElement('span');
       folderItem.appendChild(span);

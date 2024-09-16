@@ -58,16 +58,45 @@ h1 {
   grid-area: 1/2;
 }
 
-.folder-container {
-  display: grid;
-  grid-template-columns: auto 138px;
-  div {
-    word-break: break-all;
+.folder-input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 2px 5px;
+  border: none;
+  border-radius: 5px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--offWhite);
+  background-color: var(--secondary-background);
+  text-overflow: ellipsis;
+
+  &:invalid {
+    outline: 1px solid var(--warning);
+  }  
+
+  &:focus {
+    outline: 1px solid var(--accent-bright);
+  }   
+
+  &:read-only {
+    padding: 0;
+    outline: none;
+    background-color: transparent;
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    margin-bottom: 9px;
   }
 }
 
-.folder-grid-full {
-  grid-column: span 2;
+.flash-warning {
+  outline: 1px solid var(--warning);
+  animation: flash .4s 2 linear;
+}
+
+@keyframes flash {
+  0% { outline: 3px solid var(--warning); }
+  100% { outline: 1px solid transparent; }
 }
 
 .chapter-container {
@@ -116,7 +145,7 @@ ul {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .grey-text {

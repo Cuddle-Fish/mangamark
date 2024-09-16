@@ -1,4 +1,4 @@
-import { getNavigationGroups, getGroupFolders, removeDeadFolders} from "/externs/settings.js";
+import { getGroupsWithFolders} from "/externs/settings.js";
 
 import "/components/svg/close-icon.js";
 import "/components/svg/expand-less.js";
@@ -72,9 +72,8 @@ customElements.define(
     }
 
     async renderGroups() {
-      await removeDeadFolders();
       const fragment = document.createDocumentFragment();
-      const groups = await getNavigationGroups();
+      const groups = await getGroupsWithFolders();
 
       let hasSelected = this.selected === '' ? true : false;
 
@@ -85,7 +84,7 @@ customElements.define(
         const collapseButton = document.createElement('button');
         collapseButton.classList.add('collapse-button');
         const div = document.createElement('div');
-        div.textContent = group;
+        div.textContent = group.name;
         collapseButton.appendChild(div);
         const expandLess = document.createElement('expand-less');
         const exapndMore = document.createElement('expand-more');
@@ -98,8 +97,7 @@ customElements.define(
         const folderContainer = document.createElement('div');
         folderContainer.classList.add('items-container');
 
-        const folders = await getGroupFolders(group);
-        for (const folder of folders) {
+        for (const folder of group.folders) {
           const input = document.createElement('input');
           input.type = 'radio';
           input.id = folder;

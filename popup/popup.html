@@ -42,9 +42,9 @@
         </div>
 
         <div class="identifier">Folder</div>
-        <div class="value folder-container">
-          <div id="domain" class="folder-grid-full">&lt;Domain Name&gt;</div>
-          <themed-button id="change-folder-button" variant="secondary" size="small" class="hidden">Change Folder</themed-button>
+        <div class="value">
+          <input id="folder-input" list="folder-options" placeholder="Enter Folder" readonly required class="folder-input" />
+          <datalist id="folder-options"></datalist>
         </div>
 
         <div class="identifier">Chapter</div>
@@ -68,11 +68,12 @@
         <div>
           <div id="invalid-title" class="error-text hidden">Error: Title required</div>
           <div id="invalid-chapter" class="error-text hidden">Error: Chapter required</div>
+          <div id="invalid-folder" class="error-text hidden">Error: Folder required</div>
         </div>
         <div id="action-button-container" class="action-button-container">
           <themed-button id="edit-button" variant="secondary">Edit</themed-button>
           <themed-button id="action-button">&lt;Action&gt;</themed-button>
-        </div>        
+        </div>
       </div>
 
 
@@ -81,8 +82,6 @@
         <span id="completed-text">Bookmark &lt;Action&gt;</span>
       </div>
     </div>
-
-    <change-folder id="change-folder-screen"></change-folder>
 
     <tags-screen id="tags-screen"></tags-screen>
 

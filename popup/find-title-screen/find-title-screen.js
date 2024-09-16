@@ -1,11 +1,39 @@
-import { bookmarkRegex, getFolderNames, getMangamarkSubTree } from "/externs/bookmark.js";
+import { bookmarkRegex, getMangamarkSubTree } from "/externs/bookmark.js";
 import "/components/svg/search-icon.js";
 import "/components/themed-button/themed-button.js";
+
+const template = document.createElement('template');
+template.innerHTML = /* html */ ` 
+  <style>
+    @import "/popup/find-title-screen/find-title-screen.css";
+  </style>
+  <div class="title-container">
+    <span id="update-indicator">Update:</span>
+    <span id="update-title" class="red-text">No Title Selected</span>
+  </div>
+  <div class="selection-container">
+    <div id="description" class="description">
+      <span>Select Title to Update:</span>
+    </div>
+    <div id="search-container" class="search-container">
+      <input type="text" placeholder="Search Folder and/or Title" name="search-input" id="search-input" list="folder-options" />
+      <label for="search-input"><search-icon></search-icon></label>
+      <datalist id="folder-options"></datalist>
+    </div>
+    <div id="list-container" class="list-container"></div>
+    <div id="empty-indicator" class="empty-indicator hidden">No Bookmarks Found</div>
+  </div>
+  <div class="buttons-container">
+    <themed-button id="cancel-button">Cancel</themed-button>
+    <themed-button id="confirm-button" disabled>Confirm</themed-button>
+  </div>
+  `;
 
 customElements.define(
   'find-title-screen',
   class extends HTMLElement {
-    #changeFolderMode = false;
+    #bookmarkData;
+    #selectedBookmark;
 
     static get observedAttributes() {
       return ['open'];
@@ -21,108 +49,58 @@ customElements.define(
 
     constructor() {
       super();
-      this.attachShadow({mode: 'open'});
+      const shadowRoot = this.attachShadow({ mode: 'open' });
+      shadowRoot.appendChild(template.content.cloneNode(true));
     }
 
     connectedCallback() {
-      this.shadowRoot.innerHTML = /* html */ `
-        <style>
-          @import "/popup/find-title-screen/find-title-screen.css";
-        </style>
-        <div class="title-container">
-          <span id="update-indicator">Update:</span>
-          <span id="update-title" class="red-text">No Title Selected</span>
-        </div>
-        <div class="folder-container">
-          <div>Folder: <span id="folder-name">&lt;Folder Name&gt;</span></div>
-          <themed-button id="folder-button" variant="secondary" size="small">Change Folder</themed-button>
-        </div>
-        <div class="selection-container">
-          <div id="description" class="description">Select Title to Update:</div>
-          <div id="empty-indicator" class="empty-indicator">
-            <span>No Bookmarks:</span> Selected folder is empty.
-          </div>
-          <div id="search-container" class="search-container">
-            <input type="text" placeholder="Filter Titles" name="search-input" id="search-input" />
-            <label for="search-input"><search-icon></search-icon></label>          
-          </div>
-          <div id="list-container" class="list-container"></div>
-        </div>
-        <div class="buttons-container">
-          <themed-button id="cancel-button">Cancel</themed-button>
-          <themed-button id="confirm-button" disabled>Confirm</themed-button>
-        </div>
-      `;
-
-      this.setupSearch();
       this.setupButtons();
+      this.shadowRoot.getElementById('search-input')
+        .addEventListener('keyup', (event) => this.searchHandler(event));
     }
 
-    setupSearch() {
-      const searchBar = this.shadowRoot.getElementById('search-input');
+    searchHandler(event) {
+      const searchValue = event.target.value;
+      const searchTokens = searchValue ? searchValue.toLowerCase().split(/\s+/) : [];
       const listContainer = this.shadowRoot.getElementById('list-container');
+      const listItems = Array.from(listContainer.getElementsByClassName('bookmark-title'));
 
-      searchBar.addEventListener("keyup", () => {
-        const value = searchBar.value.toLowerCase();
-        if (this.#changeFolderMode) {
-          var listItems = Array.from(listContainer.getElementsByClassName('folder-selection'));
-        } else {
-          var listItems = Array.from(listContainer.getElementsByClassName('bookmark-title'));
-        }
-        if (value === '') {
-          listItems.forEach(item => {
+      let hasBookmarks = false;
+      if (!searchTokens.length) {
+        hasBookmarks = true;
+        listItems.forEach(item => {
+          item.classList.remove('hidden');
+        });
+      } else {
+        listItems.forEach(item => {
+          const itemValue = item.querySelector('input').value.toLowerCase();
+          if (searchTokens.every(token => itemValue.includes(token))) {
+            hasBookmarks = true;
             item.classList.remove('hidden');
-          });
-        } else {
-          listItems.forEach(item => {
-            if (this.#changeFolderMode) {
-              var itemName = item.textContent.toLowerCase();
-            } else {
-              var itemName = item.querySelector('span').textContent.toLowerCase();
-            }
-            if (itemName.includes(value)) {
-              item.classList.remove('hidden');
-            } else {
-              item.classList.add('hidden');
-            }
-          });
-        }
-      });
+          } else {
+            item.classList.add('hidden');
+          }
+        });
+      }
+
+      const emptyIndicator = this.shadowRoot.getElementById('empty-indicator');
+      if (hasBookmarks) {
+        emptyIndicator.classList.add('hidden');
+      } else {
+        emptyIndicator.classList.remove('hidden');
+      }
     }
 
     setupButtons() {
-      const folderButton = this.shadowRoot.getElementById('folder-button');
-      const cancelButton = this.shadowRoot.getElementById('cancel-button');
       const confirmButton = this.shadowRoot.getElementById('confirm-button');
-
-      folderButton.addEventListener('click', () => {
-        this.changeMode(true);
-
-        getFolderNames()
-        .then((folderNames) => {
-          if (folderNames.length === 0) {
-            this.setEmptyIndicator(
-              true, 
-              `<span>No Folders:</span> Mangamark has no titles to update.`
-            );
-          } else {
-            this.setEmptyIndicator(false);
-          }
-          const fragment = document.createDocumentFragment();
-          folderNames.forEach(folder => {
-            fragment.appendChild(this.createFolderListing(folder));
-          });
-          const listContainer = this.shadowRoot.getElementById('list-container');
-          listContainer.replaceChildren(fragment);
-        });
-      });
+      const cancelButton = this.shadowRoot.getElementById('cancel-button');
 
       confirmButton.addEventListener('click', () => {
         this.dispatchEvent(
           new CustomEvent('closeTitleScreen', {
             detail: {
               action: 'confirm',
-              updateTitle: this.selectedTitle,
+              updateInfo: {...this.#selectedBookmark},
             },
           })
         );
@@ -134,7 +112,7 @@ customElements.define(
           new CustomEvent('closeTitleScreen', {
             detail: {
               action: 'cancel',
-              updateTitle: '',
+              updateInfo: '',
             },
           })
         );
@@ -143,92 +121,127 @@ customElements.define(
     }
 
     closeScreen() {
+      this.#selectedBookmark = {};
+      const updateTitle = this.shadowRoot.getElementById('update-title');
+      updateTitle.textContent = 'No Title Selected';
+      updateTitle.classList.add('red-text');
+      const searchInput = this.shadowRoot.getElementById('search-input');
+      searchInput.value = '';
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      confirmButton.disabled = true;
       this.open = false;
-      this.changeMode(false);
     }
 
-    openScreen(currentFolder) {
-      const folderName = this.shadowRoot.getElementById('folder-name');
-      folderName.textContent = currentFolder;
-      this.populateBookmarkList(currentFolder);
+    async openScreen() {
+      await this.#getBookmarkData();
+      this.#populateBookmarkList();
+      this.#populateFolderOptions();
       this.open = true;
     }
 
-    populateBookmarkList(folderName) {
-      getMangamarkSubTree()
-      .then((tree) => {
-        const mangamarkContents = tree[0].children;
-        let folder;
-        for (const item of mangamarkContents) {
-          if (item.children && item.title === folderName) {
-            folder = item.children;
-            break;
+    async #getBookmarkData() {
+      this.#bookmarkData = {};
+      const tree = await getMangamarkSubTree();
+      for (const node of tree[0].children) {
+        if (node.children) {
+          const folderContents = {Reading: []};
+          for (const folderNode of node.children) {
+            if (folderNode.url) {
+              const matches = folderNode.title.match(bookmarkRegex());
+              if (!matches) {
+                continue;
+              }
+              folderContents.Reading.push(folderNode.title);
+            } else if (folderNode.children) {
+              const validSubfolders = ['Completed', 'Plan to Read', 'Re-Reading', 'On Hold'];
+              if (validSubfolders.includes(folderNode.title)) {
+                folderContents[folderNode.title] = this.#getSubfolderBookmarks(folderNode.children);
+              }
+            }
           }
+          this.#bookmarkData[node.title] = folderContents;
         }
-
-        const fragment = document.createDocumentFragment();
-        const titles = folder ? this.getFolderTitles(folder) : [];
-
-        if (titles.length === 0) {
-          this.setEmptyIndicator(
-            true, 
-            `<span>No Bookmarks:</span> Selected folder is empty.`
-          );
-        } else {
-          this.setEmptyIndicator(false);
-        }
-
-        titles.forEach(title => {
-          fragment.appendChild(this.createBookmarkListing(title));
-        });
-        const listContainer = this.shadowRoot.getElementById('list-container');
-        listContainer.replaceChildren(fragment);
-      });
-    }
-
-    getFolderTitles(folder, getSubFolderTitle=true) {
-      const titles = [];
-      folder.forEach(item => {
-        if (item.url) {
-          const bookmark = this.getTitleAndChapter(item.title);
-          if (bookmark) {
-            titles.push({...bookmark, bookmarkTitle: item.title});
-          }
-        } else if (getSubFolderTitle && item.children) {
-          titles.push(...this.getFolderTitles(item.children, false));
-        }
-      });
-      return titles;
-    }
-
-    getTitleAndChapter(bookmarkTitle) {
-      const matches = bookmarkTitle.match(bookmarkRegex());
-      if (!matches) {
-        return '';
-      } else {
-        return {contentTitle: matches[1], chapter: matches[2]};
       }
     }
 
-    createBookmarkListing(bookmark) {
+    #getSubfolderBookmarks(tree) {
+      const bookmarks = [];
+      for (const node of tree) {
+        if (node.url) {
+          const matches = node.title.match(bookmarkRegex());
+          if (!matches) {
+            continue;
+          }
+          bookmarks.push(node.title)
+        }
+      }
+      return bookmarks;
+    }
+
+    #populateBookmarkList() {
+      const fragment = document.createDocumentFragment();
+
+      let hasBookmarks = false;
+      for (const folderName in this.#bookmarkData) {
+        const subfolders = this.#bookmarkData[folderName];
+        for (const subfolderName in subfolders) {
+          const bookmarks = subfolders[subfolderName];
+          bookmarks.forEach(title => {
+            hasBookmarks = true;
+            const listElement = this.createBookmarkListing(folderName, subfolderName, title);
+            fragment.appendChild(listElement);
+          });
+        }
+      }
+
+      const list = this.shadowRoot.getElementById('list-container');
+      list.replaceChildren(fragment);
+
+      const emptyIndicator = this.shadowRoot.getElementById('empty-indicator');
+      if (hasBookmarks) {
+        emptyIndicator.classList.add('hidden');
+      } else {
+        emptyIndicator.classList.remove('hidden');
+      }
+    }
+
+    createBookmarkListing(folder, readingStatus, bookmarkTitle) {
       const container = document.createElement('div');
       container.classList.add('bookmark-title');
+      const matches = bookmarkTitle.match(bookmarkRegex());
 
       const input = document.createElement('input');
       input.type = 'radio';
       input.name = 'update-option';
-      input.value = bookmark.bookmarkTitle;
-      input.id = bookmark.bookmarkTitle;
+      input.value = folder + matches[1];
+      input.id = folder + bookmarkTitle;
 
       const label = document.createElement('label');
-      label.htmlFor = bookmark.bookmarkTitle;
+      label.htmlFor = folder + bookmarkTitle;
 
-      const span = document.createElement('span');
-      span.textContent = `${bookmark.contentTitle} - ${bookmark.chapter}`;
+      const infoContainer = document.createElement('div');
+
+      const titleAndChapter = document.createElement('div');
+      titleAndChapter.textContent = `${matches[1]} - ${matches[2]}`;
+      titleAndChapter.classList.add('title-info');
+
+      const folderInfoContainer = document.createElement('div');
+      folderInfoContainer.classList.add('folder-info');
+
+      const folderElement = document.createElement('div');
+      folderElement.textContent = `Folder: ${folder}`;
+      const readingStatusElement = document.createElement('div');
+      readingStatusElement.textContent = `Reading Status: ${readingStatus}`;
+
+      folderInfoContainer.appendChild(folderElement);
+      folderInfoContainer.appendChild(readingStatusElement);
+
+      infoContainer.appendChild(titleAndChapter);
+      infoContainer.appendChild(folderInfoContainer);
 
       const doneIcon = document.createElement('done-icon');
 
-      label.appendChild(span);
+      label.appendChild(infoContainer);
       label.appendChild(doneIcon);
 
       container.appendChild(input);
@@ -237,68 +250,24 @@ customElements.define(
       const updateTitle = this.shadowRoot.getElementById('update-title');
       const confirmButton = this.shadowRoot.getElementById('confirm-button');
       input.addEventListener('change', () => {
-        this.selectedTitle = input.value;
-        updateTitle.textContent = bookmark.contentTitle;
+        this.#selectedBookmark = {folder: folder, readingStatus: readingStatus, bookmarkTitle: bookmarkTitle};
+        updateTitle.textContent = matches[1];
         updateTitle.classList.remove('red-text');
         confirmButton.disabled = false;
       });
       return container;
     }
 
-    createFolderListing(folderName) {
-      const folderElement = document.createElement('div');
-      folderElement.classList.add('folder-selection');
-      folderElement.textContent = folderName;
-
-      folderElement.addEventListener('click', () => {
-        this.changeMode(false);
-        this.openScreen(folderName);
-      });
-      return folderElement;
-    }
-
-    changeMode(folderMode) {
-      this.selectedTitle = '';
-      const updateTitle = this.shadowRoot.getElementById('update-title');
-      updateTitle.textContent = 'No Title Selected';
-      updateTitle.classList.add('red-text');
-      const searchBar = this.shadowRoot.getElementById('search-input');
-      searchBar.value = '';
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');
-      confirmButton.disabled = true;
-
-      const updatepdateIndicator = this.shadowRoot.getElementById('update-indicator');
-      const description = this.shadowRoot.getElementById('description');
-      const searchInput = this.shadowRoot.getElementById('search-input');
-      const folderButton = this.shadowRoot.getElementById('folder-button');
-      if (folderMode) {
-        this.#changeFolderMode = true;
-        updatepdateIndicator.classList.add('blur-text');
-        updateTitle.classList.add('blur-text');
-        description.textContent = 'Select Folder:';
-        searchInput.placeholder = 'Filter Folders';
-        folderButton.disabled = true;
-      } else {
-        this.#changeFolderMode = false;
-        updatepdateIndicator.classList.remove('blur-text');
-        updateTitle.classList.remove('blur-text');
-        description.textContent = 'Select Title to Update:';
-        searchInput.placeholder = 'Filter Titles';
-        folderButton.disabled = false;
+    #populateFolderOptions() {
+      const fragement = document.createDocumentFragment();
+      for (const folder in this.#bookmarkData) {
+        const option = document.createElement('option');
+        option.value = folder;
+        fragement.appendChild(option);
       }
-    }
 
-    setEmptyIndicator(show, message='') {
-      const searchContainer = this.shadowRoot.getElementById('search-container');
-      const emptyIndicator = this.shadowRoot.getElementById('empty-indicator');
-      emptyIndicator.innerHTML = message;
-      if (show) {
-        emptyIndicator.classList.remove('hidden');
-        searchContainer.classList.add('hidden');
-      } else {
-        emptyIndicator.classList.add('hidden');
-        searchContainer.classList.remove('hidden');
-      }
+      const folderOptions = this.shadowRoot.getElementById('folder-options');
+      folderOptions.replaceChildren(fragement);
     }
   }
 )

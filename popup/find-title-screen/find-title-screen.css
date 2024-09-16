@@ -9,16 +9,7 @@
 }
 
 .title-container {
-  font-size: 20px;
-}
-
-.folder-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.folder-container div {
+  min-height: 3em;
   font-size: 20px;
 }
 
@@ -36,17 +27,11 @@
 }
 
 .empty-indicator {
+  display: block;
   padding: 10px 30px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
   font-size: 20px;
-  color: var(--offWhite);
-
-  span {
-    font-weight: bold;
-    color: var(--warning);
-  }
+  font-weight: bold;
+  color: var(--warning);
 }
 
 .search-container {
@@ -78,11 +63,15 @@
     position: absolute;
     right: 30px;
   }
+
+  input::-webkit-calendar-picker-indicator {
+    margin-bottom: 9px;
+  }
 }
 
 .list-container {
   padding-bottom: 10px;
-  max-height: 205px;
+  max-height: 230px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--offWhite30) var(--secondary-background);
@@ -97,6 +86,7 @@
   }
 
   label {
+    cursor: pointer;
     border-radius: 12px;
     padding: 8px 15px;
     display: flex;
@@ -109,12 +99,12 @@
   }
 
   label done-icon {
-    display: none;
+    visibility: hidden;
     color: var(--approval);
   }
 
   input:checked + label done-icon {
-    display: block;
+    visibility: visible;
   }
 
   input:checked + label {
@@ -122,15 +112,14 @@
   }
 }
 
-.folder-selection {
-  margin: 0 5px;
-  border-radius: 12px;
-  padding: 8px 15px;
+.title-info {
   font-size: 16px;
+  font-weight: bold;
+}
 
-  &:hover {
-    background-color: var(--offWhite10);
-  }
+.folder-info {
+  padding-left: 10px;
+  font-size: 12px;
 }
 
 .buttons-container {
@@ -142,14 +131,6 @@
 
 .red-text {
   color: var(--warning);
-}
-
-.blur-text {
-  color: var(--offWhite30);
-}
-
-.blur-text.red-text {
-  color: var(--warning30);
 }
 
 .hidden {
