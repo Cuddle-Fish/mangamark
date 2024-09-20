@@ -5,26 +5,94 @@ import "/components/themed-button/themed-button.js";
 import "/components/tag-input/tag-input.js";
 import "/components/tag-elements/tag-li.js";
 
+const cardTemplate = document.createElement('template');
+cardTemplate.innerHTML = /* html */ `
+  <style>
+    @import "/components/bookmark-card/bookmark-card.css";
+  </style>
+  <div class="highlight-container">
+    <div class="card-container">
+      <a id="card-anchor" href="" class="card">
+        <div class="link-container">
+          <div id="bookmark-title" class="title">Bookmark Title</div>
+          <div class="chapter">
+            <span>Chapter</span>
+            <span id="bookmark-chapter">##</span>
+          </div>
+          <div class="domain-date">
+            <div id="bookmark-domain">Domain</div>
+            <time id="bookmark-date-created"></time>
+          </div>
+        </div>
+      </a>
+      <div class="tags-and-edit-button-container">
+        <ul id="bookmark-tags"></ul>
+        <button id="edit-button" title="Edit Bookmark"><edit-icon></edit-icon></button>
+      </div>
+    </div>
+  </div>
+  <div id="options-wrapper" class="options-wrapper"></div>
+`;
+
+const optionsTemplate = document.createElement('template');
+optionsTemplate.innerHTML = /* html */ `
+  <div class="options-container">
+    <div class="info-container">
+      <info-icon></info-icon>
+      <span id="info-text">Select action to perform</span>
+    </div>
+    <div id="options-menu" class="edit-nav">
+      <themed-button id="open-tag-option">Edit Tags</themed-button>
+      <themed-button id="open-reading-status-option">Reading Status</themed-button>
+      <themed-button id="open-delete-option" variant="warning">Delete Bookmark</themed-button>
+      <themed-button id="close-button">Close</themed-button>
+    </div>
+    <tag-input id="edit-tags" class="hidden"></tag-input>
+    <div id="edit-reading-status" class="reading-status-container hidden">
+      <div>
+        <input type="radio" id="reading" name="reading-status-input" value="reading" />
+        <label for="reading">Reading</label>
+      </div>
+      <div>
+        <input type="radio" id="completed" name="reading-status-input" value="Completed" />
+        <label for="completed" class="green-highlight">Completed</label>
+      </div>
+      <div>
+        <input type="radio" id="plan-to-read" name="reading-status-input" value="Plan to Read" />
+        <label for="plan-to-read" class="orange-highlight">Plan to Read</label>
+      </div>
+      <div>
+        <input type="radio" id="re-reading" name="reading-status-input" value="Re-Reading" />
+        <label for="re-reading" class="purple-highlight">Re-Reading</label>
+      </div>
+      <div>
+        <input type="radio" id="on-hold" name="reading-status-input" value="On Hold" />
+        <label for="on-hold" class="red-highlight">On Hold</label>
+      </div>
+    </div>
+    <div id="warning-text" class="warning-text hidden">WARNING: This action is permanent</div>
+    <div id="cancel-confirm-option" class="edit-options hidden">
+      <themed-button id="confirm-button">Confirm</themed-button>
+      <themed-button id="cancel-button">Cancel</themed-button>
+    </div>
+  </div>
+`;
+
 customElements.define(
   'bookmark-card',
   class extends HTMLElement {
     #folderName;
+    #editingOptions = Object.freeze({
+      closed: 0,
+      menu: 1,
+      tags: 2,
+      readingStatus: 3,
+      delete: 4
+    });
+    #editingState = this.#editingOptions.closed;
 
     static get observedAttributes() {
-      return ['state', 'readingStatus'];
-    }
-
-    get state() {
-      return this.getAttribute('state');
-    }
-
-    set state(value) {
-      const validStates = ['default', 'editing', 'tags', 'readingStatus', 'delete'];
-      if (validStates.includes(value)) {
-        this.setAttribute('state', value);
-      } else {
-        this.setAttribute('state', 'default');
-      }
+      return ['readingStatus'];
     }
 
     get readingStatus() {
@@ -32,18 +100,201 @@ customElements.define(
     }
 
     set readingStatus(value) {
-      const formattedValue = value.replace(/\s+/g, '-').toLowerCase();
-      const validStatuses = ['reading', 'completed', 'plan-to-read', 're-reading', 'on-hold'];
-      if (formattedValue === '') {
+      const validStatuses = ['reading', 'Completed', 'Plan to Read', 'Re-Reading', 'On Hold'];
+      if (value === '') {
         this.removeAttribute('readingStatus');
-      } else if (validStatuses.includes(formattedValue)) {
-        this.setAttribute('readingStatus', formattedValue);
+      } else if (validStatuses.includes(value)) {
+        this.setAttribute('readingStatus', value);
       }
     }
 
     constructor() {
       super();
-      this.attachShadow({ mode: 'open'});
+      const shadowRoot = this.attachShadow({ mode: 'open'});
+      shadowRoot.appendChild(cardTemplate.content.cloneNode(true));
+    }
+
+    connectedCallback() {
+      this.setupCardEventListeners();
+    }
+
+    setupCardEventListeners() {
+      const editButton = this.shadowRoot.getElementById('edit-button');
+      editButton.addEventListener('click', (event) => this.toggleOptions());
+    }
+
+    toggleOptions() {
+      const optionsWrapper = this.shadowRoot.getElementById('options-wrapper');
+      if (this.#editingState === this.#editingOptions.closed) {
+        this.#editingState = this.#editingOptions.menu;
+        optionsWrapper.replaceChildren(optionsTemplate.content.cloneNode(true));
+        this.setupOptionsEventListeners();
+      } else {
+        this.#editingState = this.#editingOptions.closed;
+        optionsWrapper.replaceChildren();
+      }
+    }
+
+    setupOptionsEventListeners() {
+      const editTagsButtons = this.shadowRoot.getElementById('open-tag-option');
+      editTagsButtons.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.tags));
+      this.setupChangeTagsInput();
+
+      const editReadingStatusButton = this.shadowRoot.getElementById('open-reading-status-option');
+      editReadingStatusButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.readingStatus));
+      this.setupChangeReadingStatus();
+
+      const editDeleteButton = this.shadowRoot.getElementById('open-delete-option');
+      editDeleteButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.delete));
+
+      const closeButton = this.shadowRoot.getElementById('close-button');
+      closeButton.addEventListener('click', (event) => this.toggleOptions());
+
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      confirmButton.addEventListener('click', (event) => this.#confirmButtonHandler());
+      
+      const cancelButton = this.shadowRoot.getElementById('cancel-button');
+      cancelButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.menu));
+    }
+
+    setupChangeTagsInput() {
+      const tagsInput = this.shadowRoot.getElementById('edit-tags');
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');      
+      tagsInput.addEventListener('tagChange', (event) => {
+        const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
+        const currentTags = Array.from(bookmarkTags.children, li => li.textContent);
+        if (event.target.equals(currentTags)) {
+          confirmButton.disabled = false;
+        } else {
+          confirmButton.disabled = true;
+        }
+      });
+    }
+
+    setupChangeReadingStatus() {
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      const inputs = this.shadowRoot.querySelectorAll('input[name="reading-status-input"]');
+      inputs.forEach(input => {
+        input.addEventListener('change', () => {
+          if (input.value === this.readingStatus) {
+            confirmButton.disabled = true;
+          } else {
+            confirmButton.disabled = false;
+          }
+        });
+      });
+    }
+
+    selectEditOption(newEditingOption) {
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      switch (this.#editingState) {
+        case this.#editingOptions.menu:
+          const optionsMenu = this.shadowRoot.getElementById('options-menu');
+          optionsMenu.classList.add('hidden');
+          break;
+        case this.#editingOptions.tags:
+          const tagsInput = this.shadowRoot.getElementById('edit-tags');
+          tagsInput.classList.add('hidden');
+          break;
+        case this.#editingOptions.readingStatus:
+          const editReadingStatus = this.shadowRoot.getElementById('edit-reading-status');
+          editReadingStatus.classList.add('hidden');
+          break;
+        case this.#editingOptions.delete:
+          const warningText = this.shadowRoot.getElementById('warning-text');
+          warningText.classList.add('hidden');
+          confirmButton.variant = '';
+          break;
+        default:
+          break;
+      }
+
+      const cancelConfirm = this.shadowRoot.getElementById('cancel-confirm-option');
+      if (newEditingOption === this.#editingOptions.menu) {
+        cancelConfirm.classList.add('hidden');
+      } else {
+        cancelConfirm.classList.remove('hidden');
+      }
+
+      this.#editingState = newEditingOption;
+      confirmButton.disabled = true;
+      switch (newEditingOption) {
+        case this.#editingOptions.menu:
+          this.#openOptionsMenu();
+          break;
+        case this.#editingOptions.tags:
+          this.#openTagOption();
+          break;
+        case this.#editingOptions.readingStatus:
+          this.#openReadingStatusOption();
+          break;
+        case this.#editingOptions.delete:
+          this.#openDeleteOption();
+          break;
+        default:
+          break;
+      }
+    }
+
+    #openOptionsMenu() {
+      this.changeInfoText('Select action to perform');
+      const optionsMenu = this.shadowRoot.getElementById('options-menu');
+      optionsMenu.classList.remove('hidden');
+    }
+
+    #openTagOption() {
+      this.changeInfoText('Input any desired tag name or click on an existing tag to remove.');
+      const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
+      const tagList = Array.from(bookmarkTags.children, li => li.textContent);
+      const tagsInput = this.shadowRoot.getElementById('edit-tags');
+      tagsInput.replaceAllTags(tagList);
+      tagsInput.clearInput();
+      tagsInput.classList.remove('hidden');
+    }
+
+    #openReadingStatusOption() {
+      this.changeInfoText('Select a new reading status.');
+      const inputForReadingStatus = this.shadowRoot.querySelector(`input[name="reading-status-input"][value="${this.readingStatus}"]`);
+      if (inputForReadingStatus) {
+        inputForReadingStatus.checked = true;
+      }
+      const editReadingStatus = this.shadowRoot.getElementById('edit-reading-status');
+      editReadingStatus.classList.remove('hidden');
+    }
+
+    #openDeleteOption() {
+      this.changeInfoText('Confirm you wish to delete this bookmark');
+      const warningText = this.shadowRoot.getElementById('warning-text');
+      warningText.classList.remove('hidden');
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      confirmButton.variant = 'warning';
+      confirmButton.disabled = false;
+    }
+
+    changeInfoText(string) {
+      const infoText = this.shadowRoot.getElementById('info-text');
+      infoText.innerHTML = string;
+    }
+
+    #confirmButtonHandler() {
+      const title = this.shadowRoot.getElementById('bookmark-title').textContent;
+      const chapter = this.shadowRoot.getElementById('bookmark-chapter').textContent;
+      const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
+      const tags = Array.from(bookmarkTags.children, li => li.textContent);
+
+      switch(this.#editingState) {
+        case this.#editingOptions.tags:
+          this.#handleTagsChange(title, chapter, tags);
+          break;
+        case this.#editingOptions.readingStatus:
+          this.#handleReadingStatusChange(title, chapter, tags);
+          break;
+        case this.#editingOptions.delete:
+          this.#handleDeleteBookmark(title, chapter, tags);
+          break;
+        default:
+          console.error('Error, bookmark-card confirm pressed in invalid state', this.#editingState);
+      }
     }
 
     initialize(title, chapterNumber, url, date, readingStatus, activeTags, domain, folderName) {
@@ -58,248 +309,76 @@ customElements.define(
         day: 'numeric'
       });
       const datetimeValue = dateObj.toISOString();
+      
+      this.shadowRoot.getElementById('card-anchor').href = url;
+      this.shadowRoot.getElementById('bookmark-title').textContent = title;
 
-      this.shadowRoot.innerHTML = /* html */ `
-        <style>
-          @import "/components/bookmark-card/bookmark-card.css";
-        </style>
-        <div class="highlight-container">
-          <div class="card-container">
-            <a href="${url}" class="card">
-              <div class="link-container">
-                <div class="title-container">
-                  <span id="bookmark-title" class="title">${title}</span>
-                  ${readingStatus !== 'reading' ? `<span class="readingStatus">${readingStatus}</span>` : ''}
-                </div>
-                <div class="chapter">
-                  <span>Chapter</span>
-                  <span id="bookmark-chapter">${chapterNumber}</span>
-                </div>
-                <div class="domain-date">
-                  <div id="bookmark-domain">${domain}</div>
-                  <time datetime="${datetimeValue}">${displayDate}</time>
-                </div>
-              </div>
-            </a>
-            <div class="tags-and-edit-button-container">
-              <ul id="bookmark-tags">
-                ${activeTags.length > 0
-                  ? activeTags.map(tag => `<tag-li>${tag}</tag-li>`).join('')
-                  : ''
-                }
-              </ul>
-              <button id="edit-button" title="Edit Bookmark"><edit-icon></edit-icon></button>                
-            </div>
-          </div>
-        </div>
-        <div class="edit-container">
-          <div class="info-container">
-            <info-icon></info-icon>
-            <span id="info-text">Select action to perform</span>
-          </div>
-          <div class="edit-nav">
-            <themed-button id="tag-option">Edit Tags</themed-button>
-            <themed-button id="status-option">Reading Status</themed-button>
-            <themed-button id="delete-option" variant="warning">Delete Bookmark</themed-button>
-            <themed-button id="close-button">Close</themed-button>        
-          </div>
-          <tag-input id="edit-tags"></tag-input>
-          <div class="reading-status-container">
-            <div>
-              <input type="radio" id="reading" name="reading-status-input" value="reading" />
-              <label for="reading">Reading</label>
-            </div>
-            <div>
-              <input type="radio" id="completed" name="reading-status-input" value="completed" />
-              <label for="completed" class="green-highlight">Completed</label>
-            </div>
-            <div>
-              <input type="radio" id="plan-to-read" name="reading-status-input" value="plan-to-read" />
-              <label for="plan-to-read" class="orange-highlight">Plan to Read</label>
-            </div>
-            <div>
-              <input type="radio" id="re-reading" name="reading-status-input" value="re-reading" />
-              <label for="re-reading" class="purple-highlight">Re-Reading</label>
-            </div>
-            <div>
-              <input type="radio" id="on-hold" name="reading-status-input" value="on-hold" />
-              <label for="on-hold" class="red-highlight">On Hold</label>
-            </div>
-          </div>
-          <div class="warning-text">WARNING: This action is permanent</div>
-          <div class="edit-options">
-            <themed-button id="confirm-button">Confirm</themed-button>
-            <themed-button id="cancel-button">Cancel</themed-button>
-          </div>
-        </div>
-      `;
+      this.shadowRoot.getElementById('bookmark-chapter').textContent = chapterNumber;
+      this.shadowRoot.getElementById('bookmark-domain').textContent = domain;
 
-      this.initializeButtons();
-      this.initializeReadingInput(readingStatus);
-      this.initializeTagInput();
+      const dateCreatedElement = this.shadowRoot.getElementById('bookmark-date-created');
+      dateCreatedElement.dateTime = datetimeValue;
+      dateCreatedElement.textContent = displayDate;
+
+      this.#replaceCardTags(activeTags);
     }
 
-    initializeButtons() {
-      const editButton = this.shadowRoot.getElementById('edit-button');
-      editButton.addEventListener('click', (event) => this.toggleOptions());
-
-      const tagsOption = this.shadowRoot.getElementById('tag-option');
-      tagsOption.addEventListener('click', (event) => this.setEditTags());
-
-      const statusOption = this.shadowRoot.getElementById('status-option');
-      statusOption.addEventListener('click', (event) => this.setEditReadingStatus());
-
-      const deleteOption = this.shadowRoot.getElementById('delete-option');
-      deleteOption.addEventListener('click', (event) => this.setEditDelete());
-
-      const closeButton = this.shadowRoot.getElementById('close-button');
-      closeButton.addEventListener('click', (event) => this.toggleOptions());
-
-      const cancelButton = this.shadowRoot.getElementById('cancel-button');
-      cancelButton.addEventListener('click', (event) => this.setEditing());
-
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');
-      confirmButton.addEventListener('click', () => {
-        const title = this.shadowRoot.getElementById('bookmark-title').textContent;
-        const chapter = this.shadowRoot.getElementById('bookmark-chapter').textContent;
-        const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-        const tags = Array.from(bookmarkTags.children, li => li.textContent);
-
-        switch(this.state) {
-          case 'tags':
-            this.handleTagsChange(title, chapter, tags);
-            break;
-          case 'readingStatus':
-            this.handleReadingStatusChange(title, chapter, tags);
-            break;
-          case 'delete':
-            removeBookmark(this.#folderName, {title: title, chapter: chapter, tags: tags});
-            break;
-          default:
-            console.error('Error, bookmark-card confirm pressed in invalid state', this.state);
-        }
+    #replaceCardTags(newTags) {
+      const fragment = document.createDocumentFragment();
+      newTags.forEach(tag => {
+        const li = document.createElement('tag-li');
+        li.textContent = tag;
+        fragment.appendChild(li);
       });
-    }
-
-    initializeReadingInput(currentStatus) {
-      const inputs = this.shadowRoot.querySelectorAll('input[name="reading-status-input"]');
-      inputs.forEach(input => {
-        if (input.value === currentStatus) {
-          input.checked = true;
-        }
-
-        input.addEventListener('change', () => {
-          const confirmButton = this.shadowRoot.getElementById('confirm-button');
-          if (input.value === this.readingStatus) {
-            confirmButton.disabled = true;
-          } else {
-            confirmButton.disabled = false;
-          }
-        });
-      });
-    }
-
-    initializeTagInput() {
-      const tagsInput = this.shadowRoot.getElementById('edit-tags');
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');      
-      tagsInput.addEventListener('tagChange', (event) => {
-        const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-        const currentTags = Array.from(bookmarkTags.children, li => li.textContent);
-        if (event.target.equals(currentTags)) {
-          confirmButton.disabled = false;
-        } else {
-          confirmButton.disabled = true;
-        }
-      });
-    }
-
-    toggleOptions() {
-      if (this.state === 'default') {
-        this.setEditing();
-      } else {
-        if (this.state === 'delete') {
-          const confirmButton = this.shadowRoot.getElementById('confirm-button');
-          confirmButton.variant = '';
-        }
-        this.state = 'default';
-      }
-    }
-
-    setEditing() {
-      if (this.state === 'tags') {
-        const tagsInput = this.shadowRoot.getElementById('edit-tags');
-        tagsInput.clearInput();
-      } else if (this.state === 'delete') {
-        const confirmButton = this.shadowRoot.getElementById('confirm-button');
-        confirmButton.variant = '';
-      } 
-      this.changeInfoText('Select action to perform');
-      this.state = 'editing';
-    }
-
-    setEditTags() {
-      this.changeInfoText('Input any desired tag name or click on an existing tag to remove.');
-      this.state = 'tags';
       const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-      const tagList = Array.from(bookmarkTags.children, li => li.textContent);
-      const tagsInput = this.shadowRoot.getElementById('edit-tags');
-      tagsInput.replaceAllTags(tagList);
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');
-      confirmButton.disabled = true;
+      bookmarkTags.replaceChildren(fragment);
     }
 
-    setEditReadingStatus() {
-      const currentStatusInput = this.shadowRoot.querySelector(`input[name="reading-status-input"][value="${this.readingStatus}"]`);
-      if (currentStatusInput) {
-        currentStatusInput.checked = true;
-      }
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');
-      confirmButton.disabled = true;
-      this.changeInfoText('Select a new reading status.');
-      this.state = 'readingStatus';
-    }
-
-    setEditDelete() {
-      this.changeInfoText('Confirm you wish to delete this bookmark');
-      this.state = 'delete';
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');
-      confirmButton.variant = 'warning';
-      confirmButton.disabled = false;
-    }
-
-    changeInfoText(string) {
-      const infoText = this.shadowRoot.getElementById('info-text');
-      infoText.innerHTML = string;
-    }
-
-    handleTagsChange(title, chapter, tags) {
+    #handleTagsChange(title, chapter, oldTags) {
       const newTags = this.shadowRoot.getElementById('edit-tags').getTags();
-      updateBookmarkTags(title, chapter, this.#folderName, tags, newTags)
-      .then(() => {
-        const fragment = document.createDocumentFragment();
-        newTags.forEach(tag => {
-          const li = document.createElement('tag-li');
-          li.textContent = tag;
-          fragment.appendChild(li);
+      updateBookmarkTags(title, chapter, this.#folderName, oldTags, newTags, true)
+        .then(() => {
+          this.#replaceCardTags(newTags);
+          this.selectEditOption(this.#editingOptions.menu);
+          this.dispatchEvent(
+            new CustomEvent('tagsChanged', {
+              bubbles: true,
+              composed: true,
+              detail: {
+                folder: this.#folderName,
+                readingStatus: this.readingStatus,
+                title: title,
+                newTags: newTags
+              }
+            })
+          );
         });
-        const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-        bookmarkTags.replaceChildren(fragment);
-      });
     }
 
-    handleReadingStatusChange(title, chapter, tags) {
-      const statusMap = {
-        'reading': 'reading',
-        'completed': 'Completed',
-        'plan-to-read': 'Plan to Read',
-        're-reading': 'Re-Reading',
-        'on-hold': 'On Hold'
-      };
+    #handleReadingStatusChange(title, chapter, tags) {
       const checkedInput = this.shadowRoot.querySelector('input[name="reading-status-input"]:checked');
-      const newSubFolder = statusMap[checkedInput.value];
+      const newSubFolder = checkedInput.value;
 
-      changeSubFolder(title, chapter, this.#folderName, tags, newSubFolder)
-      .then(() => this.readingStatus = checkedInput.value);
+      changeSubFolder(title, chapter, this.#folderName, tags, newSubFolder, true)
+        .then(() => {
+          this.readingStatus = checkedInput.value
+          this.selectEditOption(this.#editingOptions.menu);
+          this.dispatchEvent(
+            new CustomEvent('readingStatusChanged', {
+              bubbles: true,
+              composed: true,
+              detail: {
+                folder: this.#folderName,
+                title: title,
+                newReadingStatus: checkedInput.value
+              }
+            })
+          );
+        });
+    }
+
+    #handleDeleteBookmark(title, chapter, tags) {
+      removeBookmark(this.#folderName, {title: title, chapter: chapter, tags: tags});
     }
   }
 );

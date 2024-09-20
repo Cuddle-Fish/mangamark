@@ -100,6 +100,50 @@ class Folder {
       return matchesTags && matchesTokens;
     });
   }
+
+  moveBookmark(title, subFolderName) {
+    const validSubfolders = ['reading', 'Completed', 'Plan to Read', 'Re-Reading', 'On Hold'];
+    if (!validSubfolders.includes(subFolderName)) {
+      console.error(`Invalid subfolder name '${subFolderName}'`);
+      return;
+    }
+
+    const findAndRemoveBookmark = (folder) => {
+      const index = folder.bookmarks.findIndex(bookmark => bookmark.title === title);
+      if (index !== -1) {
+        const bookmark = folder.bookmarks[index];
+        folder.bookmarks.splice(index, 1);
+        return bookmark;
+      } else {
+        return null;        
+      }
+    };
+
+    let bookmark = findAndRemoveBookmark(this);
+    if (!bookmark) {
+      for (const subfolder of this.subfolders) {
+        bookmark = findAndRemoveBookmark(subfolder);
+        if (bookmark) break;
+      }
+    }
+
+    if (!bookmark) {
+      console.error(`Could not find bookmark '${title}' in folder '${this.name}'`);
+      return;
+    }
+
+    if (subFolderName === 'reading') {
+      this.bookmarks.push(bookmark);
+    } else {
+      let subfolder = this.subfolders.find(folder => folder.name === subFolderName);
+      if (!subfolder) {
+        subfolder = new Folder(subFolderName, []);
+        this.subfolders.push(subfolder);
+      }
+      subfolder.bookmarks.push(bookmark);
+    }
+    bookmark.readingStatus = subFolderName;
+  }
 }
 
 class Bookmark {
@@ -194,6 +238,9 @@ function setupEventListeners() {
   document.getElementById('filter-tags-input').addEventListener('tagChange', tagFilterHandler);
   document.getElementById('toggle-filter-input').addEventListener('click', toggleFilterHandler);
   document.getElementById('remove-filters').addEventListener('click', removeTagFiltersHandler);
+
+  document.addEventListener('readingStatusChanged', readingStatusChangeHandler);
+  document.addEventListener('tagsChanged', tagsChangeHandler);
 }
 
 function openSideNav() {
@@ -308,6 +355,47 @@ function removeTagFiltersHandler(event) {
   tagsInput.replaceAllTags([]);
   event.target.disabled = true;
   displayBookmarks();
+}
+
+function readingStatusChangeHandler(event) {
+  const {folder, title, newReadingStatus} = event.detail;
+  const bookmarkFolder = _bookmarkFolders.find(currentFolder => currentFolder.name === folder);
+  if (!bookmarkFolder) {
+    console.error(`Could not find folder '${folder}'`);
+    return;
+  }
+  bookmarkFolder.moveBookmark(title, newReadingStatus);
+  const selectedStatus = document.getElementById('toggle-status-display').selected;
+  if (selectedStatus !== 'all' && selectedStatus !== newReadingStatus) {
+    event.target.remove();
+  }
+}
+
+function tagsChangeHandler(event) {
+  const {folder, readingStatus, title, newTags} = event.detail;
+  const bookmarkFolder = _bookmarkFolders.find(currentFolder => currentFolder.name === folder);
+  if (!bookmarkFolder) {
+    console.error(`Could not find folder '${folder}'`);
+    return;
+  }
+  let bookmark;
+  if (readingStatus === 'reading') {
+    bookmark = bookmarkFolder.bookmarks.find(currentBookmark => currentBookmark.title === title);
+  } else {
+    const subfolder = bookmarkFolder.subfolders.find(currentFolder => currentFolder.name === readingStatus);
+    bookmark = subfolder?.bookmarks.find(currentBookmark => currentBookmark.title === title);
+  }
+
+  if (!bookmark) {
+    console.error(`Could not find bookmark with title '${title}' in folder '${folder}'`);
+    return;
+  }
+
+  bookmark.tags = newTags;
+  const searchTags = document.getElementById('filter-tags-input').getTags();
+  if (searchTags.some(tag => !newTags.includes(tag))) {
+    event.target.remove();
+  }
 }
 
 let _bookmarkFolders;

@@ -2,19 +2,19 @@
   border-radius: 5px;
 }
 
-:host([readingStatus="completed"]) .highlight-container {
+:host([readingStatus="Completed"]) .highlight-container {
   background-color: var(--approval);
 }
 
-:host([readingStatus="plan-to-read"]) .highlight-container {
+:host([readingStatus="Plan to Read"]) .highlight-container {
   background-color: var(--highlight-orange);
 }
 
-:host([readingStatus="re-reading"]) .highlight-container {
+:host([readingStatus="Re-Reading"]) .highlight-container {
   background-color: var(--highlight-purple);
 }
 
-:host([readingStatus="on-hold"]) .highlight-container {
+:host([readingStatus="On Hold"]) .highlight-container {
   background-color: var(--highlight-red);
 }
 
@@ -26,7 +26,7 @@
   background-color: var(--item-background);
 }
 
-.link-container, .tags-and-edit-button-container, .edit-container {
+.link-container, .tags-and-edit-button-container, .options-container {
   padding: 0 10px;
 }
 
@@ -50,18 +50,15 @@ a {
   font-family: inherit;
 }
 
-.title-container {
+.title {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.title {
   font-size: 24px;
   font-weight: bold;
 }
 
-.readingStatus {
+.title::after {
   padding: 0px 5px;
   border-radius: 3px;
   text-transform: uppercase;
@@ -70,19 +67,23 @@ a {
   color: var(--secondary-background);
 }
 
-:host([readingStatus="completed"]) .readingStatus {
+:host([readingStatus="Completed"]) .title::after {
+  content: "Completed";
   background-color: var(--approval);
 }
 
-:host([readingStatus="plan-to-read"]) .readingStatus {
+:host([readingStatus="Plan to Read"]) .title::after {
+  content: "Plan to Read";
   background-color: var(--highlight-orange);
 }
 
-:host([readingStatus="re-reading"]) .readingStatus {
+:host([readingStatus="Re-Reading"]) .title::after {
+  content: "Re-Reading";
   background-color: var(--highlight-purple);
 }
 
-:host([readingStatus="on-hold"]) .readingStatus {
+:host([readingStatus="On Hold"]) .title::after {
+  content: "On Hold";
   background-color: var(--highlight-red);
 }
 
@@ -115,18 +116,14 @@ button:hover {
   background-color: var(--offWhite30);
 }
 
-.edit-container {
-  display: none;
+.options-container {
+  display: flex;
   flex-direction: column;
   gap: 10px;
   margin-left: 5px;
   background-color: var(--offWhite10);
   padding-top: 10px;
   padding-bottom: 10px;
-}
-
-:host(:not([state="default"])) .edit-container {
-  display: flex;
 }
 
 .info-container {
@@ -137,26 +134,12 @@ button:hover {
 }
 
 .edit-nav, .edit-options {
-  display: none;
+  display: flex;
   gap: 10px;
   justify-content: flex-end;
 }
 
-:host([state="editing"]) .edit-nav {
-  display: flex;
-}
-
-:host([state="tags"]) .edit-options,
-:host([state="readingStatus"]) .edit-options,
-:host([state="delete"]) .edit-options {
-  display: flex;
-}
-
-:host(:not([state="readingStatus"])) .reading-status-container {
-  display: none;
-}
-
-:host([state="readingStatus"]) .reading-status-container {
+.reading-status-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 200px));
   gap: 10px;
@@ -225,16 +208,11 @@ button:hover {
 }
 
 tag-input {
-  display: none;
   padding: 0 30px;
 }
 
-:host([state="tags"]) tag-input {
-  display: block;
-}
-
 .warning-text {
-  display: none;
+  display: flex;
   justify-content: flex-end;
   text-transform: uppercase;
   font-size: 18px;
@@ -242,6 +220,6 @@ tag-input {
   color: var(--warning);
 }
 
-:host([state="delete"]) .warning-text {
-  display: flex;
+.hidden {
+  display: none !important;
 }
