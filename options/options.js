@@ -1,36 +1,65 @@
-import { getGroupsWithFolders, addGroup, getDefaultGroupName, setDefaultGroupName, setAllGroups } from "/externs/settings.js";
-import { getFolderNames, reorderFolders } from "/externs/bookmark.js";
+import { getGroupsWithFolders, addGroup, changeGroupName, getDefaultGroupName, setDefaultGroupName, setAllGroups } from "/externs/settings.js";
+import { getFolderNames, renameBookmarkFolder, reorderFolders, registerBookmarkListener } from "/externs/bookmark.js";
+
+import "/components/themed-button/themed-button.js";
+import "/components/dropdown-menu/dropdown-menu.js";
+
 import "/components/svg/arrow-back.js";
+import "/components/svg/folder-icon.js";
+import "/components/svg/side-navigation.js";
+import "/components/svg/drag-indicator.js"
 
 addEventListener('DOMContentLoaded', () => {
-  chrome.storage.sync.get()
-    .then((results) => {
-      console.log(results);
-      const listContainer = document.getElementById('sync-list');
-      Object.entries(results).forEach(([key, value]) => {
-        const outerDiv = document.createElement('div');
-        outerDiv.textContent = key;
-        outerDiv.style.fontWeight = 'bold';
-        const innerDiv = document.createElement('div');
-        if (typeof value === 'object') {
-          innerDiv.textContent = JSON.stringify(value);
-        } else {
-          innerDiv.textContent = value;          
-        }
-        innerDiv.style.fontWeight = 'normal';
-        innerDiv.style.marginLeft = '10px';
-        outerDiv.appendChild(innerDiv);
-        listContainer.appendChild(outerDiv);
-      });
-    });
-
-  setupNavigationOptions();
+  setupFolderOptions();
+  setupGroupOptions();
 });
 
 // #region Folder Options
 
+let _folders = [];
+
 function setupFolderOptions() {
-  // rename folders
+  updateFolderOptionsDisplay();
+  document.getElementById('folder-rename-select').addEventListener('DropdownChange', selectFolderRenameHandler);
+  document.getElementById('folder-rename-input').addEventListener('input', inputFolderRenameHandler);
+  document.getElementById('folder-rename-confirm').addEventListener('click', changeFolderNameHandler);
+}
+
+async function updateFolderOptionsDisplay() {
+  _folders = await getFolderNames();
+  updateFolderRenameSelection();
+}
+
+function selectFolderRenameHandler(event) {
+  const renameInput = document.getElementById('folder-rename-input');
+  renameInput.disabled = false;
+}
+
+function inputFolderRenameHandler(event) {
+  const value = event.target.value.replace(/\s+/g, ' ').trim();
+  const isInvalid = value === '' || _folders.some((folder) => folder === value);
+  const renameFolderButton = document.getElementById('folder-rename-confirm');
+  renameFolderButton.disabled = isInvalid;
+}
+
+async function changeFolderNameHandler(event) {
+  const selectedFolderName = document.getElementById('folder-rename-select').selected;
+  const newFolderName = document.getElementById('folder-rename-input').value.replace(/\s+/g, ' ').trim();
+  await renameBookmarkFolder(selectedFolderName, newFolderName);
+}
+
+function updateFolderRenameSelection() {
+  const fragement = document.createDocumentFragment();
+  _folders.forEach(folder => {
+    const option = document.createElement('option');
+    option.textContent = folder;
+    option.value = folder;
+    fragement.appendChild(option);
+  });
+
+  const renameSelect = document.getElementById('folder-rename-select');
+  renameSelect.replaceChildren(fragement);
+  renameSelect.updateOptions('');
 }
 
 // #endregion
@@ -39,139 +68,188 @@ function setupFolderOptions() {
 
 let _groups = [];
 
-async function setupNavigationOptions() {
-  await updateNavigationDisplay();
+function setupGroupOptions() {
+  updateGroupOptionsDisplay();
 
-  document.getElementById('input-group').addEventListener('input', groupInputHandler);
-  document.getElementById('create-group').addEventListener('click', createGroupHandler);
+  document.getElementById('group-create-input').addEventListener('input', groupInputHandler);
+  document.getElementById('group-create-confirm').addEventListener('click', createGroupHandler);
 
-  document.getElementById('select-default').addEventListener('change', selectDefaultHandler);
-  document.getElementById('change-default').addEventListener('click', changeDefaultHandler);
+  document.getElementById('group-rename-select').addEventListener('DropdownChange', selectGroupRenameHandler)
+  document.getElementById('group-rename-input').addEventListener('input', inputGroupRenameHandler);
+  document.getElementById('group-rename-confirm').addEventListener('click', changeGroupNameHandler);
 
-  document.getElementById('select-remove').addEventListener('change', selectRemoveHandler);
-  document.getElementById('remove-group').addEventListener('click', removeGroupHandler);
+  document.getElementById('group-default-select').addEventListener('DropdownChange', selectDefaultHandler);
+  document.getElementById('group-default-confirm').addEventListener('click', changeDefaultHandler);
 
-  document.getElementById('reset-display').addEventListener('click', updateGroupList);
-  document.getElementById('confirm-display').addEventListener('click', confirmDisplayHandler);
+  document.getElementById('group-remove-select').addEventListener('DropdownChange', selectRemoveHandler);
+  document.getElementById('group-remove-confirm').addEventListener('click', removeGroupHandler);
+
+  document.getElementById('group-display-reset').addEventListener('click', updateDisplayOrderList);
+  document.getElementById('group-display-confirm').addEventListener('click', confirmDisplayHandler);
 }
 
-async function updateNavigationDisplay() {
+async function updateGroupOptionsDisplay() {
   _groups = await getGroupsWithFolders();
+  updateGroupRenameSelection();
   updateDefaultSelection();
   updateRemoveDisplay();
-  updateGroupList();
+  updateDisplayOrderList();
 }
 
 function groupInputHandler(event) {
-  const createGroup = document.getElementById('create-group');
-  const value = event.target.value;
-  const result = _groups.some(({ name }) => name === value);
-  createGroup.disabled = result;
+  const createGroupButton = document.getElementById('group-create-confirm');
+  const value = event.target.value.replace(/\s+/g, ' ').trim();
+  const isInvalid = value === '' ||  _groups.some(({ name }) => name === value);
+  createGroupButton.disabled = isInvalid;
 }
 
 async function createGroupHandler(event) {
-  const inputGroup = document.getElementById('input-group');
-  const newGroupName = inputGroup.value;
+  const inputGroup = document.getElementById('group-create-input');
+  const newGroupName = inputGroup.value.replace(/\s+/g, ' ').trim();
   await addGroup(newGroupName);
   inputGroup.value = '';
   event.target.disabled = true;
 
-  await updateNavigationDisplay();
+  await updateGroupOptionsDisplay();
+}
+
+function selectGroupRenameHandler(event) {
+  const renameInput = document.getElementById('group-rename-input');
+  renameInput.disabled = false;
+}
+
+function inputGroupRenameHandler(event) {
+  const value = event.target.value.replace(/\s+/g, ' ').trim();
+  const isInvalid = value === '' || _groups.some(({ name }) => name === value);
+  const renameGroupButton = document.getElementById('group-rename-confirm');
+  renameGroupButton.disabled = isInvalid;
+}
+
+async function changeGroupNameHandler(event) {
+  const selectedGroupName = document.getElementById('group-rename-select').selected;
+  const newGroupName = document.getElementById('group-rename-input').value.replace(/\s+/g, ' ').trim();
+  await changeGroupName(selectedGroupName, newGroupName);
+  await updateGroupOptionsDisplay();
 }
 
 async function selectDefaultHandler(event) {
   const defaultGroup = await getDefaultGroupName();
-  const changeDefault = document.getElementById('change-default');
-  changeDefault.disabled = event.target.value === defaultGroup;
+  const changeDefaultButton = document.getElementById('group-default-confirm');
+  changeDefaultButton.disabled = event.detail === defaultGroup;
 }
 
 async function changeDefaultHandler(event) {
-  const defaultSelection = document.getElementById('select-default');
-  const newDefault = defaultSelection.value;
+  const defaultSelection = document.getElementById('group-default-select');
+  const newDefault = defaultSelection.selected;
   await setDefaultGroupName(newDefault);
-  await updateNavigationDisplay();
+  await updateGroupOptionsDisplay();
 }
 
 async function selectRemoveHandler(event) {
-  const selectedValue = event.target.value;
+  const selectedValue = event.detail;
 
-  const removeGroupElement = document.getElementById('remove-group');
+  const confirmRemoveButton = document.getElementById('group-remove-confirm');
   const defaultGroupName = await getDefaultGroupName();
-  removeGroupElement.disabled = selectedValue === '' || selectedValue === defaultGroupName;
+  confirmRemoveButton.disabled = selectedValue === defaultGroupName;
   const selectedGroup = _groups.find(({ name }) => name === selectedValue);
 
-  const relocateText = document.getElementById('relocate-text');
-  const relocateSelect = document.getElementById('select-relocation');
+  const moveFoldersText = document.getElementById('group-remove-move-text');
+  const moveFoldersSelect = document.getElementById('group-move-folders-select');
   if (selectedGroup?.numFolders) {
-    relocateText.classList.remove('obscure');
-    relocateSelect.disabled = false;
+    moveFoldersText.classList.remove('obscure');
+    moveFoldersSelect.disabled = false;
   } else {
-    relocateText.classList.add('obscure');
-    relocateSelect.disabled = true;
+    moveFoldersText.classList.add('obscure');
+    moveFoldersSelect.disabled = true;
   }
 
-  if (relocateSelect.value === selectedValue) {
-    relocateSelect.value = defaultGroupName;
+  if (moveFoldersSelect.selected === selectedValue) {
+    moveFoldersSelect.selected = defaultGroupName;
   }
 
-  for (const option of relocateSelect.options) {
+  for (const option of moveFoldersSelect.options) {
     if (option.value === selectedValue) {
-      option.disabled = true;
+      moveFoldersSelect.setInputDisabled(option.value, true);
     } else {
-      option.disabled = false;
+      moveFoldersSelect.setInputDisabled(option.value, false);
     }
   }
 }
 
 async function removeGroupHandler(event) {
   try {
-    const removeName = document.getElementById('select-remove').value;
+    const removeName = document.getElementById('group-remove-select').selected;
     const groups = await getGroupsWithFolders();
     const removeGroup  = groups.find(({ name }) => name === removeName);
-    if (removeGroup.numFolders) {
-      const relocationName = document.getElementById('select-relocation').value;
-      const relocationGroup = groups.find(({ name }) => name === relocationName);
+    const removeIndex = groups.findIndex(({ name }) => name === removeName);
+    groups.splice(removeIndex, 1);
 
+    if (removeGroup.numFolders) {
+      const relocationName = document.getElementById('group-move-folders-select').selected;
+      const relocationGroup = groups.find(({ name }) => name === relocationName);
       relocationGroup.folders.push(...removeGroup.folders);
       relocationGroup.numFolders += removeGroup.numFolders;
-
-      const removeIndex = groups.findIndex(({ name }) => name === removeName);
-      groups.splice(removeIndex, 1);
-
       const updatedFolders = groups.flatMap(({ folders }) => folders);
-      const updateGroups = groups.map(({ name, numFolders }) => ({ name, numFolders }));
-
       await reorderFolders(updatedFolders);
-      await setAllGroups(updateGroups);
-      await updateNavigationDisplay();
     }
+    
+    const updateGroups = groups.map(({ name, numFolders }) => ({ name, numFolders }));
+    await setAllGroups(updateGroups);
+    await updateGroupOptionsDisplay();
   } catch (error) {
     console.error('Error performing remove group action:', error);
   }
 }
 
 async function confirmDisplayHandler(event) {
-  const groupList = document.querySelectorAll('#group-list > .group-item');
+  const groupList = document.querySelectorAll('#group-display-list > .group-item');
   const updatedGroups = [];
   const updatedFolders = [];
 
   groupList.forEach(groupElement => {
-    const groupName = groupElement.childNodes[0].nodeValue.trim();
+    const groupName = groupElement.querySelector('.group-name-container span').textContent;
     const folderList = groupElement.querySelectorAll('.folder-list > li');
 
     const group = { name: groupName, numFolders: folderList.length };
     updatedGroups.push(group);
 
     folderList.forEach(folder => {
-      const folderName = folder.textContent.trim();
+      const folderName = folder.querySelector('.folder-name-container span').textContent;
       updatedFolders.push(folderName);
     });
   });
 
-  await setAllGroups(updatedGroups);
   await reorderFolders(updatedFolders);
+  await setAllGroups(updatedGroups);
 
-  await updateNavigationDisplay();
+  await updateGroupOptionsDisplay();
+}
+
+async function updateGroupRenameSelection() {
+  const defaultGroup = await getDefaultGroupName();
+  const fragment = document.createDocumentFragment();
+  _groups.forEach(group => {
+    const option = document.createElement('option');
+    option.value = group.name;
+    option.textContent = group.name;
+
+    if (group.name === defaultGroup) {
+      option.textContent += ' - (default)';
+    }
+
+    fragment.appendChild(option);
+  });
+
+  const renameSelect = document.getElementById('group-rename-select');
+  renameSelect.replaceChildren(fragment);
+  renameSelect.updateOptions('');
+
+  const renameInput = document.getElementById('group-rename-input');
+  renameInput.value = '';
+  renameInput.disabled = true;
+
+  const confirmRenameButton = document.getElementById('group-rename-confirm');
+  confirmRenameButton.disabled = true;
 }
 
 async function updateDefaultSelection() {
@@ -183,17 +261,17 @@ async function updateDefaultSelection() {
     option.textContent = group.name;
 
     if (group.name === defaultGroup) {
-      option.selected = true;
       option.textContent += ' - (default)';
     }
 
     fragment.appendChild(option);
   });
 
-  const selectDefault = document.getElementById('select-default');
+  const selectDefault = document.getElementById('group-default-select');
   selectDefault.replaceChildren(fragment);
+  selectDefault.updateOptions(defaultGroup);
 
-  const changeDefault = document.getElementById('change-default');
+  const changeDefault = document.getElementById('group-default-confirm');
   changeDefault.disabled = true;
 }
 
@@ -201,12 +279,6 @@ async function updateRemoveDisplay() {
   const defaultGroup = await getDefaultGroupName();
   const removeOptionsFrag = document.createDocumentFragment();
   const relocateOptionsFrag = document.createDocumentFragment();
-
-  const removeDefaultOption = document.createElement('option');
-  removeDefaultOption.value = '';
-  removeDefaultOption.textContent = '--Select Group to Remove--';
-  removeDefaultOption.selected = true;
-  removeOptionsFrag.appendChild(removeDefaultOption);
 
   for (const group of _groups) {
     const removeOption = document.createElement('option');
@@ -218,8 +290,6 @@ async function updateRemoveDisplay() {
     relocateOption.value = group.name;
 
     if (group.name === defaultGroup) {
-      removeOption.disabled = true;
-      relocateOption.selected = true;
       removeOption.textContent += ' - (default)';
       relocateOption.textContent += ' - (default)';
     } else if (!group.numFolders) {
@@ -230,28 +300,36 @@ async function updateRemoveDisplay() {
     relocateOptionsFrag.appendChild(relocateOption);
   }
 
-  const selectRemove = document.getElementById('select-remove');
-  const selectRelocate = document.getElementById('select-relocation');
+  const selectRemove = document.getElementById('group-remove-select');
+  const selectRelocate = document.getElementById('group-move-folders-select');
   selectRemove.replaceChildren(removeOptionsFrag);
+  selectRemove.updateOptions('');
+  selectRemove.setInputDisabled(defaultGroup, true);
   selectRelocate.replaceChildren(relocateOptionsFrag);
+  selectRelocate.updateOptions(defaultGroup);
+  selectRelocate.disabled = true;
 
-  const relocateText = document.getElementById('relocate-text');
+  const relocateText = document.getElementById('group-remove-move-text');
   relocateText.classList.add('obscure');
 
-  const relocateSelect = document.getElementById('select-relocation');
-  relocateSelect.disabled = true;
-
-  const removeGroup = document.getElementById('remove-group');
-  removeGroup.disabled = true;
+  const removeGroupButton = document.getElementById('group-remove-confirm');
+  removeGroupButton.disabled = true;
 }
 
-async function updateGroupList() {
+async function updateDisplayOrderList() {
   const fragment = document.createDocumentFragment();
   for (const group of _groups) {
     const groupItem = document.createElement('li');
     groupItem.classList.add('group-item');
     groupItem.draggable = true;
-    groupItem.textContent = group.name;
+    const groupNameContainer = document.createElement('div');
+    groupNameContainer.classList.add('group-name-container');
+    const groupDragIndicator = document.createElement('drag-indicator');
+    const groupNameText = document.createElement('span');
+    groupNameText.textContent = group.name;
+    groupNameContainer.appendChild(groupDragIndicator);
+    groupNameContainer.appendChild(groupNameText);
+    groupItem.appendChild(groupNameContainer);
 
     const folderList = document.createElement('ul');
     folderList.classList.add('folder-list');
@@ -259,17 +337,26 @@ async function updateGroupList() {
 
     for (const folder of group.folders) {
       const folderItem = document.createElement('li');
-      const span = document.createElement('span');
-      folderItem.appendChild(span);
-      folderItem.appendChild(document.createTextNode(folder));
+      const div = document.createElement('div');
+      div.classList.add('folder-name-container');
+      const dragIndicator = document.createElement('drag-indicator');
+      const text = document.createElement('span');
+      text.textContent = folder;
+      div.appendChild(dragIndicator);
+      div.appendChild(text);
+      folderItem.appendChild(div);
       folderItem.draggable = true;
       folderList.appendChild(folderItem);
     }
 
     fragment.appendChild(groupItem);
   }
-  const groupList = document.getElementById('group-list');
+  const groupList = document.getElementById('group-display-list');
   groupList.replaceChildren(fragment);
+  const resetButton = document.getElementById('group-display-reset');
+  resetButton.disabled = true;
+  const confirmButton = document.getElementById('group-display-confirm');
+  confirmButton.disabled = true;
   setupDragListeners();
 }
 
@@ -298,14 +385,14 @@ let _dragItem = null;
 
 function dragstartHandler(event) {
   _dragItem = event.target;
-  document.getElementById('group-list').classList.add('dragging');
+  document.getElementById('group-display-list').classList.add('dragging');
   setTimeout(() => {
     _dragItem.style.display = 'none';
   }, 0);
 }
 
 function dragendHandler(event) {
-  document.getElementById('group-list').classList.remove('dragging');
+  document.getElementById('group-display-list').classList.remove('dragging');
   setTimeout(() => {
     _dragItem.style.display = 'block';
     _dragItem = null;
@@ -344,6 +431,11 @@ function dropHandler(event) {
 
   const { insertionElement, position } = getInsertionInfo(list, items, event.clientY);
   insertionElement.insertAdjacentElement(position, _dragItem);
+
+  const resetButton = document.getElementById('group-display-reset');
+  resetButton.disabled = false;
+  const confirmButton = document.getElementById('group-display-confirm');
+  confirmButton.disabled = false;
 }
 
 function clearInsertionIndicator(list, items) {
@@ -355,7 +447,7 @@ function clearInsertionIndicator(list, items) {
 
 function getListAndItems(currentTarget) {
   if (_dragItem.classList.contains('group-item')) {
-    const listElement = document.getElementById('group-list');
+    const listElement = document.getElementById('group-display-list');
     const listItems = listElement.querySelectorAll('.group-item');
     return { list: listElement, items: listItems };
   } else {
@@ -388,3 +480,13 @@ function getListItemBelow(listItems, clientY) {
 }
 
 // #endregion
+
+registerBookmarkListener(updateFolderInformation);
+
+async function updateFolderInformation() {
+  _folders = await getFolderNames();
+  updateFolderRenameSelection();
+
+  _groups = await getGroupsWithFolders();
+  updateDisplayOrderList();
+}

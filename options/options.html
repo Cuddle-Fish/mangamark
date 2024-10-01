@@ -8,65 +8,90 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div class="side-bar">
+    <div class="left">
       <a href="/manager/manager.html" class="icon-button"><arrow-back></arrow-back></a>
       <h1>Settings</h1>
-      <a href="#folder-settings">Folders</a>
-      <a href="#navigation-settings">Navigation</a>
     </div>
 
     <div class="main">
-      <div class="main-container">
-
-      <div>
-        <h2>Sync Storage:</h2>
-        <div id="sync-list"></div>      
-      </div>
-
-      <h2 id="folder-settings">Folders</h2>
-
-      <div>
-        <div>Rename Folder:</div>
-      </div>
-
-      <h2 id="navigation-settings">Navigation</h2>
-
-      <h3>Groups</h3>
-      <div>
-        <div>New Group:</div>
-        <input id="input-group" type="text"/>
-        <button id="create-group" disabled>Create</button>
-      </div>
-
-      <div>
-        <div>Default Group:</div>
-        <select id="select-default"></select>
-        <button id="change-default" disabled>Change</button>
-      </div>
-
-      <div>
-        <div>Remove Group:</div>
-        <span>Remove:</span>
-        <select id="select-remove"></select>
-        <div>
-          <span id="relocate-text" class="obscure">Move Contents to:</span>
-          <select id="select-relocation" disabled></select>
-          <button id="remove-group" disabled>Confirm</button>        
+      <div class="section">
+        <div class="section-title">
+          <folder-icon></folder-icon>
+          <span>Folder Options</span>
+        </div>
+        <div class="section-options">
+          <div class="option">
+            <div class="option-title">Rename Folder</div>
+            <dropdown-menu id="folder-rename-select" placeholder="Select Folder" placeholder-view="replace" selected-indicator="highlight"></dropdown-menu>
+            <div class="option-row">
+              <input id="folder-rename-input" placeholder="Enter Folder Name" disabled />
+              <themed-button id="folder-rename-confirm" disabled>Confirm</themed-button>
+            </div>
+          </div>
         </div>
       </div>
 
-
-      <h3>Display: </h3>
-      <ul id="group-list"></ul>
-
-      <button id="reset-display">Reset</button>
-      <button id="confirm-display">Confirm</button>        
-
+      <div class="section">
+        <div class="section-title">
+          <side-navigation></side-navigation>
+          <span>Group Options</span>
+        </div>
+        <div class="section-options">
+          <div class="option">
+            <div class="option-title">Create Group</div>
+            <div class="option-row">
+              <input id="group-create-input" placeholder="Enter Group Name"/>
+              <themed-button id="group-create-confirm" disabled>Create</themed-button>
+            </div>
+          </div>
+          <hr />
+          <div class="option">
+            <div class="option-title">Rename Group</div>
+            <dropdown-menu id="group-rename-select" placeholder="Select Group" placeholder-view="replace" selected-indicator="highlight"></dropdown-menu>
+            <div class="option-row">
+              <input id="group-rename-input" placeholder="Enter Group Name"/>
+              <themed-button id="group-rename-confirm">Confirm</themed-button>
+            </div>
+          </div>
+          <hr />
+          <div class="option">
+            <div class="option-title">Default Group</div>
+            <div class="option-row">
+              <dropdown-menu id="group-default-select" placeholder="Select Group" placeholder-view="replace" selected-indicator="highlight"></dropdown-menu>
+              <themed-button id="group-default-confirm">Change</themed-button>
+            </div>
+          </div>
+          <hr />
+          <div class="option">
+            <div class="option-title">Remove Group</div>
+            <div class="option-row">
+              <span>Remove:</span>
+              <dropdown-menu id="group-remove-select" placeholder="Select Group" placeholder-view="replace" selected-indicator="highlight"></dropdown-menu>
+            </div>
+            <div class="option-row">
+              <span id="group-remove-move-text">Move Folders:</span>
+              <dropdown-menu id="group-move-folders-select" placeholder="Select Group" placeholder-view="replace" selected-indicator="highlight" disabled></dropdown-menu>
+            </div>
+            <div class="option-buttons-row">
+              <themed-button id="group-remove-confirm" variant="warning">Remove</themed-button>
+            </div>
+          </div>
+          <hr />
+          <div class="option">
+            <div class="option-title">Display Order</div>
+            <p class="option-description">
+              Change the order of the managers side navigation panel by dragging and dropping groups and or folders.
+            </p>
+            <ul id="group-display-list" class="group-display-list"></ul>
+            <div class="option-buttons-row">
+              <themed-button id="group-display-reset" variant="secondary" disabled>Reset</themed-button>
+              <themed-button id="group-display-confirm" disabled>Confirm</themed-button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="right"></div>
-    
     <script src="options.js" type="module"></script>
   </body>
 </html>

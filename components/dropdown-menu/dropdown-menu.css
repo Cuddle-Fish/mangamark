@@ -1,22 +1,25 @@
 :host {
   display: inline-block;
+  position: relative;
+  width: 100%;
   color: var(--offWhite);
   font-family: var(--font-family);
   font-size: 20px;
 }
 
-:host([variant="small"]) {
-  font-size: 16px;
+:host([disabled]) button {
+  opacity: 10%;
+  cursor: not-allowed;
 }
 
 button {
   cursor: pointer;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  width: var(--dropdown-width, auto);
+  width: 100%;
   background-color: var(--offWhite10);
-  padding: 5px 10px;
+  padding: 5px 5px 5px 10px;
   gap: 5px;
   border: none;
   border-radius: 3px;
@@ -25,18 +28,19 @@ button {
   font-size: inherit;
 }
 
-button:hover {
+:host(:not([disabled])) button:hover {
   background-color: var(--offWhite30);
 }
 
 :host([open]) button {
-  background-color: var(--accent-subdued);
+  background-color: var(--accent-subdued) !important;
   border-radius: 3px 3px 0px 0px;
 }
 
 .options-container {
   display: none;
   position: absolute;
+  width: 100%;
   border-radius: 0px 0px 3px 3px;
   background-color: var(--offWhite10-match);
   z-index: 30;
@@ -53,22 +57,23 @@ input {
 label {
   cursor: pointer;
   display: grid;
-  width: var(--dropdown-width, auto);
   grid-template-columns: 10px [labelIcon] 30px [labelText] 1fr [end];
   column-gap: 10px;
   padding: 5px 0;
+  word-break: break-all;
+  font-size: inherit;
 }
 
-:host([variant="small"]) label {
-  grid-template-columns: 0 [labelIcon] 24px [labelText] 1fr [end];
-}
-
-.labelIcon {
+:host(:not([selected-indicator='highlight'])) .labelIcon {
   grid-column: labelIcon;
 }
 
 .labelText {
   grid-column: labelText;
+}
+
+:host([selected-indicator='highlight']) .labelText {
+  grid-column: labelIcon / end;
 }
 
 label:hover {
@@ -80,8 +85,21 @@ label done-icon {
   color: var(--approval);
 }
 
-input:checked + label done-icon {
+:host(:not([selected-indicator='highlight'])) input:checked + label done-icon {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+:host([selected-indicator='highlight']) input:checked + label {
+  background-color: var(--accent-subdued30);
+}
+
+input:disabled + label {
+  cursor: default;
+  opacity: 10%;
+
+  &:hover {
+    background-color: transparent;
+  }
 }

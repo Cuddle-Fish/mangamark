@@ -97,6 +97,10 @@ body {
   align-items: center;
 }
 
+.order-dropdown {
+  width: 211px;
+}
+
 .tag-filter-container {
   display: flex;
   gap: 10px;

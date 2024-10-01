@@ -18,11 +18,24 @@ customElements.define(
   'dropdown-menu',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['placeholder', 'open', 'selected', 'width', 'variant'];
+      return ['placeholder', 'placeholder-view', 'open', 'selected', 'selected-indicator', 'disabled'];
     }
 
     get placeholder() {
       return this.getAttribute('placeholder') || '';
+    }
+
+    get placeholderView() {
+      return this.getAttribute('placeholder-view') || 'insertBefore';
+    }
+
+    set placeholderView(value) {
+      const validViews = ['replace', 'insertBefore', 'insertAfter'];
+      if (!value) {
+        this.removeAttribute('placeholder-view');
+      } else if (validViews.includes(value)) {
+        this.setAttribute('placeholder-view', value);
+      }
     }
 
     get open() {
@@ -30,7 +43,7 @@ customElements.define(
     }
 
     set open(value) {
-      value === true ? this.setAttribute('open', '') : this.removeAttribute('open');
+      value === true && !this.disabled ? this.setAttribute('open', '') : this.removeAttribute('open');
     }
 
     get selected() {
@@ -38,36 +51,32 @@ customElements.define(
     }
 
     set selected(value) {
-      if (!this.hasAttribute('selected') || this.getAttribute('selected') !== value) {
-        const inputs = this.shadowRoot.querySelectorAll('input');
-        for (const input of inputs) {
-          if (input.value === value) {
-            input.checked = true;
-            this.setAttribute('selected', value);
-            break;
-          }
-        }
+      const newSelectedInput = this.shadowRoot
+        .querySelector(`input[name="dropdown-options"][value="${value}"]`);
+      const oldSelectedInput = this.shadowRoot
+        .querySelector(`input[name="dropdown-options"][value="${this.selected}"]`);
+
+      if (oldSelectedInput) {
+        oldSelectedInput.checked = false;
       }
-    }
-
-    get width() {
-      return this.getAttribute('width') || 'auto';
-    }
-
-    set width(value) {
-      this.setAttribute('width', value);
-    }
-
-    get variant() {
-      return this.getAttribute('variant') || '';
-    }
-
-    set variant(value) {
-      if (value === '') {
-        this.removeAttribute('variant');
+      if (!newSelectedInput || !value) {
+        this.removeAttribute('selected');
       } else {
-        this.setAttribute('variant', value);
+        newSelectedInput.checked = true;
+        this.setAttribute('selected', value);
       }
+    }
+
+    get disabled() {
+      return this.hasAttribute('disabled') && this.getAttribute('disabled') !== false;
+    }
+
+    set disabled(value) {
+      value === true ? this.setAttribute('disabled', '') : this.removeAttribute('disabled');
+    }
+
+    get options() {
+      return this.shadowRoot.querySelector('slot').assignedElements();
     }
 
     constructor() {
@@ -78,9 +87,12 @@ customElements.define(
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
-      if (name === 'width') {
-        this.style.setProperty('--dropdown-width', newValue);
-      } else if (name === 'open' || name === 'selected') {
+      if (
+        name === 'placeholder' || 
+        name === 'open' || 
+        name === 'selected' || 
+        name === 'placeholder-view'
+      ) {
         this.render();
       }
     }
@@ -99,9 +111,14 @@ customElements.define(
       });
     }
 
+    updateOptions(selectedValue) {
+      this.createOptions();
+      this.selected = selectedValue || '';
+    }
+
     createOptions() {
       const options = this.querySelectorAll('option');
-      const optionsContainer = this.shadowRoot.querySelector('.options-container');
+      const fragement = document.createDocumentFragment();
 
       options.forEach((option, index) => {
         const input = document.createElement('input');
@@ -117,20 +134,20 @@ customElements.define(
           input.checked = true;
         }
 
-        label.setAttribute('for', input.id);
+        label.part = "dropdown-option";
+        label.htmlFor = input.id;
         label.appendChild(icon);
-        icon.setAttribute('class', 'labelIcon');
+        icon.classList.add('labelIcon');
         const span = document.createElement('span');
         span.innerHTML = option.textContent;
-        span.setAttribute('class', 'labelText');
+        span.classList.add('labelText');
         label.appendChild(span);
 
         const div = document.createElement('div');
-        div.setAttribute('class', 'option');
 
         div.appendChild(input);
         div.appendChild(label);
-        optionsContainer.appendChild(div);
+        fragement.appendChild(div);
 
         input.addEventListener('change', () => {
           this.setAttribute('selected', input.value);
@@ -142,15 +159,37 @@ customElements.define(
           );
         });
       });
+
+      const optionsContainer = this.shadowRoot.querySelector('.options-container');
+      optionsContainer.replaceChildren(fragement);
     }
 
     toggle() {
+      if (this.disabled) {
+        this.open = false;
+        return;
+      }
+
       this.open = !this.open;
+    }
+
+    setInputDisabled(inputValue, isDisabled) {
+      const input = this.shadowRoot
+        .querySelector(`input[name="dropdown-options"][value="${inputValue}"]`);
+      input.disabled = isDisabled;
     }
 
     render() {
       const button = this.shadowRoot.querySelector('button');
-      button.textContent = `${this.placeholder} ${this.selected ? this.selected : ''}`;
+      if (!this.selected) {
+        button.textContent = this.placeholder;
+      } else if (this.placeholderView === 'insertBefore') {
+        button.textContent = `${this.placeholder} ${this.selected}`;
+      } else if (this.placeholderView === 'insertAfter') {
+        button.textContent = `${this.selected} ${this.placeholder} `;
+      } else {
+        button.textContent = this.selected;
+      }
 
       const currentIcon = button.querySelector('expand-more', 'expand-less');
       if (currentIcon) {

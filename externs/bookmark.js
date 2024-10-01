@@ -44,6 +44,17 @@ function getFolderNames() {
     .then((children) => children.filter(child => child.url === undefined).map(folder => folder.title));
 }
 
+async function renameBookmarkFolder(oldFolderName, newFolderName) {
+  const mangamarkId = await getMangamarkFolderId();
+  const children = await chrome.bookmarks.getChildren(mangamarkId);
+  const folder = children.find(child => !child.url && child.title === oldFolderName);
+  if (folder) {
+    await chrome.bookmarks.update(folder.id, { title: newFolderName });
+  } else {
+    console.error(`Error renaming folder, could not find ${oldFolderName}.`);
+  }
+}
+
 function findDefaultFolder(domain) {
   return getMangamarkSubTree()
     .then((tree) => {
@@ -422,4 +433,4 @@ async function reorderFolders(orderedFolders) {
   }
 }
 
-export { bookmarkRegex, getFolderNames, findDefaultFolder, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, getAllBookmarkTags, registerBookmarkListener, reorderFolders }
+export { bookmarkRegex, getFolderNames, renameBookmarkFolder, findDefaultFolder, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, getAllBookmarkTags, registerBookmarkListener, reorderFolders }

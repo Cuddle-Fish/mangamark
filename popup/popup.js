@@ -1,7 +1,6 @@
 import { findDefaultFolder, getFolderNames, bookmarkRegex, findBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
 import "/components/themed-button/themed-button.js";
 import "/components/dropdown-menu/dropdown-menu.js";
-import "/components/svg/check-box.js";
 import "/components/svg/done-icon.js";
 import "/components/svg/managamark-logo.js";
 import "/components/info-tooltip/info-tooltip.js";

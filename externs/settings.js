@@ -161,23 +161,19 @@ async function setDefaultGroupName(groupName) {
 
 async function groupsHandleFolderRemove(numFolderRemoved) {
   try {
-    console.log(`recieved index: ${numFolderRemoved}`);
     if (numFolderRemoved < 0) {
       throw new Error(`groupsHandleFolderRemove recieved out of bounds index ${numFolderRemoved}`);
     }
 
     const groups = await getGroups();
     const numStored = groups.reduce((accumulator, currentValue) => accumulator + currentValue.numFolders, 0);
-    console.log(numStored);
     if (numStored <= numFolderRemoved) {
       return;
     }
 
     let currentIndex = 0;
     for (const group of groups) {
-      console.log(`groups: ${group.name}`);
       if (currentIndex + group.numFolders > numFolderRemoved) {
-        console.log('remove');
         group.numFolders--;
         await chrome.storage.sync.set({ 'groups': groups });
         break;
@@ -189,6 +185,15 @@ async function groupsHandleFolderRemove(numFolderRemoved) {
   }
 }
 
+function registerGroupChangeListener(listenerFn) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && (changes.groups || changes.defaultGroup)) {
+      listenerFn();
+    }
+  });
+}
+
 export { getStatusFilter, setStatusFilter, getDisplayOrder, setDisplayOrder, getDisplaySettings, 
-  getGroupsWithFolders, setAllGroups, addGroup, changeGroupName, getDefaultGroupName, setDefaultGroupName, groupsHandleFolderRemove
+  getGroupsWithFolders, setAllGroups, addGroup, changeGroupName, getDefaultGroupName, setDefaultGroupName, groupsHandleFolderRemove, 
+  registerGroupChangeListener
 };

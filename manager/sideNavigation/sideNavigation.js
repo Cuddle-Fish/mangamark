@@ -1,4 +1,4 @@
-import { getGroupsWithFolders} from "/externs/settings.js";
+import { getGroupsWithFolders, registerGroupChangeListener } from "/externs/settings.js";
 
 import "/components/svg/close-icon.js";
 import "/components/svg/expand-less.js";
@@ -60,6 +60,7 @@ customElements.define(
         .addEventListener('change', (event) => this.inputChangeHandler(event));
 
       this.renderGroups();
+      registerGroupChangeListener(this.renderGroups.bind(this));
     }
 
     openNav() {

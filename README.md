@@ -29,28 +29,31 @@ This extension utilizes your browser's bookmark system. If users ever wish to un
 
 ### Popup:
 #### Critical:
-- mode change button
-- confirmation after create/update
+- ~~mode change button~~
+- ~~confirmation after create/update~~
 - regex title and chapter matching
 #### Additions:
-- find update title: add folder select
-- user named folders
-- more reading status options
-- chapter display when editing
-- increases clarity for buttons:
-  - edit and update: is it clear update buttons updates an existing bookmark
-  - confirm tags change and find title change is permanent: cancel edit should revert all editing
+- ~~find update title: add folder select~~
+- ~~user named folders~~
+- ~~more reading status options~~
+- ~~chapter display when editing~~
+- ~~increases clarity for buttons:~~
+  - ~~edit and update: is it clear update buttons updates an existing bookmark~~
+  - ~~confirm tags change and find title change is permanent: cancel edit should revert all editing~~
 
 ### Manager:
 #### Critical:
-- side navigation styling
-- tag options
-  - filter tags
-  - delete tag
-  - create tag
-- display bad bookmarks
-- edit bookmark title
+- ~~side navigation styling~~
+- ~~filter tags~~
+- ~~display bad bookmarks~~
+
+### Options Page:
+- ~~Rename Folders~~
 
 ### Other:
-- create Mangamark folder if not found
 - move all chrome api calls to externs
+- improve componenet imports
+- make toggle menu adjustable
+
+### Known Issues:
+- multiple mangamark folders created when none exist
