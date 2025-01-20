@@ -44,7 +44,8 @@ function inputFolderRenameHandler(event) {
 
 async function changeFolderNameHandler(event) {
   const selectedFolderName = document.getElementById('folder-rename-select').selected;
-  const newFolderName = document.getElementById('folder-rename-input').value.replace(/\s+/g, ' ').trim();
+  const input = document.getElementById('folder-rename-input');
+  const newFolderName = input.value.replace(/\s+/g, ' ').trim();
   await renameBookmarkFolder(selectedFolderName, newFolderName);
 }
 
@@ -60,6 +61,12 @@ function updateFolderRenameSelection() {
   const renameSelect = document.getElementById('folder-rename-select');
   renameSelect.replaceChildren(fragement);
   renameSelect.updateOptions('');
+
+  const input = document.getElementById('folder-rename-input');
+  input.value = '';
+  input.disabled = true;
+  const renameFolderButton = document.getElementById('folder-rename-confirm');
+  renameFolderButton.disabled = true;
 }
 
 // #endregion
