@@ -1,8 +1,15 @@
+import '/components/svg/expand-more.js';
+import '/components/svg/expand-less.js';
+
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
   <style>
     @import "/components/toggle-menu/toggle-menu.css";
   </style>
+  <button>
+    <span id="button-text"></span>
+    <span id="button-icon">➔</span>
+  </button>
   <div></div>
   <datalist>
     <slot></slot>
@@ -13,7 +20,7 @@ customElements.define(
   'toggle-menu',
   class extends HTMLElement {
     static get observedAttributes() {
-      return ['selected'];
+      return ['selected', 'open'];
     }
 
     get selected() {
@@ -27,20 +34,43 @@ customElements.define(
           if (input.value === value) {
             input.checked = true;
             this.setAttribute('selected', value);
+            this.renderButton();
             break;
           }
         }
       }
     }
 
+    get open() {
+      return this.hasAttribute('open') && this.getAttribute('open') !== false;
+    }
+
+    set open(value) {
+      value === true ? this.setAttribute('open', '') : this.removeAttribute('open');
+    }
+
     constructor() {
       super();
       const shadowRoot = this.attachShadow({ mode: 'open'});
       shadowRoot.appendChild(template.content.cloneNode(true));
+      this.tabIndex = 0;
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name === 'open') {
+        this.renderButton();
+      }
     }
 
     connectedCallback() {
+      this.shadowRoot.querySelector('button').addEventListener('click', (event) => this.toggle());
       this.createOptions();
+
+      this.addEventListener('focusout', (event) => {
+        if (!this.contains(event.relatedTarget)) {
+          this.open = false;
+        }
+      });
     }
 
     createOptions() {
@@ -58,6 +88,7 @@ customElements.define(
 
         if (this.selected === option.value) {
           input.checked = true;
+          this.renderButton();
         }
 
         label.setAttribute('for', input.id);
@@ -68,6 +99,8 @@ customElements.define(
 
         input.addEventListener('change', () => {
           this.setAttribute('selected', input.value);
+          this.open = false;
+          this.renderButton();
           this.dispatchEvent(
             new CustomEvent('toggleMenuChange', {
               detail: input.value,
@@ -75,6 +108,23 @@ customElements.define(
           );
         });
       });
+    }
+
+    renderButton() {
+      const text = this.shadowRoot.getElementById('button-text');
+      if (!this.selected) {
+        text.textContent = '';
+      } else {
+        text.textContent = this.selected;
+      }
+
+      const iconContainer = this.shadowRoot.getElementById('button-icon');
+      const icon = document.createElement(this.open ? 'expand-less' : 'expand-more');
+      iconContainer.replaceChildren(icon);
+    }
+
+    toggle() {
+      this.open = !this.open;
     }
   }
 );

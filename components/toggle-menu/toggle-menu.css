@@ -1,21 +1,66 @@
 :host {
   display: inline-block;
+  position: relative;
   font-family: var(--font-family);
   font-size: 20px;
 }
 
-:host div {
-  display: flex;
+button {
+  display: none;
+  cursor: pointer;
+  min-width: 200px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  font-family: inherit;
+  font-size: inherit;
+  text-transform: capitalize;
+  border: none;
+  border-radius: 30px;
   background-color: var(--offWhite10);
+  color: inherit;
+}
+
+#button-text {
+  flex: 1;
+}
+
+button:hover {
+  background-color: var(--offWhite30);
+
+  & expand-more, expand-less {
+    outline: 2px solid var(--accent-bright);
+  }
+}
+
+expand-more, expand-less {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: var(--offWhite10);
+}
+
+:host([open]) expand-more, :host([open]) expand-less {
+  background-color: var(--accent-subdued);
+  outline: none;
+}
+
+div {
+  display: flex;
+  background-color: var(--offWhite10-match);
   padding: 5px;
   border-radius: 30px;
 }
 
-:host input {
+input {
   display: none;
 }
 
-:host label {
+label {
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -25,10 +70,38 @@
   border-radius: 30px;
 }
 
-:host label:hover {
+label:hover {
   background-color: var(--offWhite30);
 }
 
-:host input:checked + label {
+input:checked + label {
   background-color: var(--accent-subdued); 
+}
+
+@media (max-width:1420px) {
+  button {
+    display: flex;
+  }
+
+  :host(:not([open])) div {
+    display: none;
+  }
+
+  div {
+    min-width: 200px;
+    box-sizing: border-box;
+    position: absolute;
+    flex-direction: column;
+    gap: 10px;
+    background-color: var(--background-color);
+    padding: 10px;
+  }
+
+  label {
+    background-color: var(--offWhite10);
+  }
+
+  label:hover {
+    background-color: var(--offWhite30);
+  }
 }
