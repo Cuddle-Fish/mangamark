@@ -57,7 +57,14 @@ body {
     right: 10px;
   }
 
+  & label {
+    cursor: text;
+  }
+
   & button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     width: 26px;
     height: 26px;
@@ -67,8 +74,13 @@ body {
     background-color: var(--offWhite10);
   }
 
-  & button:active {
+  & button:hover {
     background-color: var(--offWhite30);
+  }
+
+  & button:active {
+    background-color: var(--warning30);
+    color: var(--warning);
   }
 }
 
@@ -149,5 +161,5 @@ body {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
