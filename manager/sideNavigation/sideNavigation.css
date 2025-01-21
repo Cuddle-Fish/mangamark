@@ -86,7 +86,6 @@ input:checked + label {
 .section-container {
   display: flex;
   flex-direction: column;
-  gap: 10px;
 }
 
 .collapse-button {
@@ -102,6 +101,7 @@ input:checked + label {
   opacity: 50%;
   font-size: 14px;
   font-family: inherit;
+  margin-bottom: 10px;
 
   &:hover {
     opacity: 100%;
@@ -124,7 +124,6 @@ input:checked + label {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  /* transition: max-height 0.2s; */
   overflow-y: hidden;
 }
 

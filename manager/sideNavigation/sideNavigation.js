@@ -145,15 +145,9 @@ customElements.define(
       if (itemsContainer.hasAttribute('collapsed')) {
         itemsContainer.removeAttribute('collapsed');
         itemsContainer.style.display = 'flex';
-        // itemsContainer.style.maxHeight = itemsContainer.scrollHeight + 'px';
       } else {
         itemsContainer.setAttribute('collapsed', '');
         itemsContainer.style.display = 'none';
-        // if (!itemsContainer.style.maxHeight) {
-        //   itemsContainer.style.maxHeight = itemsContainer.scrollHeight + 'px';
-        //   itemsContainer.offsetHeight;
-        // }
-        // itemsContainer.style.maxHeight = 0;
       }
     }
 
