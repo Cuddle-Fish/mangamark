@@ -7,9 +7,6 @@ import "/components/tag-elements/tag-li.js";
 
 const cardTemplate = document.createElement('template');
 cardTemplate.innerHTML = /* html */ `
-  <style>
-    @import "/components/bookmark-card/bookmark-card.css";
-  </style>
   <div class="highlight-container">
     <div class="card-container">
       <a id="card-anchor" href="" class="card">
@@ -33,6 +30,11 @@ cardTemplate.innerHTML = /* html */ `
   </div>
   <div id="options-wrapper" class="options-wrapper"></div>
 `;
+
+const sheet = new CSSStyleSheet();
+fetch('/components/bookmark-card/bookmark-card.css')
+  .then((response) => response.text())
+  .then((cssText) => sheet.replace(cssText));
 
 const optionsTemplate = document.createElement('template');
 optionsTemplate.innerHTML = /* html */ `
@@ -112,6 +114,7 @@ customElements.define(
       super();
       const shadowRoot = this.attachShadow({ mode: 'open'});
       shadowRoot.appendChild(cardTemplate.content.cloneNode(true));
+      shadowRoot.adoptedStyleSheets = [sheet];
     }
 
     connectedCallback() {
