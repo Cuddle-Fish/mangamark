@@ -2,7 +2,12 @@
 <html>
 <head>
   <title>Mangamark</title>
-  <link rel="stylesheet" href="/style.css">  
+  <link rel="preload" href="/manager/sideNavigation/sideNavigation.css" as="style">
+  <link rel="preload" href="/components/dropdown-menu/dropdown-menu.css" as="style">
+  <link rel="preload" href="/components/toggle-menu/toggle-menu.css" as="style">
+  <link rel="preload" href="/components/tag-input/tag-input.css" as="style">
+  <link rel="preload" href="/components/themed-button/themed-button.css" as="style">
+  <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" type="text/css" href="manager.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,7 +23,7 @@
         <input type="text" placeholder="Search" name="search-input" id="search-input" />
         <label id="search-label" for="search-input"><search-icon></search-icon></label>
         <button id="clear-search-button" class="hidden"><close-icon size="12px"></close-icon></button>
-      </div>   
+      </div>
       <button id="open-nav" class="open-button hidden"><menu-icon size="32px"></menu-icon></button>
     </div>
 
@@ -51,7 +56,7 @@
       </div>
     </div>
 
-    <div id="invalid-container" class="invalid-container">
+    <div id="invalid-container" class="invalid-container hidden">
       <div class="warning-title">Warning Invalid Bookmaks</div>
       <div class="warning--list-container">
         Your Mangamark bookmark folder contains bookmarks not created by this extension.The following bookmarks should be removed from the Mangamark folder:
