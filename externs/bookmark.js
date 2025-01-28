@@ -13,45 +13,50 @@ function bookmarkRegex() {
 }
 
 /**
- * Get the chrome bookmark ID for Mangamark folder, creates folder if does not exist
+ * Get the chrome bookmark ID for Mangamark folder
  * 
- * @returns resolves promise with bookmark ID, rejects if multiple folders titled Mangamark found
+ * @returns ID of mangamark folder if singular bookmark found, null if no mangamark folder, throws error if multiple
  */
-function getMangamarkFolderId() {
-  return new Promise((resolve, reject) => {
-    chrome.bookmarks.search({title: 'Mangamark'})
-    .then((results) => {
-      if (results.length == 1) {
-        const mangamarkFolder = results[0];
-        resolve(mangamarkFolder.id);
-      } else if (results.length > 1) {
-        reject(`Found ${results.length} folders titled 'Mangamark'.`);
-      } else {
-        chrome.bookmarks.create({title: 'Mangamark'})
-        .then((mangamarkFolder) => {
-          const managerUrl = chrome.runtime.getURL('manager/manager.html');
-          chrome.bookmarks.create({parentId: mangamarkFolder.id, title: 'Manage Mangamarks', url: managerUrl});
-          resolve(mangamarkFolder.id);
-        });
-      }
-    });
-  });
+async function getMangamarkFolderId() {
+  try {
+    const results = await chrome.bookmarks.search({title: 'Mangamark'});
+    if (results.length == 1) {
+      const managamarkFolder = results[0];
+      return managamarkFolder.id;
+    } else if (results.length > 1) {
+      throw new Error(`Found ${results.length} folders titled 'Mangamark'.`);
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error retrieving mangamark folder ID:', error);
+  }
 }
 
-function getFolderNames() {
-  return getMangamarkFolderId()
-    .then((mangamarkId) => chrome.bookmarks.getChildren(mangamarkId))
-    .then((children) => children.filter(child => child.url === undefined).map(folder => folder.title));
+async function getFolderNames() {
+  const mangamarkId = await getMangamarkFolderId();
+  if (mangamarkId === null) {
+    return [];
+  }
+  const children = await chrome.bookmarks.getChildren(mangamarkId);
+  return children.filter(child => child.url === undefined).map(folder => folder.title);
 }
 
 async function renameBookmarkFolder(oldFolderName, newFolderName) {
-  const mangamarkId = await getMangamarkFolderId();
-  const children = await chrome.bookmarks.getChildren(mangamarkId);
-  const folder = children.find(child => !child.url && child.title === oldFolderName);
-  if (folder) {
-    await chrome.bookmarks.update(folder.id, { title: newFolderName });
-  } else {
-    console.error(`Error renaming folder, could not find ${oldFolderName}.`);
+  try {
+    const mangamarkId = await getMangamarkFolderId();
+    if (mangamarkId === null) {
+      throw new Error("No 'Mangamark' Folder");
+    }
+    const children = await chrome.bookmarks.getChildren(mangamarkId);
+    const folder = children.find(child => !child.url && child.title === oldFolderName);
+    if (folder) {
+      await chrome.bookmarks.update(folder.id, { title: newFolderName });
+    } else {
+      throw new Error(`Could not find '${oldFolderName}'`);
+    }
+  } catch (error) {
+    console.error('Error renaming folder:', );
   }
 }
 
@@ -59,13 +64,13 @@ function findDefaultFolder(domain) {
   return getMangamarkSubTree()
     .then((tree) => {
       let defaultFolder = domain.startsWith('www.') ? domain.substring(4) : domain;
-      let LargestBookmarkCount = 0;
-      for (const node of tree[0].children) {
+      let largestBookmarkCount = 0;
+      for (const node of tree) {
         if (node.children) {
           const count = getDomainCount(node.children, domain);
-          if (count > LargestBookmarkCount) {
+          if (count > largestBookmarkCount) {
             defaultFolder = node.title;
-            LargestBookmarkCount = count;
+            largestBookmarkCount = count;
           }
         }
       }
@@ -165,9 +170,14 @@ function searchFolder(tree, searchTitle, completeTitle=false) {
  * 
  * @returns Mangamark sub tree
  */
-function getMangamarkSubTree() {
-  return getMangamarkFolderId()
-    .then((mangamarkId) => chrome.bookmarks.getSubTree(mangamarkId));
+async function getMangamarkSubTree() {
+  const mangamarkId = await getMangamarkFolderId();
+  if (mangamarkId === null) {
+    return [];
+  } else {
+    const subTree = await chrome.bookmarks.getSubTree(mangamarkId);
+    return subTree[0].children;
+  }
 }
 
 /**
@@ -178,7 +188,7 @@ function getMangamarkSubTree() {
  */
 async function findBookmark(contentTitle) {
   const tree = await getMangamarkSubTree();
-  for (const node of tree[0].children) {
+  for (const node of tree) {
     if (node.children) {
       const result = searchFolder(node.children, contentTitle);
       if (result) {
@@ -192,6 +202,13 @@ async function findBookmark(contentTitle) {
 function createBookmarkTitle(title, chapterNum, tags=[]) {
   const tagSection = tags.length > 0 ? ` - Tags ${tags.join(',')}` : '';
   return `${title} - Chapter ${chapterNum}${tagSection}`;
+}
+
+async function createMangamarkFolder() {
+  const mangamarkFolder = await chrome.bookmarks.create({ title: 'Mangamark' });
+  const managerUrl = chrome.runtime.getURL('manager/manager.html');
+  await chrome.bookmarks.create({ parentId: mangamarkFolder.id, title: 'Manage Mangamarks', url: managerUrl });
+  return mangamarkFolder.id;
 }
 
 /**
@@ -208,6 +225,7 @@ function createBookmarkTitle(title, chapterNum, tags=[]) {
 function addBookmark(title, chapterNum, url, folderName, tags, subFolderName) {
   const bookmarkTitle = createBookmarkTitle(title, chapterNum, tags);
   return getMangamarkFolderId()
+    .then((checkId) => checkId ? checkId : createMangamarkFolder())
     .then((mangamarkId) => getFolderId(mangamarkId, folderName, true))
     .then((mainFolderId) => subFolderName ? getFolderId(mainFolderId, subFolderName, true) : mainFolderId)
     .then((folderId) => chrome.bookmarks.create({parentId: folderId, title: bookmarkTitle, url: url}))
@@ -227,6 +245,9 @@ async function removeIfEmptyFolder(folderId) {
       await chrome.bookmarks.remove(folderId);
 
       const mangamarkId = await getMangamarkFolderId();
+      if (mangamarkId === null) {
+        throw new Error("folder removed but no mangamark folder exist (this should never happen)");
+      }
       const mangamarkChildren = await chrome.bookmarks.getChildren(mangamarkId);
       const numBookmarks = mangamarkChildren.filter(node => node.url !== undefined).length;
       await groupsHandleFolderRemove(folder[0].index - numBookmarks);
@@ -234,6 +255,7 @@ async function removeIfEmptyFolder(folderId) {
       document.dispatchEvent(new Event('folderRemoved'));
     }
   } catch (error) {
+    _preventListeners = false;
     console.error('Error removing empty folder:', error);
   }
 }
@@ -269,6 +291,9 @@ async function removeBookmark(folderName, details) {
     }
 
     const mangamarkId = await getMangamarkFolderId();
+    if (mangamarkId === null) {
+      throw new Error(`Attempt to remove bookmark '${bookmarkTitle}' when no mangamark folder could be found`);
+    }
     const folderId = await getFolderId(mangamarkId, folderName);
     if (!folderId) {
       throw new Error(`Folder '${folderName}' does not exist`);
@@ -303,6 +328,9 @@ async function updateBookmarkTags(title, chapterNum, folderName, oldTags, newTag
     const oldBookmarkTitle = createBookmarkTitle(title, chapterNum, oldTags);
     const newBookmarkTitle = createBookmarkTitle(title, chapterNum, newTags);
     const mangamarkId = await getMangamarkFolderId();
+    if (mangamarkId === null) {
+      throw new Error(`Attempted to update tags for '${title}' but could not find mangamark folder`);
+    }
     const folderId = await getFolderId(mangamarkId, folderName);
     if (!folderId) {
       throw new Error(`Could not find folder '${folderName}'`);
@@ -335,6 +363,9 @@ async function changeSubFolder(title, chapter, folderName, tags, readingStatus, 
     const bookmarkTitle = createBookmarkTitle(title, chapter, tags);
 
     const mangamarkId = await getMangamarkFolderId();
+    if (mangamarkId === null) {
+      throw new Error(`Attempted to change subFolder for '${title}' but could not find mangamark folder`);
+    }
     const folderId = await getFolderId(mangamarkId, folderName);
 
     const tree = await chrome.bookmarks.getSubTree(folderId);
@@ -364,17 +395,17 @@ async function changeSubFolder(title, chapter, folderName, tags, readingStatus, 
  */
 function getAllBookmarkTags() {
   return getMangamarkSubTree()
-    .then((tree) => getTagsFromFolder(tree[0]));
+    .then((tree) => getTagsFromFolder(tree));
 }
 
 /**
  * find all unique bookmark tags within folder tree structure
  * 
- * @param {chrome.bookmarks.BookmarkTreeNode} folderBookmark bookmark folder to searcg through
+ * @param {chrome.bookmarks.BookmarkTreeNode} folderBookmark bookmark folder to search through
  */
 function getTagsFromFolder(folderBookmark) {
   let tags = new Set();
-  folderBookmark.children.forEach(node => {
+  folderBookmark.forEach(node => {
     if (node.url) {
       const matches = node.title.match(bookmarkRegex());
       if (matches && matches[3]) {
@@ -382,7 +413,7 @@ function getTagsFromFolder(folderBookmark) {
         tags = tags.union(bookmarkTags);
       }
     } else if (node.children) {
-      tags = tags.union(getTagsFromFolder(node));
+      tags = tags.union(getTagsFromFolder(node.children));
     }
   });
   return tags;
@@ -406,6 +437,9 @@ function registerBookmarkListener(listenerFn) {
 async function reorderFolders(orderedFolders) {
   try {
     const mangamarkId = await getMangamarkFolderId();
+    if (mangamarkId === null) {
+      throw new Error('Attempted to reorder folders but no mangamark folder could be found');
+    }
     const children = await chrome.bookmarks.getChildren(mangamarkId);
     const bookmarks = children.filter(child => child.url);
     const bookmarkFolders = children.filter(child => !child.url);

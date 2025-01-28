@@ -142,7 +142,7 @@ customElements.define(
     async #getBookmarkData() {
       this.#bookmarkData = {};
       const tree = await getMangamarkSubTree();
-      for (const node of tree[0].children) {
+      for (const node of tree) {
         if (node.children) {
           const folderContents = {Reading: []};
           for (const folderNode of node.children) {

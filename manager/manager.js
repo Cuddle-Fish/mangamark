@@ -406,7 +406,7 @@ async function getMarks() {
   const invalidList = document.getElementById('invalid-list');
   invalidList.replaceChildren();
   const mangamarkTree = await getMangamarkSubTree();
-  _bookmarkFolders = createFolders(mangamarkTree[0].children);
+  _bookmarkFolders = createFolders(mangamarkTree);
 }
 
 function createFolders(tree) {

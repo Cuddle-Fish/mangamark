@@ -187,11 +187,10 @@ async function removeGroupHandler(event) {
   try {
     const removeName = document.getElementById('group-remove-select').selected;
     const groups = await getGroupsWithFolders();
-    const removeGroup  = groups.find(({ name }) => name === removeName);
     const removeIndex = groups.findIndex(({ name }) => name === removeName);
-    groups.splice(removeIndex, 1);
+    const [removeGroup] = groups.splice(removeIndex, 1);
 
-    if (removeGroup.numFolders) {
+    if (removeGroup.folders.length) {
       const relocationName = document.getElementById('group-move-folders-select').selected;
       const relocationGroup = groups.find(({ name }) => name === relocationName);
       relocationGroup.folders.push(...removeGroup.folders);
@@ -226,7 +225,9 @@ async function confirmDisplayHandler(event) {
     });
   });
 
-  await reorderFolders(updatedFolders);
+  if (updatedFolders.length !== 0) {
+    await reorderFolders(updatedFolders);
+  }
   await setAllGroups(updatedGroups);
 
   await updateGroupOptionsDisplay();
@@ -431,6 +432,11 @@ function dragleaveHandler(event) {
 function dropHandler(event) {
   const { list, items } = getListAndItems(event.currentTarget);
   clearInsertionIndicator(list, items);
+  const resetButton = document.getElementById('group-display-reset');
+  resetButton.disabled = false;
+  const confirmButton = document.getElementById('group-display-confirm');
+  confirmButton.disabled = false;
+
   if (items.length === 0) {
     list.appendChild(_dragItem);
     return;
@@ -438,11 +444,6 @@ function dropHandler(event) {
 
   const { insertionElement, position } = getInsertionInfo(list, items, event.clientY);
   insertionElement.insertAdjacentElement(position, _dragItem);
-
-  const resetButton = document.getElementById('group-display-reset');
-  resetButton.disabled = false;
-  const confirmButton = document.getElementById('group-display-confirm');
-  confirmButton.disabled = false;
 }
 
 function clearInsertionIndicator(list, items) {
