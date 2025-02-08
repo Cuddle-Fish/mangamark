@@ -1,4 +1,4 @@
-import { updateBookmarkTags, changeSubFolder, removeBookmark } from "/externs/bookmark.js";
+import { getFolderNames, updateBookmarkTags, updateBookmarkTitle, changeSubFolder, performBookmarkMove, removeBookmark } from "/externs/bookmark.js";
 import "/components/svg/edit-icon.js";
 import "/components/svg/info-icon.js";
 import "/components/themed-button/themed-button.js";
@@ -44,12 +44,17 @@ optionsTemplate.innerHTML = /* html */ `
       <span id="info-text">Select action to perform</span>
     </div>
     <div id="options-menu" class="edit-nav">
+      <themed-button id="edit-title-option">Edit Title</themed-button>
       <themed-button id="open-tag-option">Edit Tags</themed-button>
+      <themed-button id="change-folder-option">Change Folder</themed-button>
       <themed-button id="open-reading-status-option">Reading Status</themed-button>
       <themed-button id="open-delete-option" variant="warning">Delete Bookmark</themed-button>
       <themed-button id="close-button">Close</themed-button>
     </div>
+    <input id="change-title-input" type="text" placeholder="Enter Title" class="hidden" />
     <tag-input id="edit-tags" class="hidden"></tag-input>
+    <input list="existing-folders" id="change-folder-input" type="text" placeholder="Enter Folder" class="hidden" />
+    <datalist id="existing-folders"></datalist>
     <div id="edit-reading-status" class="reading-status-container hidden">
       <div>
         <input type="radio" id="reading" name="reading-status-input" value="reading" />
@@ -89,7 +94,9 @@ customElements.define(
       menu: 1,
       tags: 2,
       readingStatus: 3,
-      delete: 4
+      delete: 4,
+      title: 5,
+      folder: 6
     });
     #editingState = this.#editingOptions.closed;
 
@@ -139,9 +146,17 @@ customElements.define(
     }
 
     setupOptionsEventListeners() {
-      const editTagsButtons = this.shadowRoot.getElementById('open-tag-option');
-      editTagsButtons.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.tags));
+      const editTitleButton = this.shadowRoot.getElementById('edit-title-option');
+      editTitleButton.addEventListener('click',(event) => this.selectEditOption(this.#editingOptions.title));
+      this.setupChangeTitleInput();
+
+      const editTagsButton = this.shadowRoot.getElementById('open-tag-option');
+      editTagsButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.tags));
       this.setupChangeTagsInput();
+
+      const changeFolderButton = this.shadowRoot.getElementById('change-folder-option');
+      changeFolderButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.folder));
+      this.setupChangeFolderInput();
 
       const editReadingStatusButton = this.shadowRoot.getElementById('open-reading-status-option');
       editReadingStatusButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.readingStatus));
@@ -160,9 +175,19 @@ customElements.define(
       cancelButton.addEventListener('click', (event) => this.selectEditOption(this.#editingOptions.menu));
     }
 
+    setupChangeTitleInput() {
+      const titleInput = this.shadowRoot.getElementById('change-title-input');
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      titleInput.addEventListener('input', (event) => {
+        const cleanedInput = event.target.value.replace(/\s+/g, ' ').trim();
+        const title = this.shadowRoot.getElementById('bookmark-title').textContent;
+        confirmButton.disabled = cleanedInput === '' || cleanedInput === title;
+      });
+    }
+
     setupChangeTagsInput() {
       const tagsInput = this.shadowRoot.getElementById('edit-tags');
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');      
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
       tagsInput.addEventListener('tagChange', (event) => {
         const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
         const currentTags = Array.from(bookmarkTags.children, li => li.textContent);
@@ -171,6 +196,15 @@ customElements.define(
         } else {
           confirmButton.disabled = true;
         }
+      });
+    }
+
+    setupChangeFolderInput() {
+      const folderInput = this.shadowRoot.getElementById('change-folder-input');
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      folderInput.addEventListener('input', (event) => {
+        const cleanedInput = event.target.value.replace(/\s+/g, ' ').trim();
+        confirmButton.disabled = cleanedInput === '' || cleanedInput === this.#folderName;
       });
     }
 
@@ -208,6 +242,14 @@ customElements.define(
           warningText.classList.add('hidden');
           confirmButton.variant = '';
           break;
+        case this.#editingOptions.title:
+          const titleInput = this.shadowRoot.getElementById('change-title-input');
+          titleInput.classList.add('hidden');
+          break;
+        case this.#editingOptions.folder:
+          const folderInput = this.shadowRoot.getElementById('change-folder-input');
+          folderInput.classList.add('hidden');
+          break;
         default:
           break;
       }
@@ -234,6 +276,12 @@ customElements.define(
         case this.#editingOptions.delete:
           this.#openDeleteOption();
           break;
+        case this.#editingOptions.title:
+          this.#openTitleOption();
+          break;
+        case this.#editingOptions.folder:
+          this.#openFolderOption();
+          break;
         default:
           break;
       }
@@ -245,14 +293,44 @@ customElements.define(
       optionsMenu.classList.remove('hidden');
     }
 
+    #openTitleOption() {
+      this.changeInfoText('Enter a new title.');
+      const titleInput = this.shadowRoot.getElementById('change-title-input');
+      const title = this.shadowRoot.getElementById('bookmark-title').textContent;
+      titleInput.value = title;
+      titleInput.classList.remove('hidden');
+    }
+
     #openTagOption() {
-      this.changeInfoText('Input any desired tag name or click on an existing tag to remove.');
+      this.changeInfoText('Enter any desired tag name or click on an existing tag to remove.');
       const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
       const tagList = Array.from(bookmarkTags.children, li => li.textContent);
       const tagsInput = this.shadowRoot.getElementById('edit-tags');
       tagsInput.replaceAllTags(tagList);
       tagsInput.clearInput();
       tagsInput.classList.remove('hidden');
+    }
+
+    #openFolderOption() {
+      this.changeInfoText('Enter the name of an existing or new folder to move this bookmark to.');
+      const folderInput = this.shadowRoot.getElementById('change-folder-input');
+      folderInput.value = '';
+
+      getFolderNames()
+        .then((folders) => {
+          const fragment = document.createDocumentFragment();
+          folders.forEach(folder => {
+            if (folder !== this.#folderName) {
+              const option = document.createElement('option');
+              option.value = folder;
+              fragment.appendChild(option);              
+            }
+          });
+          const dataList = this.shadowRoot.getElementById('existing-folders');
+          dataList.replaceChildren(fragment);
+        });
+
+      folderInput.classList.remove('hidden');
     }
 
     #openReadingStatusOption() {
@@ -294,6 +372,12 @@ customElements.define(
           break;
         case this.#editingOptions.delete:
           this.#handleDeleteBookmark(title, chapter, tags);
+          break;
+        case this.#editingOptions.title:
+          this.#handleTitleChange(title, chapter, tags);
+          break;
+        case this.#editingOptions.folder:
+          this.#handleFolderChange(title, chapter, tags);
           break;
         default:
           console.error('Error, bookmark-card confirm pressed in invalid state', this.#editingState);
@@ -337,6 +421,28 @@ customElements.define(
       bookmarkTags.replaceChildren(fragment);
     }
 
+    #handleTitleChange(oldTitle, chapter, tags) {
+      const titleInput = this.shadowRoot.getElementById('change-title-input');
+      const newTitle = titleInput.value.replace(/\s+/g, ' ').trim();
+      updateBookmarkTitle(oldTitle, newTitle, chapter, this.#folderName, tags, true)
+        .then(() => {
+          this.shadowRoot.getElementById('bookmark-title').textContent = newTitle;
+          this.selectEditOption(this.#editingOptions.menu);
+          this.dispatchEvent(
+            new CustomEvent('titleChanged', {
+              bubbles: true,
+              composed: true,
+              detail: {
+                folder: this.#folderName,
+                readingStatus: this.readingStatus,
+                oldTitle: oldTitle,
+                newTitle: newTitle,
+              }
+            })
+          );
+        });
+    }
+
     #handleTagsChange(title, chapter, oldTags) {
       const newTags = this.shadowRoot.getElementById('edit-tags').getTags();
       updateBookmarkTags(title, chapter, this.#folderName, oldTags, newTags, true)
@@ -356,6 +462,13 @@ customElements.define(
             })
           );
         });
+    }
+
+    #handleFolderChange(title, chapter, tags) {
+      const folderInput = this.shadowRoot.getElementById('change-folder-input');
+      const newFolderName = folderInput.value.replace(/\s+/g, ' ').trim();
+
+      performBookmarkMove(title, chapter, tags, this.#folderName, newFolderName, this.readingStatus, true);
     }
 
     #handleReadingStatusChange(title, chapter, tags) {

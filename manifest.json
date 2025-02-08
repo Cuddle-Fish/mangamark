@@ -13,8 +13,5 @@
     "default_popup": "popup/popup.html"
   },
   "permissions": ["activeTab", "bookmarks", "storage"],
-  "background": {
-    "service_worker": "scripts/background.js"
-  },
   "options_page": "options/options.html"
 }

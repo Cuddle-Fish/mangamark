@@ -1,4 +1,4 @@
-import { findDefaultFolder, getFolderNames, bookmarkRegex, findBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
+import { findDefaultFolder, getFolderNames, bookmarkRegex, searchForBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
 import "/components/themed-button/themed-button.js";
 import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/svg/done-icon.js";
@@ -108,7 +108,7 @@ async function processTab() {
 
     const defaultFolder = await findDefaultFolder(domain);
 
-    const result = await findBookmark(title);
+    const result = await searchForBookmark(title);
     if (result) {
       const bookmark = result.bookmark;
       const subFolder = result.subFolder;

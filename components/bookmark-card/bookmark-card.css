@@ -139,6 +139,29 @@ button:hover {
   justify-content: flex-end;
 }
 
+input[type=text] {
+  margin: 0 30px;
+  border-radius: 8px;
+  padding: 10px;
+  background-color: var(--secondary-background);
+  color: var(--offWhite);
+  font-family: inherit;
+  font-size: 20px;
+  border: none;
+
+  &::placeholder {
+    color: var(--offWhite30);
+  }
+
+  &:focus {
+    outline: 1px solid var(--accent-bright);
+  }
+}
+
+input[type=text]::-webkit-calendar-picker-indicator {
+  margin-bottom: 9px;
+}
+
 .reading-status-container {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 200px));

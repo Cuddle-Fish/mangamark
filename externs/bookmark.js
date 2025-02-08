@@ -14,7 +14,7 @@ function bookmarkRegex() {
 
 /**
  * Get the chrome bookmark ID for Mangamark folder
- * 
+ *
  * @returns ID of mangamark folder if singular bookmark found, null if no mangamark folder, throws error if multiple
  */
 async function getMangamarkFolderId() {
@@ -95,7 +95,7 @@ function getDomainCount(tree, domain) {
 
 /**
  * Gets the Id of a given folder within the parentId
- * 
+ *
  * @param {string} parentId bookmark ID of parent folder
  * @param {string} folderName name of desired folder
  * @param {boolean} create specify rather to create folder if does not exist (default: false)
@@ -126,7 +126,7 @@ function getFolderId(parentId, folderName, create=false) {
 
 /**
  * Search tree hierarchy for bookmark matching desired title
- * 
+ *
  * @param {chrome.bookmarks.BookmarkTreeNode[]} tree children of folder to search within
  * @param {string} searchTitle title to search for
  * @param {boolean} completeTitle specify if searchTitle should match bookmark entry exactly or contain title
@@ -167,7 +167,7 @@ function searchFolder(tree, searchTitle, completeTitle=false) {
 
 /**
  * get bookmark subTree for Mangamark folder
- * 
+ *
  * @returns Mangamark sub tree
  */
 async function getMangamarkSubTree() {
@@ -182,11 +182,11 @@ async function getMangamarkSubTree() {
 
 /**
  * Attempts to find a bookmark with a matching title portion
- * 
+ *
  * @param {string} contentTitle title of content
  * @returns If bookmark found returns {BookmarkTreeNode, subFolderName}, otherwise null
  */
-async function findBookmark(contentTitle) {
+async function searchForBookmark(contentTitle) {
   const tree = await getMangamarkSubTree();
   for (const node of tree) {
     if (node.children) {
@@ -213,7 +213,7 @@ async function createMangamarkFolder() {
 
 /**
  * adds a bookmark to the Mangamark folder under the specifed folderName
- * 
+ *
  * @param {string} title title of content
  * @param {string} chapterNum current chapter number
  * @param {string} url URL navigated to when user clicks bookmark
@@ -232,46 +232,68 @@ function addBookmark(title, chapterNum, url, folderName, tags, subFolderName) {
     .then((bookmark) => bookmark.title);
 }
 
+async function getExistingBookmark(folderName, bookmarkTitle) {
+  const mangamarkId = await getMangamarkFolderId();
+  if (mangamarkId === null) {
+    throw new Error('Could not find mangamark folder');
+  }
+
+  const folderId = await getFolderId(mangamarkId, folderName);
+  if (!folderId) {
+    throw new Error(`Could not find folder '${folderName}'`);
+  }
+
+  const tree = await chrome.bookmarks.getSubTree(folderId);
+  const result = searchFolder(tree[0].children, bookmarkTitle, true);
+  if (!result) {
+    throw new Error(`Could not find bookmark '${bookmarkTitle}' in '${folderName}'`);
+  }
+
+  return {...result, folderId: folderId};
+}
+
 async function removeIfEmptyFolder(folderId) {
   try {
-    const folder = await chrome.bookmarks.get(folderId);
-    if (folder[0].url) {
+    const [folder] = await chrome.bookmarks.get(folderId);
+    if (folder.url) {
       throw new Error('removeIfEmptyFolder recieved bookmark not folder');
     }
+    const parentId = folder.parentId;
 
     const children = await chrome.bookmarks.getChildren(folderId);
     if (children.length === 0) {
-      _preventListeners = true;
-      await chrome.bookmarks.remove(folderId);
-
       const mangamarkId = await getMangamarkFolderId();
       if (mangamarkId === null) {
-        throw new Error("folder removed but no mangamark folder exist (this should never happen)");
+        throw new Error("No mangamark folder");
       }
       const mangamarkChildren = await chrome.bookmarks.getChildren(mangamarkId);
-      const numBookmarks = mangamarkChildren.filter(node => node.url !== undefined).length;
-      await groupsHandleFolderRemove(folder[0].index - numBookmarks);
-      _preventListeners = false;
-      document.dispatchEvent(new Event('folderRemoved'));
+      const folders = mangamarkChildren.filter(node => !node.url);
+      const folderIndex = folders.findIndex(folder => folder.id === folderId);
+
+      await chrome.bookmarks.remove(folderId);
+      if (mangamarkId === parentId) {
+        await groupsHandleFolderRemove(folderIndex);
+      } else {
+        await removeIfEmptyFolder(parentId);
+      }
     }
   } catch (error) {
-    _preventListeners = false;
     console.error('Error removing empty folder:', error);
   }
 }
 
 /**
  * remove a bookmark from specified folder within the Mangamark folder
- * 
+ *
  * The function expects `details` to contain either:
  *  - `bookmarkTitle`
- * 
+ *
  *  OR
- * 
+ *
  *  - `title`
  *  - `chapter`
  *  - `tags` (optional)
- * 
+ *
  * @param {string} folderName name of folder containing bookmark
  * @param {object} details title information for bookmark to remove
  * @param {string} [details.bookmarkTitle] complete title of the bookmark, exactly as saved
@@ -287,35 +309,27 @@ async function removeBookmark(folderName, details) {
     } else if (details.title !== undefined && details.chapter !== undefined) {
       bookmarkTitle = createBookmarkTitle(details.title, details.chapter, details.tags);
     } else {
-      return Promise.reject(new Error('Invalid details, could not create title'));
+      throw new Error('Invalid details, could not create title');
     }
 
-    const mangamarkId = await getMangamarkFolderId();
-    if (mangamarkId === null) {
-      throw new Error(`Attempt to remove bookmark '${bookmarkTitle}' when no mangamark folder could be found`);
-    }
-    const folderId = await getFolderId(mangamarkId, folderName);
-    if (!folderId) {
-      throw new Error(`Folder '${folderName}' does not exist`);
-    }
+    const result = await getExistingBookmark(folderName, bookmarkTitle);
 
-    const tree = await chrome.bookmarks.getSubTree(folderId);
-    const result = searchFolder(tree[0].children, bookmarkTitle, true);
-    if (!result) {
-      throw new Error(`Bookmark '${bookmarkTitle}' not found in Folder '${folderName}'`);
-    }
-
+    _preventListeners = true;
     await chrome.bookmarks.remove(result.bookmark.id);
     await removeIfEmptyFolder(result.bookmark.parentId);
+    _preventListeners = false;
+
+    document.dispatchEvent(new Event('bookmarkChanged'));
   } catch (error) {
+    _preventListeners = false;
     console.error('Error failed to remove bookmark:', error)
   }
 }
 
 /**
  * Update tags associated with a bookmark
- * 
- * @param {string} title title of content 
+ *
+ * @param {string} title title of content
  * @param {string} chapterNum chapter number of title
  * @param {string} folderName name of folder containing bookmark
  * @param {Array.<string>} oldTags current tags associated with bookmark
@@ -323,74 +337,88 @@ async function removeBookmark(folderName, details) {
  * @param {boolean?} pauseListeners set to true to prevent registered event listeners from firing, default = false
  */
 async function updateBookmarkTags(title, chapterNum, folderName, oldTags, newTags, pauseListeners = false) {
+  const currentBookmarkTitle = createBookmarkTitle(title, chapterNum, oldTags);
+  const newBookmarkTitle = createBookmarkTitle(title, chapterNum, newTags);
+  await performBookmarkUpdate(currentBookmarkTitle, newBookmarkTitle, folderName, pauseListeners);
+}
+
+async function updateBookmarkTitle(oldTitle, newTitle, chapterNum, folderName, tags, pauseListeners = false) {
+  const currentBookmarkTitle = createBookmarkTitle(oldTitle, chapterNum, tags);
+  const newBookmarkTitle = createBookmarkTitle(newTitle, chapterNum, tags);
+  await performBookmarkUpdate(currentBookmarkTitle, newBookmarkTitle, folderName, pauseListeners);
+}
+
+async function performBookmarkUpdate(currentBookmarkTitle, newBookmarkTitle, folderName, pauseListeners = false) {
   try {
+    const result = await getExistingBookmark(folderName, currentBookmarkTitle);
+
     _preventListeners = pauseListeners;
-    const oldBookmarkTitle = createBookmarkTitle(title, chapterNum, oldTags);
-    const newBookmarkTitle = createBookmarkTitle(title, chapterNum, newTags);
-    const mangamarkId = await getMangamarkFolderId();
-    if (mangamarkId === null) {
-      throw new Error(`Attempted to update tags for '${title}' but could not find mangamark folder`);
-    }
-    const folderId = await getFolderId(mangamarkId, folderName);
-    if (!folderId) {
-      throw new Error(`Could not find folder '${folderName}'`);
-    }
-    const tree = await chrome.bookmarks.getSubTree(folderId);
-    const searchResult = searchFolder(tree[0].children, oldBookmarkTitle, true);
-    if (!searchResult) {
-      throw new Error(`Could not find bookmark '${oldBookmarkTitle}' to update`);
-    }
-    await chrome.bookmarks.update(searchResult.bookmark.id, { title: newBookmarkTitle });
+    await chrome.bookmarks.update(result.bookmark.id, { title: newBookmarkTitle });
     _preventListeners = false;
   } catch (error) {
-    console.error('Error upating bookmark tags:', error);
+    _preventListeners = false;
+    console.error('Error upating bookmark:', error);
   }
 }
 
 /**
  * Move a bookmark to a new location
- * 
- * @param {string} title title of content 
+ *
+ * @param {string} title title of content
  * @param {string} chapter chapter number of title
  * @param {string} folderName name of main folder containing bookmark
- * @param {Array.<string>} tags tags associated with bookmark 
+ * @param {Array.<string>} tags tags associated with bookmark
  * @param {string} readingStatus indicates name of subFolder to move bookmark to or 'reading' for main folder
  * @param {boolean?} pauseListeners set to true to prevent registered event listeners from firing, default = false
  */
 async function changeSubFolder(title, chapter, folderName, tags, readingStatus, pauseListeners = false) {
   try {
-    _preventListeners = pauseListeners;
     const bookmarkTitle = createBookmarkTitle(title, chapter, tags);
-
-    const mangamarkId = await getMangamarkFolderId();
-    if (mangamarkId === null) {
-      throw new Error(`Attempted to change subFolder for '${title}' but could not find mangamark folder`);
-    }
-    const folderId = await getFolderId(mangamarkId, folderName);
-
-    const tree = await chrome.bookmarks.getSubTree(folderId);
-    const result = searchFolder(tree[0].children, bookmarkTitle, true);
-    if (!result) {
-      throw new Error(`Bookmark '${bookmarkTitle}' not found in Folder '${folderName}'`);
-    }
+    const result = await getExistingBookmark(folderName, bookmarkTitle);
 
     const bookmark = result.bookmark;
-    const destinationId = readingStatus === 'reading' ? folderId : await getFolderId(folderId, readingStatus, true);
-    
+    const destinationId = readingStatus === 'reading' ? result.folderId : await getFolderId(result.folderId, readingStatus, true);
+
+    _preventListeners = pauseListeners;
     await chrome.bookmarks.move(bookmark.id, { parentId: destinationId });
     const children = await chrome.bookmarks.getChildren(bookmark.parentId);
     if (children.length === 0) {
       await chrome.bookmarks.remove(bookmark.parentId);
     }
-    _preventListeners = false; 
+    _preventListeners = false;
   } catch (error) {
+    _preventListeners = false;
     console.error('Error changing subfolder:', error);
+  }
+}
+
+async function performBookmarkMove(title, chapter, tags, currentFolderName, newFolderName, readingStatus, pauseListeners = false) {
+  try {
+    const bookmarkTitle = createBookmarkTitle(title, chapter, tags);
+    const result = await getExistingBookmark(currentFolderName, bookmarkTitle);
+
+    const mangamarkId = await getMangamarkFolderId();
+
+    _preventListeners = pauseListeners;
+    let destinationId = await getFolderId(mangamarkId, newFolderName, true);
+    if (readingStatus !== 'reading') {
+      destinationId = await getFolderId(destinationId, readingStatus, true);
+    }
+
+    await chrome.bookmarks.move(result.bookmark.id, { parentId: destinationId});
+    await removeIfEmptyFolder(result.bookmark.parentId);
+    _preventListeners = false;
+
+    document.dispatchEvent(new Event('bookmarkChanged'));
+  } catch (error) {
+    _preventListeners = false;
+    console.error('Error moving bookmark:', error);
   }
 }
 
 /**
  * get all existing unique bookmark tags
- * 
+ *
  * @returns Set of all bookmark tags
  */
 function getAllBookmarkTags() {
@@ -400,7 +428,7 @@ function getAllBookmarkTags() {
 
 /**
  * find all unique bookmark tags within folder tree structure
- * 
+ *
  * @param {chrome.bookmarks.BookmarkTreeNode} folderBookmark bookmark folder to search through
  */
 function getTagsFromFolder(folderBookmark) {
@@ -431,7 +459,7 @@ function registerBookmarkListener(listenerFn) {
   chrome.bookmarks.onCreated.addListener(wrapperFn);
   chrome.bookmarks.onMoved.addListener(wrapperFn);
   chrome.bookmarks.onRemoved.addListener(wrapperFn);
-  document.addEventListener('folderRemoved', wrapperFn);
+  document.addEventListener('bookmarkChanged', wrapperFn);
 }
 
 async function reorderFolders(orderedFolders) {
@@ -467,4 +495,20 @@ async function reorderFolders(orderedFolders) {
   }
 }
 
-export { bookmarkRegex, getFolderNames, renameBookmarkFolder, findDefaultFolder, getMangamarkSubTree, findBookmark, addBookmark, removeBookmark, updateBookmarkTags, changeSubFolder, getAllBookmarkTags, registerBookmarkListener, reorderFolders }
+export {
+  bookmarkRegex,
+  getFolderNames,
+  renameBookmarkFolder,
+  findDefaultFolder,
+  getMangamarkSubTree,
+  searchForBookmark,
+  addBookmark,
+  removeBookmark,
+  updateBookmarkTags,
+  updateBookmarkTitle,
+  changeSubFolder,
+  performBookmarkMove,
+  getAllBookmarkTags,
+  registerBookmarkListener,
+  reorderFolders
+}

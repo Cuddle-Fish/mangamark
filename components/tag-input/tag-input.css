@@ -23,6 +23,10 @@ input {
   font-family: inherit;
 }
 
+input::placeholder {
+  color: var(--offWhite30);
+}
+
 input::-webkit-calendar-picker-indicator {
   margin-bottom: 9px;
 }

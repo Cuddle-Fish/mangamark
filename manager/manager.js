@@ -241,6 +241,7 @@ function setupEventListeners() {
 
   document.addEventListener('readingStatusChanged', readingStatusChangeHandler);
   document.addEventListener('tagsChanged', tagsChangeHandler);
+  document.addEventListener('titleChanged', titleChangeHandler);
 }
 
 function openSideNav() {
@@ -373,10 +374,33 @@ function readingStatusChangeHandler(event) {
 
 function tagsChangeHandler(event) {
   const {folder, readingStatus, title, newTags} = event.detail;
+  const bookmark = findBookmark(folder, readingStatus, title);
+  if (!bookmark) return;
+
+  bookmark.tags = newTags;
+  const filterTags = document.getElementById('filter-tags-input').getTags();
+  if (!bookmark.hasTags(filterTags)) {
+    event.target.remove();
+  }
+}
+
+function titleChangeHandler(event) {
+  const {folder, readingStatus, oldTitle, newTitle} = event.detail;
+  const bookmark = findBookmark(folder, readingStatus, oldTitle);
+  if (!bookmark) return;
+
+  bookmark.title = newTitle;
+  const searchTokens = getSearchTokens();
+  if (!bookmark.matchesTokens(searchTokens)) {
+    event.target.remove();
+  }
+}
+
+function findBookmark(folder, readingStatus, title) {
   const bookmarkFolder = _bookmarkFolders.find(currentFolder => currentFolder.name === folder);
   if (!bookmarkFolder) {
     console.error(`Could not find folder '${folder}'`);
-    return;
+    return null;
   }
   let bookmark;
   if (readingStatus === 'reading') {
@@ -388,14 +412,10 @@ function tagsChangeHandler(event) {
 
   if (!bookmark) {
     console.error(`Could not find bookmark with title '${title}' in folder '${folder}'`);
-    return;
+    return null;
   }
 
-  bookmark.tags = newTags;
-  const searchTags = document.getElementById('filter-tags-input').getTags();
-  if (searchTags.some(tag => !newTags.includes(tag))) {
-    event.target.remove();
-  }
+  return bookmark;
 }
 
 let _bookmarkFolders;

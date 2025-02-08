@@ -17,7 +17,7 @@ template.innerHTML = /* html */ `
     </div>
     <div class="all-selection">
       <input type="radio" id="all-bookmarks" name="nav-item" value="" checked />
-      <label for="all-bookmarks">Show All</label>      
+      <label for="all-bookmarks">Show All</label>
     </div>
 
     <div id="groups-container" class="groups-container"></div>
@@ -55,7 +55,7 @@ customElements.define(
 
       this.shadowRoot.getElementById('close-button')
         .addEventListener('click', () => this.closeNav());
-      
+
       this.shadowRoot.getElementById('all-bookmarks')
         .addEventListener('change', (event) => this.inputChangeHandler(event));
 
@@ -76,7 +76,7 @@ customElements.define(
       const fragment = document.createDocumentFragment();
       const groups = await getGroupsWithFolders();
 
-      let hasSelected = this.selected === '' ? true : false;
+      let selectedRemoved = true;
 
       for (const group of groups) {
         const sectionContainer = document.createElement('div');
@@ -105,14 +105,15 @@ customElements.define(
           input.name = 'nav-item';
           input.value = folder;
           input.addEventListener('change', (event) => this.inputChangeHandler(event));
-          if (folder === this.selected) {
-            hasSelected = true;
-          }
 
           const label = document.createElement('label');
           label.htmlFor = folder;
           label.textContent = folder;
           label.lang = 'en';
+
+          if (folder === this.selected) {
+            selectedRemoved = false;
+          }
 
           folderContainer.appendChild(input);
           folderContainer.appendChild(label);
@@ -124,9 +125,7 @@ customElements.define(
         fragment.appendChild(sectionContainer);
       }
 
-      if (!hasSelected) {
-        this.setAttribute('selected', '');
-      }
+      if (selectedRemoved) this.setAttribute('selected', '');
 
       const groupsContainer = this.shadowRoot.getElementById('groups-container');
       groupsContainer.replaceChildren(fragment);
