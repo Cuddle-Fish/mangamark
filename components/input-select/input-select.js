@@ -105,12 +105,25 @@ customElements.define(
 
     get value() {
       const input = this.shadowRoot.getElementById('input-area');
-      return input.value;
+      if (this.type === 'textarea') {
+        return input.innerText;
+      } else {
+        return input.value;
+      }
     }
 
     set value(value) {
       const input = this.shadowRoot.getElementById('input-area');
-      input.value = value;
+      if (this.type === 'textarea') {
+        input.innerHTML = value;
+        if (this.required && !value.trim()) {
+          input.classList.add('invalid');
+        } else {
+          input.classList.remove('invalid');
+        }
+      } else {
+        input.value = value;
+      }
     }
 
     constructor() {
@@ -120,20 +133,15 @@ customElements.define(
     }
 
     connectedCallback() {
-      this.populateSuggestions();
-
-      const input = this.shadowRoot.getElementById('input-area');
-      input.addEventListener('focus', () => this.displaySuggestions());
-      input.addEventListener('blur', () => {
-        setTimeout(() => this.hideSuggestions(), 100);
-      });
-      input.addEventListener('click', () => this.displaySuggestions());
+      this.#populateSuggestions();
+      this.#addInputListeners();
 
       this.shadowRoot.getElementById('suggestions-container')
       .addEventListener('mousedown', (event) => {
         event.preventDefault();
       });
-
+      
+      const input = this.shadowRoot.getElementById('input-area');
       const arrow = this.shadowRoot.querySelector('expand-more');
       arrow.addEventListener('mousedown', (event) => {
         event.preventDefault();
@@ -143,74 +151,84 @@ customElements.define(
 
       const slot = this.shadowRoot.querySelector('slot');
       slot.addEventListener('slotchange', () => {
-        this.populateSuggestions();
+        this.#populateSuggestions();
       });
     }
 
     attributeChangedCallback(name, oldValue, newValue) {
       if (name === 'type' && this.isValidType(this.type)) {
-        if (newValue !== 'number') {
-          this.step = '';
-        }
-        this.setInputType();
-      } else if (name === 'step' && this.type === 'number') {
-        this.setStep();
+        this.#setInputType(newValue);
       } else if (name === 'required') {
-        const input = this.shadowRoot.getElementById('input-area');
-        input.required = this.required;
+        this.#setRequired();
+      } else if (name === 'step' && this.type === 'number') {
+        this.#setStep();
       } else if (name === 'placeholder') {
-        this.setPlaceholder();
+        this.#setPlaceholder();
       } else if (name === 'readonly') {
-        const input = this.shadowRoot.getElementById('input-area');
-        input.readOnly = this.readonly;
-
-        const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
-        const arrow = this.shadowRoot.querySelector('expand-more');
-        if (this.readonly) {
-          wrapper.classList.add('read-only');
-          arrow.classList.add('read-only');
-        } else {
-          wrapper.classList.remove('read-only');
-          arrow.classList.remove('read-only');
-        }
+        this.#setReadonly();
       } else if (name === 'input-style') {
-        this.setInputStyle();
+        this.#setInputStyle();
       }
     }
 
-    setInputType() {
-      const currentInputArea = this.shadowRoot.getElementById('input-area');
+    #addInputListeners() {
+      const input = this.shadowRoot.getElementById('input-area');
+      input.addEventListener('focus', () => this.displaySuggestions());
+      input.addEventListener('blur', () => {
+        setTimeout(() => this.hideSuggestions(), 100);
+      });
+      input.addEventListener('click', () => this.displaySuggestions());
+
       if (this.type === 'textarea') {
-        var newInputeArea = document.createElement('textarea');
-        newInputeArea.classList.add('input-area');
-        newInputeArea.id = 'input-area';
-        currentInputArea.replaceWith(newInputeArea);
+        input.addEventListener('keyup', () => {
+          if (input.innerText === '\n') {
+            input.innerHTML = '';
+          }
+          if (this.required) {
+            if (this.value.trim()) {
+              input.classList.remove('invalid');
+            } else {
+              input.classList.add('invalid');
+            }
+          }
+        });
+      }
+    }
+
+    #setInputType(newType) {
+      const currentInputArea = this.shadowRoot.getElementById('input-area');
+      let replaced = false;
+      if (newType === 'textarea') {
+        var newInputArea = document.createElement('span');
+        currentInputArea.replaceWith(newInputArea);
+        replaced = true;
       } else if (currentInputArea.tagName.toLowerCase() === 'input') {
-        var newInputeArea = currentInputArea;
+        var newInputArea = currentInputArea;
         if (currentInputArea.type === 'number') {
           currentInputArea.removeAttribute('step');
         }
-        currentInputArea.type = this.type;
+        currentInputArea.type = newType;  
       } else {
-        var newInputeArea = document.createElement('input');
-        newInputeArea.type = this.type;
-        newInputeArea.classList.add('input-area');
-        newInputeArea.id = 'input-area';
-        currentInputArea.replaceWith(newInputeArea);
+        var newInputArea = document.createElement('input');
+        newInputArea.type = newType;
+        currentInputArea.replaceWith(newInputArea);
+        replaced = true;
       }
 
-      newInputeArea.required = this.required;
-      newInputeArea.readOnly = this.readonly;
-      if (this.type === 'number') {
-        this.setStep();
-      } else {
-        this.step = '';
+      if (replaced) {
+        newInputArea.id = 'input-area';
+        newInputArea.classList.add('input-area');
+        this.#addInputListeners();
+        this.#setRequired();
+        this.#setReadonly();
+        this.#setPlaceholder();
+        this.#setInputStyle();
       }
-      this.setPlaceholder();
-      this.setInputStyle();
+
+      if (newType === 'number') this.#setStep();
     }
     
-    setStep() {
+    #setStep() {
       const inputArea = this.shadowRoot.getElementById('input-area');
       if (this.step) {
         inputArea.step = this.step;
@@ -219,26 +237,69 @@ customElements.define(
       }
     }
 
-    setPlaceholder() {
+    #setRequired() {
+      const inputArea = this.shadowRoot.getElementById('input-area');
+      if (this.type === 'textarea') {
+        if (!this.required) {
+          inputArea.classList.remove('invalid');
+        } else if (!this.value.trim()) {
+          inputArea.classList.add('invalid');
+        }
+      } else {
+        inputArea.required = this.required;
+        if (this.required) {
+          inputArea.pattern = '.*\\S+.*';
+        } else {
+          inputArea.removeAttribute('pattern');
+        }
+      }
+    }
+
+    #setPlaceholder() {
       const inputArea = this.shadowRoot.getElementById('input-area');
       if (this.placeholder) {
-        inputArea.placeholder = this.placeholder;
+        if (this.type === 'textarea') {
+          inputArea.style.setProperty('--textarea-placeholder', `'${this.placeholder}'`);
+        } else {
+          inputArea.placeholder = this.placeholder;
+        }
       } else {
-        inputArea.removeAttribute('placeholder');
+        if (this.type === 'textarea') {
+          inputArea.style.removeProperty('--textarea-placeholder');
+        } else {
+          inputArea.removeAttribute('placeholder');
+        }
       }
     }
 
-    setInputStyle() {
+    #setReadonly() {
       const inputArea = this.shadowRoot.getElementById('input-area');
-      if (this.inputStyle) {
-        inputArea.style = this.inputStyle;
+      if (this.type === 'textarea') {
+        inputArea.contentEditable = this.readonly ? 'false' : 'plaintext-only';
       } else {
-        inputArea.getAttribute('style');
-        inputArea.removeAttribute('style');
+        inputArea.readOnly = this.readonly;
+      }
+
+      const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
+      const arrow = this.shadowRoot.querySelector('expand-more');
+      if (this.readonly) {
+        wrapper.classList.add('read-only');
+        arrow.classList.add('read-only');
+      } else {
+        wrapper.classList.remove('read-only');
+        arrow.classList.remove('read-only');
       }
     }
 
-    populateSuggestions() {
+    #setInputStyle() {
+      const inputArea = this.shadowRoot.getElementById('input-area');
+      inputArea.style.cssText = this.inputStyle || '';
+      if (this.placeholder && this.type === 'textarea') {
+        inputArea.style.setProperty('--textarea-placeholder', `'${this.placeholder}'`);
+      }
+    }
+
+    #populateSuggestions() {
       const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
       const arrow = this.shadowRoot.querySelector('expand-more');
       const options = this.querySelectorAll('option');
@@ -252,8 +313,21 @@ customElements.define(
           const div = document.createElement('div');
           div.textContent = option.value;
           div.addEventListener('click', () => {
-            this.value = option.value;
             this.hideSuggestions();
+            if (this.value === option.value) {
+              return;
+            }
+            this.value = option.value;
+            if (this.type === 'textarea') {
+              const range = document.createRange();
+              const inputArea = this.shadowRoot.getElementById('input-area');
+              if (option.value) inputArea.classList.remove('invalid');
+              range.selectNodeContents(inputArea);
+              range.collapse(false);
+              const selection = window.getSelection();
+              selection.removeAllRanges();
+              selection.addRange(range);
+            }
           });
           fragement.appendChild(div);
         });
@@ -315,7 +389,11 @@ customElements.define(
 
     checkValidity() {
       const input = this.shadowRoot.getElementById('input-area');
-      return input.checkValidity();
+      if (this.type === 'textarea') {
+        return this.value.trim() ? true : false;
+      } else {
+        return input.checkValidity();
+      }
     }
 
     flashWarning() {

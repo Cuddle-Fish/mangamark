@@ -31,10 +31,6 @@ expand-more:hover {
   font-family: inherit;
 }
 
-.input-area::placeholder {
-  color: var(--offWhite30);
-}
-
 .input-area:read-only {
   padding: 0 !important;
   outline: none !important;
@@ -49,7 +45,22 @@ expand-more:hover {
   display: block;
 }
 
-:host([required]) .input-area:not(:focus):invalid {
+span.input-area {
+  display: block;
+}
+
+input.input-area::placeholder,
+span[contenteditable].input-area:empty::before {
+  color: var(--offWhite30);
+}
+
+span[contenteditable].input-area:empty::before {
+  cursor: text;
+  content: var(--textarea-placeholder, '');
+}
+
+:host([required]) .input-area:not(:focus):invalid,
+:host([required]) span.input-area:not(:focus).invalid {
   outline: 1px solid var(--warning);
 }
 
@@ -61,14 +72,6 @@ expand-more:hover {
 @keyframes flash {
   0% { outline: 3px solid var(--warning); }
   100% { outline: 1px solid transparent; }
-}
-
-textarea {
-  display: block;
-  border: none;
-  resize: none;
-  overflow: hidden;
-  field-sizing: content;
 }
 
 input[type=number]::-webkit-outer-spin-button,
