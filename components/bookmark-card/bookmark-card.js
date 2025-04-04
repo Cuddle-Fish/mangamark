@@ -312,7 +312,7 @@ customElements.define(
     }
 
     #openFolderOption() {
-      this.changeInfoText('Enter the name of an existing or new folder to move this bookmark to.');
+      this.changeInfoText('Enter the name of an existing or new folder to move this bookmark.');
       const folderInput = this.shadowRoot.getElementById('change-folder-input');
       folderInput.value = '';
 
