@@ -10,6 +10,7 @@ template.innerHTML = /* html */ `
   <style>
     @import "/manager/sideNavigation/sideNavigation.css";
   </style>
+  <div id="overlay" class="overlay"></div>
   <div id="wrapper" class="wrapper">
     <div class="close-container">
       <a href="/options/options.html" class="icon-button"><settings-icon></settings-icon></a>
@@ -52,6 +53,7 @@ customElements.define(
 
     connectedCallback() {
       this.setAttribute('selected', '');
+      this.setAttribute('open', '');
 
       this.shadowRoot.getElementById('close-button')
         .addEventListener('click', () => this.closeNav());
@@ -59,16 +61,19 @@ customElements.define(
       this.shadowRoot.getElementById('all-bookmarks')
         .addEventListener('change', (event) => this.inputChangeHandler(event));
 
+      this.shadowRoot.getElementById('overlay')
+        .addEventListener('click', () => this.closeNav());
+
       this.renderGroups();
       registerGroupChangeListener(this.renderGroups.bind(this));
     }
 
     openNav() {
-      this.style.marginLeft = '0';
+      this.setAttribute('open', '');
     }
 
     closeNav() {
-      this.style.marginLeft = '-260px';
+      this.removeAttribute('open');
       this.dispatchEvent(new Event('navClosed'));
     }
 

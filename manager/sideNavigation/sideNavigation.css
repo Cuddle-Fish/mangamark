@@ -1,15 +1,58 @@
 :host {
-  position: fixed;
-  width: 260px;
+  --sidebar-width: 260px;
+  width: var(--sidebar-width);
   box-sizing: border-box;
-  background-color: var(--secondary-background);
   color: var(--offWhite);
   font-family: var(--font-family);
   flex-shrink: 0;
   transition: margin-left 150ms ease-in-out;
 }
 
+:host([open]) {
+  margin-left: 0;
+}
+
+:host(:not([open])) {
+  margin-left: -260px;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  background-color: #414141;
+  opacity: 0.5;
+  width: 100%;
+  height: 100vh;
+}
+
+@media (max-width: 64rem) {
+  :host([open]) .overlay {
+    display: block;
+  }
+
+  :host {
+    position: absolute;
+    z-index: 100;
+    margin: 0 !important;
+  }
+
+  .wrapper {
+    position: absolute;
+    z-index: 200;
+  }
+
+  :host([open]) .wrapper {
+    margin-left: 0;
+  }
+
+  :host(:not([open])) .wrapper {
+    margin-left: -260px;
+  }
+}
+
 .wrapper {
+  position: fixed;
+  width: var(--sidebar-width);
   display: flex;
   height: 100vh;
   box-sizing: border-box;
@@ -17,6 +60,8 @@
   gap: 10px;
   padding: 10px;
   overflow: hidden;
+  background-color: var(--secondary-background);
+  transition: margin-left 150ms ease-in-out;
 }
 
 .close-container {

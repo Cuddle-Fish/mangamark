@@ -17,18 +17,36 @@ body {
 .main {
   display: flex;
   flex-direction: column;
-  gap: 10px;
   flex-grow: 1;
-  margin: 10px;
-  margin-left: 270px;
-  transition: margin-left 150ms ease-in-out;
+}
+
+.main > * {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 .search-container {
+  position: sticky;
+  top: 0;
+  z-index: 60;
   display: flex;
   flex-direction: row-reverse;
   justify-content: space-between;
   align-items: center;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  background-color: transparent;
+  border-bottom: 1px solid transparent;
+  transition: all 200ms ease-in;
+}
+
+.scrolled {
+  background-color: var(--background-color);
+  border-bottom: 1px solid var(--accent-bright);
+}
+
+.search-area:has(> input:focus) {
+  outline: 1px solid var(--accent-bright);
 }
 
 .search-area {
@@ -36,20 +54,15 @@ body {
   display: flex;
   flex-grow: .08;
   align-items: center;
+  background-color: var(--secondary-background);
+  border-radius: 8px;
 
   & input {
     all: unset;
     flex-grow: 1;
-    border-radius: 8px;
     padding: 10px;
-    padding-right: 50px;
-    background-color: var(--secondary-background);
     color: var(--offWhite);
     font-size: 20px;
-  }
-
-  & input:focus {
-    outline: 1px solid var(--accent-bright);
   }
 
   & input::placeholder {
@@ -57,11 +70,13 @@ body {
   }
 
   & button, label {
-    position: absolute;
-    right: 10px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background-color: var(--offWhite10);
   }
 
   & label {
+    padding: 5px;
     cursor: text;
   }
 
@@ -70,15 +85,13 @@ body {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
     border: none;
-    border-radius: 50%;
     color: inherit;
-    background-color: var(--offWhite10);
   }
 
-  & button:hover {
+  & button:hover, label:hover {
     background-color: var(--offWhite30);
   }
 

@@ -229,6 +229,8 @@ function setupEventListeners() {
   document.getElementById('side-nav').addEventListener('navClosed', showOpenNavButton);
   document.getElementById('side-nav').addEventListener('navChange', navChangeHandler);
 
+  document.addEventListener('scroll', handleScroll);
+
   document.getElementById('search-input').addEventListener('keyup', searchHandler);
   document.getElementById('clear-search-button').addEventListener('click', clearSearchHandler);
 
@@ -247,16 +249,12 @@ function setupEventListeners() {
 function openSideNav() {
   document.getElementById('side-nav').openNav();
   const openButton = document.getElementById('open-nav');
-  openButton.classList.add('hidden');
-  const main = document.getElementById('main-content');
-  main.style.marginLeft = '270px';
+  openButton.style.visibility = 'hidden';
 }
 
 function showOpenNavButton() {
   const openButton = document.getElementById('open-nav');
-  openButton.classList.remove('hidden');
-  const main = document.getElementById('main-content');
-  main.style.marginLeft = '10px';
+  openButton.style.visibility = 'visible';
 }
 
 function navChangeHandler(event) {
@@ -268,6 +266,15 @@ function navChangeHandler(event) {
   }
 
   displayBookmarks();
+}
+
+function handleScroll(event) {
+  const searchContainer = document.getElementsByClassName('search-container')[0];
+  if (window.scrollY === 0) {
+    searchContainer.classList.remove('scrolled');
+  } else {
+    searchContainer.classList.add('scrolled');
+  }
 }
 
 let _searchTypingTimer;
