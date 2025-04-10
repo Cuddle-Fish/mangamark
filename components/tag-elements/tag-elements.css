@@ -31,9 +31,13 @@ button {
   cursor: pointer;
   user-select: none;
   border: none;
-  gap: 8px;
-  padding: 5px 8px;
+  gap: 3px;
+  padding: 5px;
   font-size: 16px;
+}
+
+span {
+  padding: 0px 4px;
 }
 
 .vertical-line {
@@ -41,7 +45,7 @@ button {
   height: 22px;
 }
 
-close-icon {
+svg-icon {
   color: var(--offWhite30);
 }
 
@@ -53,7 +57,7 @@ button:hover .vertical-line {
   border-left: 1px solid var(--offWhite);
 }
 
-button:hover close-icon {
+button:hover svg-icon {
   color: var(--offWhite);
 }
 
@@ -64,7 +68,7 @@ button:hover close-icon {
     animation: animate-line .6s 2 linear;
   }
 
-  close-icon {
+  svg-icon {
     animation: animate-icon .6s 2 linear;
   }
 }

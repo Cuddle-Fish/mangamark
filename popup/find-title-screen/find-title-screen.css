@@ -98,15 +98,6 @@
     background-color: var(--offWhite10);
   }
 
-  label done-icon {
-    visibility: hidden;
-    color: var(--approval);
-  }
-
-  input:checked + label done-icon {
-    visibility: visible;
-  }
-
   input:checked + label {
     background-color: var(--accent-subdued30);
   }

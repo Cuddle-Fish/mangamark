@@ -29,12 +29,11 @@ button {
 button:hover {
   background-color: var(--offWhite30);
 
-  & expand-more, expand-less {
+  & svg-icon {
     outline: 2px solid var(--accent-bright);
   }
 }
-
-expand-more, expand-less {
+svg-icon {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -44,7 +43,7 @@ expand-more, expand-less {
   background-color: var(--offWhite10);
 }
 
-:host([open]) expand-more, :host([open]) expand-less {
+:host([open]) svg-icon {
   background-color: var(--accent-subdued);
   outline: none;
 }

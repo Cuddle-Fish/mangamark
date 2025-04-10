@@ -6,7 +6,7 @@
   --suggestion-background: var(--offWhite10-match);
 }
 
-expand-more {
+svg-icon {
   display: none;
   position: absolute;
   right: 2px;
@@ -14,7 +14,9 @@ expand-more {
   color: var(--offWhite);
 }
 
-expand-more:hover {
+svg-icon:hover,
+.input-area:focus + svg-icon,
+.input-area:hover + svg-icon {
   display: block;
 }
 
@@ -39,10 +41,6 @@ expand-more:hover {
 
 .input-area:focus {
   outline: 1px solid var(--accent-bright);
-}
-
-.input-area:focus + expand-more, .input-area:hover + expand-more {
-  display: block;
 }
 
 span.input-area {

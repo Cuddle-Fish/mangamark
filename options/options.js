@@ -3,11 +3,7 @@ import { getFolderNames, renameBookmarkFolder, reorderFolders, registerBookmarkL
 
 import "/components/themed-button/themed-button.js";
 import "/components/dropdown-menu/dropdown-menu.js";
-
-import "/components/svg/arrow-back.js";
-import "/components/svg/folder-icon.js";
-import "/components/svg/side-navigation.js";
-import "/components/svg/drag-indicator.js"
+import "/components/svg-icon/svg-icon.js";
 
 addEventListener('DOMContentLoaded', () => {
   setupFolderOptions();
@@ -332,7 +328,8 @@ async function updateDisplayOrderList() {
     groupItem.draggable = true;
     const groupNameContainer = document.createElement('div');
     groupNameContainer.classList.add('group-name-container');
-    const groupDragIndicator = document.createElement('drag-indicator');
+    const groupDragIndicator = document.createElement('svg-icon');
+    groupDragIndicator.type = 'drag-indicator';
     const groupNameText = document.createElement('span');
     groupNameText.textContent = group.name;
     groupNameContainer.appendChild(groupDragIndicator);
@@ -347,7 +344,8 @@ async function updateDisplayOrderList() {
       const folderItem = document.createElement('li');
       const div = document.createElement('div');
       div.classList.add('folder-name-container');
-      const dragIndicator = document.createElement('drag-indicator');
+      const dragIndicator = document.createElement('svg-icon');
+      dragIndicator.type = 'drag-indicator';
       const text = document.createElement('span');
       text.textContent = folder;
       div.appendChild(dragIndicator);

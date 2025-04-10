@@ -1,6 +1,5 @@
 import { getFolderNames, updateBookmarkTags, updateBookmarkTitle, changeSubFolder, performBookmarkMove, removeBookmark } from "/externs/bookmark.js";
-import "/components/svg/edit-icon.js";
-import "/components/svg/info-icon.js";
+import "/components/svg-icon/svg-icon.js";
 import "/components/themed-button/themed-button.js";
 import "/components/tag-input/tag-input.js";
 import "/components/tag-elements/tag-li.js";
@@ -24,7 +23,7 @@ cardTemplate.innerHTML = /* html */ `
       </a>
       <div class="tags-and-edit-button-container">
         <ul id="bookmark-tags"></ul>
-        <button id="edit-button" title="Edit Bookmark"><edit-icon></edit-icon></button>
+        <button id="edit-button" title="Edit Bookmark"><svg-icon type='edit'></svg-icon></button>
       </div>
     </div>
   </div>
@@ -40,7 +39,7 @@ const optionsTemplate = document.createElement('template');
 optionsTemplate.innerHTML = /* html */ `
   <div class="options-container">
     <div class="info-container">
-      <info-icon></info-icon>
+      <svg-icon type="info"></svg-icon>
       <span id="info-text">Select action to perform</span>
     </div>
     <div id="options-menu" class="edit-nav">

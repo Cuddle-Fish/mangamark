@@ -1,5 +1,5 @@
 import { bookmarkRegex, getMangamarkSubTree } from "/externs/bookmark.js";
-import "/components/svg/search-icon.js";
+import "/components/svg-icon/svg-icon.js";
 import "/components/themed-button/themed-button.js";
 
 const template = document.createElement('template');
@@ -17,7 +17,7 @@ template.innerHTML = /* html */ `
     </div>
     <div id="search-container" class="search-container">
       <input type="text" placeholder="Search Folder and/or Title" name="search-input" id="search-input" list="folder-options" />
-      <label for="search-input"><search-icon></search-icon></label>
+      <label for="search-input"><svg-icon type="search"></svg-icon></label>
       <datalist id="folder-options"></datalist>
     </div>
     <div id="list-container" class="list-container"></div>
@@ -239,10 +239,7 @@ customElements.define(
       infoContainer.appendChild(titleAndChapter);
       infoContainer.appendChild(folderInfoContainer);
 
-      const doneIcon = document.createElement('done-icon');
-
       label.appendChild(infoContainer);
-      label.appendChild(doneIcon);
 
       container.appendChild(input);
       container.appendChild(label);

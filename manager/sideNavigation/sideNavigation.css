@@ -157,14 +157,6 @@ input:checked + label {
   }
 }
 
-.collapse-button:has(~ .items-container[collapsed]) expand-less {
-  display: none;
-}
-
-.collapse-button:has(~ .items-container:not([collapsed])) expand-more {
-  display: none;
-}
-
 .items-container {
   display: flex;
   flex-direction: column;

@@ -21,8 +21,8 @@ async function getMangamarkFolderId() {
   try {
     const results = await chrome.bookmarks.search({title: 'Mangamark'});
     if (results.length == 1) {
-      const managamarkFolder = results[0];
-      return managamarkFolder.id;
+      const mangamarkFolder = results[0];
+      return mangamarkFolder.id;
     } else if (results.length > 1) {
       throw new Error(`Found ${results.length} folders titled 'Mangamark'.`);
     } else {

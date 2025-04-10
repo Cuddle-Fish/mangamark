@@ -1,9 +1,6 @@
 import { getGroupsWithFolders, registerGroupChangeListener } from "/externs/settings.js";
 
-import "/components/svg/close-icon.js";
-import "/components/svg/expand-less.js";
-import "/components/svg/expand-more.js";
-import "/components/svg/settings-icon.js"
+import "/components/svg-icon/svg-icon.js";
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
@@ -13,8 +10,8 @@ template.innerHTML = /* html */ `
   <div id="overlay" class="overlay"></div>
   <div id="wrapper" class="wrapper">
     <div class="close-container">
-      <a href="/options/options.html" class="icon-button"><settings-icon></settings-icon></a>
-      <button id="close-button" class="icon-button"><close-icon size="18px"></close-icon></button>
+      <a href="/options/options.html" class="icon-button"><svg-icon type="settings"></svg-icon></a>
+      <button id="close-button" class="icon-button"><svg-icon type="close" style="--icon-size: 30px"></svg-icon></button>
     </div>
     <div class="all-selection">
       <input type="radio" id="all-bookmarks" name="nav-item" value="" checked />
@@ -92,12 +89,10 @@ customElements.define(
         const div = document.createElement('div');
         div.textContent = group.name;
         collapseButton.appendChild(div);
-        const expandLess = document.createElement('expand-less');
-        const exapndMore = document.createElement('expand-more');
-        expandLess.setAttribute('size', '26px');
-        exapndMore.setAttribute('size', '26px');
-        collapseButton.appendChild(expandLess);
-        collapseButton.appendChild(exapndMore);
+        const arrow = document.createElement('svg-icon');
+        arrow.type = 'expand-less';
+        arrow.size = '26px';
+        collapseButton.appendChild(arrow);
         sectionContainer.appendChild(collapseButton);
 
         const folderContainer = document.createElement('div');
@@ -125,7 +120,7 @@ customElements.define(
         }
 
         sectionContainer.appendChild(folderContainer);
-        collapseButton.addEventListener('click', () => this.toggleSection(folderContainer));
+        collapseButton.addEventListener('click', () => this.toggleSection(folderContainer, arrow));
 
         fragment.appendChild(sectionContainer);
       }
@@ -145,13 +140,15 @@ customElements.define(
       );
     }
 
-    toggleSection(itemsContainer) {
+    toggleSection(itemsContainer, arrow) {
       if (itemsContainer.hasAttribute('collapsed')) {
         itemsContainer.removeAttribute('collapsed');
         itemsContainer.style.display = 'flex';
+        arrow.type = 'expand-less';
       } else {
         itemsContainer.setAttribute('collapsed', '');
         itemsContainer.style.display = 'none';
+        arrow.type = 'expand-more';
       }
     }
 

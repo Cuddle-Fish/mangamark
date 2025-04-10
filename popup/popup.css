@@ -18,7 +18,7 @@ h1 {
   font-size: 20px;
   font-weight: normal;
 
-  & managamark-logo {
+  & mangamark-logo {
     margin-right: -5px;
   }
 }
@@ -134,7 +134,7 @@ ul {
   gap: 10px;
   font-size: 20px;
 
-  & done-icon {
+  & svg-icon {
     color: var(--approval);
   }
 }

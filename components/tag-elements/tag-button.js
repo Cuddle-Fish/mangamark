@@ -1,4 +1,4 @@
-import "/components/svg/close-icon.js";
+import "/components/svg-icon/svg-icon.js";
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
@@ -8,7 +8,7 @@ template.innerHTML = /* html */ `
   <button id="element-button">
     <span><slot></slot></span>
     <div class="vertical-line"></div>
-    <close-icon size="12px"></close-icon>
+    <svg-icon type="close" style="--icon-size: 20px"></svg-icon>
   </button>
 `;
 

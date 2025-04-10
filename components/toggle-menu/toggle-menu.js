@@ -1,5 +1,4 @@
-import '/components/svg/expand-more.js';
-import '/components/svg/expand-less.js';
+import '/components/svg-icon/svg-icon.js';
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
@@ -8,7 +7,7 @@ template.innerHTML = /* html */ `
   </style>
   <button>
     <span id="button-text"></span>
-    <span id="button-icon">➔</span>
+    <svg-icon id="button-icon" type="expand-more"></svg-icon>
   </button>
   <div></div>
   <datalist>
@@ -118,9 +117,8 @@ customElements.define(
         text.textContent = this.selected;
       }
 
-      const iconContainer = this.shadowRoot.getElementById('button-icon');
-      const icon = document.createElement(this.open ? 'expand-less' : 'expand-more');
-      iconContainer.replaceChildren(icon);
+      const icon = this.shadowRoot.getElementById('button-icon');
+      icon.type = this.open ? 'expand-less' : 'expand-more';
     }
 
     toggle() {

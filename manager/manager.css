@@ -70,23 +70,18 @@ body {
   }
 
   & button, label {
+    padding: 5px;
     margin-right: 8px;
     border-radius: 50%;
     background-color: var(--offWhite10);
   }
 
   & label {
-    padding: 5px;
     cursor: text;
   }
 
   & button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
-    width: 32px;
-    height: 32px;
     border: none;
     color: inherit;
   }
@@ -143,14 +138,6 @@ body {
     display: flex;
     gap: 10px;
     margin-top: 7px;
-  }
-
-  .toggle-filter-input:not([active]) expand-less {
-    display: none;
-  }
-
-  .toggle-filter-input[active] expand-more {
-    display: none;
   }
 }
 

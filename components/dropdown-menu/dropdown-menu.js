@@ -1,13 +1,14 @@
-import '/components/svg/expand-more.js';
-import '/components/svg/expand-less.js';
-import '/components/svg/done-icon.js';
+import '/components/svg-icon/svg-icon.js';
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
   <style>
     @import "/components/dropdown-menu/dropdown-menu.css";
   </style>
-  <button></button>
+  <button>
+    <span id="button-text"></span>
+    <svg-icon id="button-arrow" type="expand-more"></svg-icon>
+  </button>
   <div class="options-container"></div>
   <datalist>
     <slot></slot>
@@ -123,7 +124,8 @@ customElements.define(
       options.forEach((option, index) => {
         const input = document.createElement('input');
         const label = document.createElement('label');
-        const icon = document.createElement('done-icon');
+        const icon = document.createElement('svg-icon');
+        icon.type = 'check-mark';
 
         input.type = 'radio';
         input.name = 'dropdown-options';
@@ -180,24 +182,19 @@ customElements.define(
     }
 
     render() {
-      const button = this.shadowRoot.querySelector('button');
+      const buttonText = this.shadowRoot.getElementById('button-text');
       if (!this.selected) {
-        button.textContent = this.placeholder;
+        buttonText.textContent = this.placeholder;
       } else if (this.placeholderView === 'insertBefore') {
-        button.textContent = `${this.placeholder} ${this.selected}`;
+        buttonText.textContent = `${this.placeholder} ${this.selected}`;
       } else if (this.placeholderView === 'insertAfter') {
-        button.textContent = `${this.selected} ${this.placeholder} `;
+        buttonText.textContent = `${this.selected} ${this.placeholder} `;
       } else {
-        button.textContent = this.selected;
+        buttonText.textContent = this.selected;
       }
 
-      const currentIcon = button.querySelector('expand-more', 'expand-less');
-      if (currentIcon) {
-        currentIcon.remove();
-      }
-
-      const icon = document.createElement(this.open ? 'expand-less' : 'expand-more');
-      button.appendChild(icon);
+      const arrow = this.shadowRoot.getElementById('button-arrow');
+      arrow.type = this.open ? 'expand-less' : 'expand-more';
     }
   }
 )

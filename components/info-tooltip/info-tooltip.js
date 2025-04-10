@@ -1,11 +1,11 @@
-import "/components/svg/info-icon.js";
+import "/components/svg-icon/svg-icon.js"
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
   <style>
     @import "/components/info-tooltip/info-tooltip.css";
   </style>
-  <info-icon></info-icon>
+  <svg-icon type="info"></svg-icon>
   <div class="message-container">
     <slot name="title"></slot>
     <div class="description-container">

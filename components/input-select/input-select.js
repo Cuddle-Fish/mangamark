@@ -1,4 +1,4 @@
-import "/components/svg/expand-more.js";
+import "/components/svg-icon/svg-icon.js";
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
@@ -6,7 +6,7 @@ template.innerHTML = /* html */ `
     @import "/components/input-select/input-select.css";
   </style>
   <input id="input-area" class="input-area" />
-  <expand-more></expand-more>
+  <svg-icon type="expand-more"></svg-icon>
   <div id="suggestions-wrapper" class="suggestions-wrapper hidden">
     <div id="suggestions-container" class="suggestions-container"></div>
   </div>
@@ -142,7 +142,7 @@ customElements.define(
       });
       
       const input = this.shadowRoot.getElementById('input-area');
-      const arrow = this.shadowRoot.querySelector('expand-more');
+      const arrow = this.shadowRoot.querySelector('svg-icon');
       arrow.addEventListener('mousedown', (event) => {
         event.preventDefault();
         input.focus();
@@ -281,7 +281,7 @@ customElements.define(
       }
 
       const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
-      const arrow = this.shadowRoot.querySelector('expand-more');
+      const arrow = this.shadowRoot.querySelector('svg-icon');
       if (this.readonly) {
         wrapper.classList.add('read-only');
         arrow.classList.add('read-only');
@@ -301,7 +301,7 @@ customElements.define(
 
     #populateSuggestions() {
       const wrapper = this.shadowRoot.getElementById('suggestions-wrapper');
-      const arrow = this.shadowRoot.querySelector('expand-more');
+      const arrow = this.shadowRoot.querySelector('svg-icon');
       const options = this.querySelectorAll('option');
 
       if (options.length > 0) {

@@ -80,12 +80,12 @@ label:hover {
   background-color: var(--offWhite30);
 }
 
-label done-icon {
+label svg-icon {
   display: none;
   color: var(--approval);
 }
 
-:host(:not([selected-indicator='highlight'])) input:checked + label done-icon {
+:host(:not([selected-indicator='highlight'])) input:checked + label svg-icon {
   display: flex;
   justify-content: center;
   align-items: center;

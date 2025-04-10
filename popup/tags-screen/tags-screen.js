@@ -1,5 +1,5 @@
 import "/components/themed-button/themed-button.js";
-import "/components/svg/info-icon.js";
+import "/components/svg-icon/svg-icon.js";
 import "/components/tag-input/tag-input.js";
 
 customElements.define(
@@ -36,7 +36,7 @@ customElements.define(
         <div class="tags-content-container">
           <div class="tags-title-container">Edit Tags</div>
           <div class="tags-info-container">
-            <info-icon></info-icon>
+            <svg-icon type="info"></svg-icon>
             <span>Input any desired tag name or click on an existing tag to remove.</span>
           </div>
           <tag-input id="tags-input"></tag-input>

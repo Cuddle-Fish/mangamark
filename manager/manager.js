@@ -3,12 +3,7 @@ import { bookmarkRegex, getMangamarkSubTree, registerBookmarkListener } from "/e
 
 import "/manager/sideNavigation/sideNavigation.js"
 
-import "/components/svg/search-icon.js";
-import "/components/svg/close-icon.js";
-import "/components/svg/menu-icon.js";
-import '/components/svg/expand-more.js';
-import '/components/svg/expand-less.js';
-
+import "/components/svg-icon/svg-icon.js";
 import "/components/toggle-menu/toggle-menu.js";
 import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/tag-input/tag-input.js";
@@ -352,6 +347,9 @@ function tagFilterHandler(event) {
 function toggleFilterHandler(event) {
   const button = event.currentTarget;
   button.active = !button.active;
+  
+  const arrow = document.getElementById('toggle-filter-arrow');
+  arrow.type = button.active ? 'expand-less' : 'expand-more';
 
   const tagsInput = document.getElementById('filter-tags-input');
   tagsInput.inputHidden = !tagsInput.inputHidden;

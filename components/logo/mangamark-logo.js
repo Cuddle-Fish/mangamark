@@ -15,28 +15,12 @@ template.innerHTML = /* html */ `
 `;
 
 customElements.define(
-  'managamark-logo',
+  'mangamark-logo',
   class extends HTMLElement {
-    static get observedAttributes() {
-      return ['fill'];
-    }
-
     constructor() {
       super();
       const shadowRoot = this.attachShadow({ mode: 'open' });
       shadowRoot.appendChild(template.content.cloneNode(true));
-    }
-
-    attributeChangedCallback(name, oldValue, newValue) {
-      if (name === 'fill') {
-        this.shadowRoot.querySelector('svg').setAttribute('fill', newValue);
-      }
-    }
-
-    connectedCallback() {
-      if (this.hasAttribute('fill')) {
-        this.attributeChangedCallback('fill', null, this.getAttribute('fill'));
-      }
     }
   }
 );
