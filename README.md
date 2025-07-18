@@ -18,42 +18,44 @@ This extension utilizes your browser's bookmark system. If users ever wish to un
   - Filter bookmarks by tag, reading status and/or site
   - Search bookmarks by name
   - Manage individual bookmarks
+    - edit title
     - add or remove tags
+    - change folder
     - change reading status
     - delete bookmark
-  - Manage tags
-    - create new tags
-    - delete existing tags
+  - Organize bookmark folders into groups for better sorting and easier navigation
 
 ## Remaining Tasks:
 
-### Popup:
-#### Critical:
-- ~~mode change button~~
-- ~~confirmation after create/update~~
+### Features:
+
+#### User Named Root folder:
+  - ~~new screen in popup~~
+  - ~~change in options page~~
+  - Error detection if deleted or changed
+
+#### Information/use page
+  - provide functionality and general information on extension
+  - caution users about making changes to contents of main bookmark folder
+
+#### Popup:
 - regex title and chapter matching
-#### Additions:
-- ~~find update title: add folder select~~
-- ~~user named folders~~
-- ~~more reading status options~~
-- ~~chapter display when editing~~
-- ~~increases clarity for buttons:~~
-  - ~~edit and update: is it clear update buttons updates an existing bookmark~~
-  - ~~confirm tags change and find title change is permanent: cancel edit should revert all editing~~
 
-### Manager:
-#### Critical:
-- ~~side navigation styling~~
-- ~~filter tags~~
-- ~~display bad bookmarks~~
+### Style:
 
-### Options Page:
-- ~~Rename Folders~~
+#### Manager:
+- restyle bookmark cards
+  - reduce size
+    - move third row to right side
+    - adjust padding / gap sizes
+  - make full card hyperlink
+    - highlight full card on hover
+    - move edit -- attach edit/options to left side of card
+  - (for consideration) add toggle to further reduce size -- list view
+- (for consideration) combine tag search and title search
+- (for consideration) limit opening of bookmark card options element to one card
+- (for consideration) pagination
 
 ### Other:
-- move all chrome api calls to externs
-- improve componenet imports
-- make toggle menu adjustable
-
-### Known Issues:
-- multiple mangamark folders created when none exist
+- (for consideration) move all chrome api calls to externs (popup.js and set-extension-folder.js have chrome calls)
+- (for consideration) enum for reading status

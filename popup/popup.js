@@ -1,20 +1,29 @@
-import { findDefaultFolder, getFolderNames, bookmarkRegex, searchForBookmark, addBookmark, removeBookmark } from "/externs/bookmark.js";
+import {
+  hasRootFolderId,
+  findDefaultFolder,
+  addFolder,
+  getExtensionFolders,
+  bookmarkRegex,
+  searchForBookmark,
+  addBookmark, 
+  removeBookmark 
+} from "/externs/bookmark.js";
 import "/components/themed-button/themed-button.js";
 import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/svg-icon/svg-icon.js";
 import "/components/logo/mangamark-logo.js";
 import "/components/info-tooltip/info-tooltip.js";
 import "/components/input-select/input-select.js";
+import "/components/tag-elements/tag-li.js";
+import "/components/set-extension-folder/set-extension-folder.js";
 import "/popup/tags-screen/tags-screen.js";
 import "/popup/find-title-screen/find-title-screen.js";
-import "/components/tag-elements/tag-li.js";
 
 const GlobalDataStore = (() => {
   let _state = '';
   let _url = '';
   let _tags = [];
-  let _updateTitle = '';
-  let _updateFolder = '';
+  let _existingBookmarkId = '';
 
   const hasArg = arg => {
     if (arg === undefined) {
@@ -31,8 +40,7 @@ const GlobalDataStore = (() => {
     setData: data => {
       hasArg(data);
       _url = data.url ?? _url;
-      _updateTitle = data.updateTitle ?? _updateTitle;
-      _updateFolder = data.updateFolder ?? _updateFolder;
+      _existingBookmarkId = data.existingBookmarkId ?? _existingBookmarkId;
 
       if (data.tags !== undefined && !Array.isArray(data.tags)) {
         throw new Error('tags on data, passed as argument to Store, must be an array argument');
@@ -44,8 +52,7 @@ const GlobalDataStore = (() => {
     getData: () => ({
       url: _url,
       tags: [..._tags],
-      updateTitle: _updateTitle,
-      updateFolder: _updateFolder
+      existingBookmarkId: _existingBookmarkId,
     }),
     setUrl: url => {
       hasArg(url);
@@ -55,21 +62,16 @@ const GlobalDataStore = (() => {
     setTags: tags => {
       hasArg(tags);
       if (!Array.isArray(tags)) {
-        throw new Error('tags must be passed as array argument to Store');
+        throw new Error('tags must be an array');
       }
       _tags = [...tags];
     },
     getTags: () => [..._tags],
-    setUpdateTitle: updateTitle => {
-      hasArg(updateTitle);
-      _updateTitle = updateTitle;
+    setExistingBookmarkId: existingBookmarkId => {
+      hasArg(existingBookmarkId);
+      _existingBookmarkId = existingBookmarkId;
     },
-    getUpdateTitle: () => _updateTitle,
-    setUpdateFolder: updateFolder => {
-      hasArg(updateFolder);
-      _updateFolder = updateFolder;
-    },
-    getUpdateFolder: () => _updateFolder
+    getCurrentBookmarkId: () => _existingBookmarkId
   }
 
   return Store;
@@ -79,19 +81,30 @@ document.getElementById('manage-button').addEventListener('click', function() {
   chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
 });
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  const hasRootId = await hasRootFolderId();
+  if (hasRootId) {
+    setupFolderSelection();
+    processTab();
+  } else {
+    openRootFolderScreen();
+  }
+});
+
+document.getElementById('set-extension-folder').addEventListener('folderSet', () => {
+  closeRootFolderScreen();
   setupFolderSelection();
   processTab();
 });
 
 async function setupFolderSelection() {
-  const bookmarkFolders = await getFolderNames();
+  const extensionFolders = await getExtensionFolders();
   const fragement = document.createDocumentFragment();
-  bookmarkFolders.forEach(folder => {
+  for (const title of extensionFolders.keys()) {
     const option = document.createElement('option');
-    option.value = folder;
+    option.value = title;
     fragement.appendChild(option);
-  });
+  }
   const folderOptions = document.getElementById('folder-options');
   folderOptions.replaceChildren(fragement);
 }
@@ -107,8 +120,8 @@ async function processTab() {
     const numsInTitle = title.match(/\d+/g) || [];
 
     const defaultFolder = await findDefaultFolder(domain);
-
     const result = await searchForBookmark(title);
+
     if (result) {
       const bookmark = result.bookmark;
       const subFolder = result.subFolder;
@@ -121,8 +134,7 @@ async function processTab() {
       const bookmarkInfo = getBookmarkContents(bookmark.title);
       GlobalDataStore.setData({
         tags: bookmarkInfo.tags,
-        updateTitle: bookmark.title,
-        updateFolder: folder
+        existingBookmarkId: bookmark.id,
       });
 
       setActionDisplay(true);
@@ -141,6 +153,22 @@ async function processTab() {
   } catch (error) {
     console.error('Error processing tab:', error);
   }
+}
+
+function openRootFolderScreen() {
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.add('hidden');
+  
+  const setExtensionFolder = document.getElementById('set-extension-folder');
+  setExtensionFolder.classList.remove('hidden');
+}
+
+function closeRootFolderScreen() {
+  const setExtensionFolder = document.getElementById('set-extension-folder');
+  setExtensionFolder.classList.add('hidden');
+
+  const updateCreateContainer = document.getElementById('update-create');
+  updateCreateContainer.classList.remove('hidden');
 }
 
 /**
@@ -305,12 +333,12 @@ document.getElementById('action-button').addEventListener('click', function() {
   const state = GlobalDataStore.getState();
   const data = GlobalDataStore.getData();
   if (state === 'update') {
-    createBookmark(data)
+    createBookmark(data.url, data.tags)
       .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
-      .then(() => removeBookmark(data.updateFolder, {bookmarkTitle: data.updateTitle}))
+      .then(() => removeBookmark(data.existingBookmarkId))
       .catch((err) => console.error('Error updating bookmark', err));
   } else {
-    createBookmark(data)
+    createBookmark(data.url, data.tags)
       .then((bookmarkTitle) => console.log(`Bookmark created: ${bookmarkTitle}`))
       .catch((err) => console.error('Error creating bookmark:', err));
   }
@@ -324,19 +352,31 @@ document.getElementById('action-button').addEventListener('click', function() {
 
 /**
  * 
- * @param {Object} data information to create bookmark
+ * @param {string} url bookmark URL
+ * @param {Array.<string>} tags list of tags associated with bookmark
  * @returns Promise resolves with title of bookmark created
  */
-function createBookmark(data) {
-  const readingStatus = document.getElementById('reading-status-menu').selected;
-  const title = document.getElementById('title-input').value;
-  const folder = document.getElementById('folder-input').value;
-  const chapter = document.getElementById('chapter-input').value;
-  if (readingStatus !== 'Reading') {
-    return addBookmark(title, chapter, data.url, folder, data.tags, readingStatus);
-  } else {
-    return addBookmark(title, chapter, data.url, folder, data.tags);
+async function createBookmark(url, tags) {
+  const selectedStatus = document.getElementById('reading-status-menu').selected;
+  const readingStatus = selectedStatus !== 'Reading' ? selectedStatus : undefined;
+  const contentTitle = document.getElementById('title-input').value.trim();
+
+  const folder = document.getElementById('folder-input').value.replace(/\s+/g, ' ').trim();
+  const normalizedFolder = folder.toLowerCase();
+  const extensionFolders = await getExtensionFolders();
+  let folderId;
+  for (const [title, id] of extensionFolders) {
+    if (title.trim().toLowerCase() === normalizedFolder) {
+      folderId = id;
+      break;
+    }
   }
+  if (folderId === undefined) {
+    folderId = await addFolder(folder);
+  }
+
+  const chapter = document.getElementById('chapter-input').value;
+  return addBookmark(contentTitle, chapter, tags, url, folderId, readingStatus);
 }
 
 document.getElementById('edit-button').addEventListener('click', function() {
@@ -410,8 +450,7 @@ document.getElementById('change-mode').addEventListener('click', () => {
   const state = GlobalDataStore.getState();
   if (state === 'update') {
     GlobalDataStore.setState('create');
-    GlobalDataStore.setUpdateTitle('');
-    GlobalDataStore.setUpdateFolder('');
+    GlobalDataStore.setExistingBookmarkId('');
     setActionDisplay(false);
     titleEditing(true);
   } else {
@@ -444,7 +483,7 @@ document.getElementById('find-title-screen').addEventListener('closeTitleScreen'
   updateCreateContainer.classList.remove('hidden');
   const action = event.detail.action;
   if (action === 'confirm') {
-    const { folder, readingStatus, bookmarkTitle } = event.detail.updateInfo;
+    const { folder, readingStatus, bookmarkTitle, bookmarkId } = event.detail.updateInfo;
     const bookmarkContents = getBookmarkContents(bookmarkTitle);
     titleDisplay(bookmarkContents.title);
     folderDisplay(folder);
@@ -455,8 +494,7 @@ document.getElementById('find-title-screen').addEventListener('closeTitleScreen'
     readingStatusMenu.selected = readingStatus;
     GlobalDataStore.setData({
       tags: bookmarkContents.tags,
-      updateTitle: bookmarkTitle,
-      updateFolder: folder
+      existingBookmarkId: bookmarkId,
     });
   }
   const state = GlobalDataStore.getState();

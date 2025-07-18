@@ -1,4 +1,4 @@
-import { bookmarkRegex, getMangamarkSubTree } from "/externs/bookmark.js";
+import { bookmarkRegex, getExtensionSubtree } from "/externs/bookmark.js";
 import "/components/svg-icon/svg-icon.js";
 import "/components/themed-button/themed-button.js";
 
@@ -141,7 +141,7 @@ customElements.define(
 
     async #getBookmarkData() {
       this.#bookmarkData = {};
-      const tree = await getMangamarkSubTree();
+      const tree = await getExtensionSubtree();
       for (const node of tree) {
         if (node.children) {
           const folderContents = {Reading: []};
@@ -151,7 +151,7 @@ customElements.define(
               if (!matches) {
                 continue;
               }
-              folderContents.Reading.push(folderNode.title);
+              folderContents.Reading.push({title: folderNode.title, id: folderNode.id});
             } else if (folderNode.children) {
               const validSubfolders = ['Completed', 'Plan to Read', 'Re-Reading', 'On Hold'];
               if (validSubfolders.includes(folderNode.title)) {
@@ -172,7 +172,7 @@ customElements.define(
           if (!matches) {
             continue;
           }
-          bookmarks.push(node.title)
+          bookmarks.push({ title: node.title, id: node.id });
         }
       }
       return bookmarks;
@@ -186,9 +186,9 @@ customElements.define(
         const subfolders = this.#bookmarkData[folderName];
         for (const subfolderName in subfolders) {
           const bookmarks = subfolders[subfolderName];
-          bookmarks.forEach(title => {
+          bookmarks.forEach(bookmark => {
             hasBookmarks = true;
-            const listElement = this.createBookmarkListing(folderName, subfolderName, title);
+            const listElement = this.createBookmarkListing(folderName, subfolderName, bookmark.title, bookmark.id);
             fragment.appendChild(listElement);
           });
         }
@@ -205,7 +205,7 @@ customElements.define(
       }
     }
 
-    createBookmarkListing(folder, readingStatus, bookmarkTitle) {
+    createBookmarkListing(folder, readingStatus, bookmarkTitle, bookmarkId) {
       const container = document.createElement('div');
       container.classList.add('bookmark-title');
       const matches = bookmarkTitle.match(bookmarkRegex());
@@ -247,7 +247,9 @@ customElements.define(
       const updateTitle = this.shadowRoot.getElementById('update-title');
       const confirmButton = this.shadowRoot.getElementById('confirm-button');
       input.addEventListener('change', () => {
-        this.#selectedBookmark = {folder: folder, readingStatus: readingStatus, bookmarkTitle: bookmarkTitle};
+        this.#selectedBookmark = {
+          folder: folder, readingStatus: readingStatus, bookmarkTitle: bookmarkTitle, bookmarkId: bookmarkId
+        };
         updateTitle.textContent = matches[1];
         updateTitle.classList.remove('red-text');
         confirmButton.disabled = false;

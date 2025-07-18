@@ -164,6 +164,15 @@ body {
   margin-bottom: 20px;
 }
 
+.bookmark-list:empty::after {
+  content: "No bookmarks found.";
+  border-radius: 15px;
+  padding: 5px;
+  background-color: var(--offWhite10);
+  font-size: 18px;
+  text-align: center;
+}
+
 .hidden {
   display: none !important;
 }

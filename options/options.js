@@ -1,9 +1,17 @@
 import { getGroupsWithFolders, addGroup, changeGroupName, getDefaultGroupName, setDefaultGroupName, setAllGroups } from "/externs/settings.js";
-import { getFolderNames, renameBookmarkFolder, reorderFolders, registerBookmarkListener } from "/externs/bookmark.js";
+import {
+  hasRootFolderId,
+  getRootFolderName,
+  getExtensionFolders,
+  renameFolder,
+  reorderFolders,
+  registerBookmarkListener
+} from "/externs/bookmark.js";
 
 import "/components/themed-button/themed-button.js";
 import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/svg-icon/svg-icon.js";
+import "/components/set-extension-folder/set-extension-folder.js";
 
 addEventListener('DOMContentLoaded', () => {
   setupFolderOptions();
@@ -12,18 +20,27 @@ addEventListener('DOMContentLoaded', () => {
 
 // #region Folder Options
 
-let _folders = [];
+let _folders = new Map();
 
 function setupFolderOptions() {
   updateFolderOptionsDisplay();
   document.getElementById('folder-rename-select').addEventListener('DropdownChange', selectFolderRenameHandler);
   document.getElementById('folder-rename-input').addEventListener('input', inputFolderRenameHandler);
   document.getElementById('folder-rename-confirm').addEventListener('click', changeFolderNameHandler);
+  document.getElementById('edit-extension-folder').addEventListener('click', toggleRootFolderScreen);
+  document.getElementById('set-extension-folder').addEventListener('folderSet', rootSetHandler);
 }
 
 async function updateFolderOptionsDisplay() {
-  _folders = await getFolderNames();
+  const hasRoot = await hasRootFolderId();
+  if (hasRoot) {
+    _folders = await getExtensionFolders();
+  } else {
+    _folders.clear();
+  }
+  
   updateFolderRenameSelection();
+  displayRootFolder();
 }
 
 function selectFolderRenameHandler(event) {
@@ -33,28 +50,34 @@ function selectFolderRenameHandler(event) {
 
 function inputFolderRenameHandler(event) {
   const value = event.target.value.replace(/\s+/g, ' ').trim();
-  const isInvalid = value === '' || _folders.some((folder) => folder === value);
+  const isInvalid = value === '' || _folders.has(value);
   const renameFolderButton = document.getElementById('folder-rename-confirm');
   renameFolderButton.disabled = isInvalid;
 }
 
 async function changeFolderNameHandler(event) {
   const selectedFolderName = document.getElementById('folder-rename-select').selected;
+  const folderId = _folders.get(selectedFolderName);
   const input = document.getElementById('folder-rename-input');
   const newFolderName = input.value.replace(/\s+/g, ' ').trim();
-  await renameBookmarkFolder(selectedFolderName, newFolderName);
+  await renameFolder(folderId, newFolderName);
 }
 
 function updateFolderRenameSelection() {
-  const fragement = document.createDocumentFragment();
-  _folders.forEach(folder => {
-    const option = document.createElement('option');
-    option.textContent = folder;
-    option.value = folder;
-    fragement.appendChild(option);
-  });
-
   const renameSelect = document.getElementById('folder-rename-select');
+  const fragement = document.createDocumentFragment();
+  if (_folders.size === 0) {
+    renameSelect.disabled = true;
+  } else {
+    renameSelect.disabled = false;
+    for (const title of _folders.keys()) {
+      const option = document.createElement('option');
+      option.textContent = title;
+      option.value = title;
+      fragement.appendChild(option);
+    }
+  }
+
   renameSelect.replaceChildren(fragement);
   renameSelect.updateOptions('');
 
@@ -63,6 +86,35 @@ function updateFolderRenameSelection() {
   input.disabled = true;
   const renameFolderButton = document.getElementById('folder-rename-confirm');
   renameFolderButton.disabled = true;
+}
+
+async function displayRootFolder() {
+  const displayElement = document.getElementById('extension-folder-name');
+  const hasRoot = await hasRootFolderId();
+  if (hasRoot) {
+    const rootName = await getRootFolderName();
+    displayElement.textContent = rootName;
+  } else {
+    displayElement.textContent = '';
+  }
+}
+
+function toggleRootFolderScreen(event) {
+  const button = event.currentTarget;
+  const setExtensionElement = document.getElementById('set-extension-folder');
+
+  const isVisible = setExtensionElement.style.display === 'block';
+  setExtensionElement.style.display = isVisible ? 'none' : 'block';
+  button.textContent = isVisible ? 'Change' : 'Close';
+}
+
+function rootSetHandler(event) {
+  const editExtensionButton = document.getElementById('edit-extension-folder');
+  const setExtensionElement = document.getElementById('set-extension-folder');
+
+  editExtensionButton.textContent = 'Change';
+  setExtensionElement.style.display = 'none';
+  displayRootFolder();
 }
 
 // #endregion
@@ -490,8 +542,7 @@ function getListItemBelow(listItems, clientY) {
 registerBookmarkListener(updateFolderInformation);
 
 async function updateFolderInformation() {
-  _folders = await getFolderNames();
-  updateFolderRenameSelection();
+  await updateFolderOptionsDisplay();
 
   _groups = await getGroupsWithFolders();
   updateDisplayOrderList();

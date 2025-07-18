@@ -12,6 +12,7 @@ button {
   border: none;
   font-family: var(--font-family);
   font-size: 20px;
+  white-space: nowrap;
 }
 
 :host([size="small"]) button {

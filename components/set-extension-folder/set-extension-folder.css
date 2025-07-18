@@ -1,0 +1,147 @@
+:host {
+  font-size: 16px;
+  font-family: var(--font-family);
+}
+
+#tab-container {
+  display: flex;
+}
+
+.tab-button {
+  cursor: pointer;
+  flex-grow: 1;
+  padding: 5px 0;
+  border: none;
+  font-size: inherit;
+  font-family: inherit;
+  background-color: var(--accent-subdued30);
+  color: var(--offWhite30);  
+}
+
+.small-text {
+  font-size: 12px;
+}
+
+:host([mode="create"]) #create-button,
+:host([mode="existing"]) #existing-button {
+  cursor: default;
+  background-color: var(--offWhite10);
+  color: var(--offWhite);
+}
+
+#content-container {
+  position: relative;
+  padding: 5px;
+  background-color: var(--offWhite10);
+}
+
+#selected-wrapper {
+  display: flex;
+  gap: 4px;
+  white-space: nowrap;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+#selected-folder:empty::after {
+  content: "None";
+  color: var(--warning);
+}
+
+#tree-wrapper {
+  padding: 2px;
+  border-radius: 5px;
+  background-color: var(--secondary-background);  
+}
+
+#tree-wrapper:focus {
+  outline: 1px solid var(--accent-bright);
+}
+
+#tree-container {
+  height: 300px;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite30) var(--secondary-background);
+  scrollbar-gutter: stable;
+}
+
+#input-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  input {
+    flex-grow: 1;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    background-color: var(--secondary-background);
+    color: var(--offWhite);
+    font-size: inherit;
+    font-family: inherit;
+  }
+
+  input::placeholder {
+    color: var(--offWhite30);
+  }
+
+  input:focus {
+    outline: 1px solid var(--accent-bright);
+  }
+}
+
+#confirm-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 50px;
+
+  div {
+    font-weight: bold;
+    color: var(--warning);
+  }
+}
+
+#input-container,
+#confirm-container {
+  padding-top: 5px;
+}
+
+#warning-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 5px;
+  background-color: var(--secondary-background);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite30) var(--secondary-background);
+}
+
+#warning-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 24px;
+}
+
+.flash {
+  outline: 1px solid var(--warning);
+  animation: flash .6s 2 linear;
+}
+
+@keyframes flash {
+  0% { outline: 3px solid var(--warning); }
+  100% { outline: 1px solid transparent; }
+}

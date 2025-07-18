@@ -1,4 +1,4 @@
-import { getFolderNames } from "/externs/bookmark.js";
+import { hasRootFolderId, getExtensionFolders } from "/externs/bookmark.js";
 
 function getStatusFilter() {
   return chrome.storage.sync.get('displaySettings')
@@ -74,12 +74,14 @@ async function getGroupsWithFolders() {
     const defaultGroupName = await getDefaultGroupName();
     const defaultGroup = groups.find(({ name }) => name === defaultGroupName);
     
-    const folders = await getFolderNames();
+    const hasRoot = await hasRootFolderId();
+    const folders = hasRoot ? await getExtensionFolders() : new Map();
+    const folderTitles = [...folders.keys()];
 
     for (const group of groups) {
-      group.folders = folders.splice(0, group.numFolders);
+      group.folders = folderTitles.splice(0, group.numFolders);
     }
-    defaultGroup.folders.push(...folders);
+    defaultGroup.folders.push(...folderTitles);
 
     return groups;
   } catch (error) {

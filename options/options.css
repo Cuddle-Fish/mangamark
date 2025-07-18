@@ -65,7 +65,7 @@ h1 {
 
   hr {
     width: 100%;
-    border: 1px solid var(--offWhite);
+    border: 1px solid var(--offWhite30);
   }
 }
 
@@ -85,6 +85,7 @@ h1 {
   display: flex;
   gap: 40px;
   align-items: center;
+  justify-content: space-between;
 
   input {
     width: 100%;
@@ -128,6 +129,17 @@ h1 {
 
 dropdown-menu {
   font-size: 20px;
+}
+
+#folder-rename-select[disabled]::after {
+  content: "No Folders";
+  padding-left: 10px;
+  font-size: 14px;
+}
+
+#extension-folder-name:empty::after {
+  content: "None";
+  color: var(--warning);
 }
 
 .obscure {

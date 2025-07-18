@@ -1,5 +1,5 @@
 import "/components/tag-elements/tag-button.js";
-import { getAllBookmarkTags } from "/externs/bookmark.js";
+import { hasRootFolderId, getExtensionTags } from "/externs/bookmark.js";
 
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
@@ -68,21 +68,20 @@ customElements.define(
       }
     }
 
-    populateDatalist() {
-      getAllBookmarkTags()
-        .then((tags) => {
-          const fragment = document.createDocumentFragment();
-          tags.forEach(tag => {
-            const option = document.createElement('option');
-            option.value = tag;
-            if (this.#tagList.includes(tag)) {
-              option.disabled = true;
-            }
-            fragment.appendChild(option);
-          });
-          const datalist = this.shadowRoot.getElementById('existing-tags');
-          datalist.replaceChildren(fragment);
-        });
+    async populateDatalist() {
+      const hasRoot = await hasRootFolderId();
+      const tags = hasRoot ? await getExtensionTags() : new Set();
+      const fragment = document.createDocumentFragment();
+      tags.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag;
+        if (this.#tagList.includes(tag)) {
+          option.disabled = true;
+        }
+        fragment.appendChild(option);
+      });
+      const datalist = this.shadowRoot.getElementById('existing-tags');
+      datalist.replaceChildren(fragment);
     }
 
     getTags() {

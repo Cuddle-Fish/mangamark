@@ -1,5 +1,10 @@
 import { setStatusFilter, setDisplayOrder, getDisplaySettings } from "/externs/settings.js";
-import { bookmarkRegex, getMangamarkSubTree, registerBookmarkListener } from "/externs/bookmark.js";
+import {
+  bookmarkRegex,
+  hasRootFolderId,
+  getExtensionSubtree,
+  registerBookmarkListener
+} from "/externs/bookmark.js";
 
 import "/manager/sideNavigation/sideNavigation.js"
 
@@ -152,7 +157,7 @@ class Bookmark {
    * @param {string[]} tags Tags associated with bookmark
    * @param {string} folderName Name of main containing folder
    */
-  constructor(title, chapter, url, dateCreated, readingStatus, tags, folderName) {
+  constructor(title, chapter, url, dateCreated, readingStatus, tags, bookmarkId, folderName) {
     this.title = title;
     this.chapter = chapter;
     this.url = url;
@@ -163,6 +168,7 @@ class Bookmark {
     if (this.domain.startsWith('www.')) {
       this.domain = this.domain.substring(4);
     }
+    this.bookmarkId = bookmarkId;
     this.folder = folderName;
   }
 
@@ -198,6 +204,7 @@ class Bookmark {
       this.readingStatus,
       this.tags,
       this.domain,
+      this.bookmarkId,
       this.folder
     );
 
@@ -430,8 +437,10 @@ async function getMarks() {
   invalidContainer.classList.add('hidden');
   const invalidList = document.getElementById('invalid-list');
   invalidList.replaceChildren();
-  const mangamarkTree = await getMangamarkSubTree();
-  _bookmarkFolders = createFolders(mangamarkTree);
+
+  const hasRoot = await hasRootFolderId();
+  const extensionTree = hasRoot ? await getExtensionSubtree() : [];
+  _bookmarkFolders = createFolders(extensionTree);
 }
 
 function createFolders(tree) {
@@ -451,7 +460,7 @@ function getBookmarks(tree, mainFolderName, subFolderName) {
   const folders = [];
   tree.forEach(node => {
     if (node.url) {
-      const bookmark = createBookmark(node.title, node.url, node.dateAdded, mainFolderName, subFolderName);
+      const bookmark = createBookmark(node.title, node.url, node.id, node.dateAdded, mainFolderName, subFolderName);
 
       if (bookmark) {
         bookmarks.push(bookmark);
@@ -473,7 +482,7 @@ function getBookmarks(tree, mainFolderName, subFolderName) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function createBookmark(bookmarkTitle, url, dateAdded, folderName, subFolderName) {
+function createBookmark(bookmarkTitle, url, bookmarkId, dateAdded, folderName, subFolderName) {
   const matches = bookmarkTitle.match(bookmarkRegex());
   if (!matches) {
     return null;
@@ -482,7 +491,7 @@ function createBookmark(bookmarkTitle, url, dateAdded, folderName, subFolderName
     const chapter = matches[2];
     const tags = matches[3] ? matches[3].split(',') : [];
     const readingStatus = subFolderName || 'reading';
-    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags, folderName);
+    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags, bookmarkId, folderName);
   }
 }
 

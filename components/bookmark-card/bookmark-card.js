@@ -1,4 +1,10 @@
-import { getFolderNames, updateBookmarkTags, updateBookmarkTitle, changeSubFolder, performBookmarkMove, removeBookmark } from "/externs/bookmark.js";
+import {
+  getExtensionFolders,
+  updateBookmarkTitle,
+  moveBookmark,
+  addFolder,
+  removeBookmark
+} from "/externs/bookmark.js";
 import "/components/svg-icon/svg-icon.js";
 import "/components/themed-button/themed-button.js";
 import "/components/tag-input/tag-input.js";
@@ -87,6 +93,7 @@ optionsTemplate.innerHTML = /* html */ `
 customElements.define(
   'bookmark-card',
   class extends HTMLElement {
+    #bookmarkId;
     #folderName;
     #editingOptions = Object.freeze({
       closed: 0,
@@ -310,25 +317,22 @@ customElements.define(
       tagsInput.classList.remove('hidden');
     }
 
-    #openFolderOption() {
+    async #openFolderOption() {
       this.changeInfoText('Enter the name of an existing or new folder to move this bookmark.');
       const folderInput = this.shadowRoot.getElementById('change-folder-input');
       folderInput.value = '';
 
-      getFolderNames()
-        .then((folders) => {
-          const fragment = document.createDocumentFragment();
-          folders.forEach(folder => {
-            if (folder !== this.#folderName) {
-              const option = document.createElement('option');
-              option.value = folder;
-              fragment.appendChild(option);              
-            }
-          });
-          const dataList = this.shadowRoot.getElementById('existing-folders');
-          dataList.replaceChildren(fragment);
-        });
-
+      const folders = await getExtensionFolders();
+      const fragment = document.createDocumentFragment();
+      for (const title of folders.keys()) {
+        if (title !== this.#folderName) {
+          const option = document.createElement('option');
+          option.value = title;
+          fragment.appendChild(option);
+        }
+      }
+      const dataList = this.shadowRoot.getElementById('existing-folders');
+      dataList.replaceChildren(fragment);
       folderInput.classList.remove('hidden');
     }
 
@@ -359,31 +363,30 @@ customElements.define(
     #confirmButtonHandler() {
       const title = this.shadowRoot.getElementById('bookmark-title').textContent;
       const chapter = this.shadowRoot.getElementById('bookmark-chapter').textContent;
-      const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
-      const tags = Array.from(bookmarkTags.children, li => li.textContent);
 
       switch(this.#editingState) {
         case this.#editingOptions.tags:
-          this.#handleTagsChange(title, chapter, tags);
+          this.#handleTagsChange(title, chapter);
           break;
         case this.#editingOptions.readingStatus:
-          this.#handleReadingStatusChange(title, chapter, tags);
+          this.#handleReadingStatusChange(title);
           break;
         case this.#editingOptions.delete:
-          this.#handleDeleteBookmark(title, chapter, tags);
+          this.#handleDeleteBookmark();
           break;
         case this.#editingOptions.title:
-          this.#handleTitleChange(title, chapter, tags);
+          this.#handleTitleChange(title, chapter);
           break;
         case this.#editingOptions.folder:
-          this.#handleFolderChange(title, chapter, tags);
+          this.#handleFolderChange();
           break;
         default:
           console.error('Error, bookmark-card confirm pressed in invalid state', this.#editingState);
       }
     }
 
-    initialize(title, chapterNumber, url, date, readingStatus, activeTags, domain, folderName) {
+    initialize(title, chapterNumber, url, date, readingStatus, activeTags, domain, bookmarkId, folderName) {
+      this.#bookmarkId = bookmarkId;
       this.#folderName = folderName;
       this.state = 'default';
       this.readingStatus = readingStatus;
@@ -420,80 +423,94 @@ customElements.define(
       bookmarkTags.replaceChildren(fragment);
     }
 
-    #handleTitleChange(oldTitle, chapter, tags) {
+    async #handleTitleChange(oldTitle, chapter) {
       const titleInput = this.shadowRoot.getElementById('change-title-input');
       const newTitle = titleInput.value.replace(/\s+/g, ' ').trim();
-      updateBookmarkTitle(oldTitle, newTitle, chapter, this.#folderName, tags, true)
-        .then(() => {
-          this.shadowRoot.getElementById('bookmark-title').textContent = newTitle;
-          this.selectEditOption(this.#editingOptions.menu);
-          this.dispatchEvent(
-            new CustomEvent('titleChanged', {
-              bubbles: true,
-              composed: true,
-              detail: {
-                folder: this.#folderName,
-                readingStatus: this.readingStatus,
-                oldTitle: oldTitle,
-                newTitle: newTitle,
-              }
-            })
-          );
-        });
+      const bookmarkTags = this.shadowRoot.getElementById('bookmark-tags');
+      const tags = Array.from(bookmarkTags.children, li => li.textContent);
+
+      await updateBookmarkTitle(this.#bookmarkId, newTitle, chapter, tags, true);
+      this.shadowRoot.getElementById('bookmark-title').textContent = newTitle;
+      this.selectEditOption(this.#editingOptions.menu);
+      this.dispatchEvent(
+        new CustomEvent('titleChanged', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            folder: this.#folderName,
+            readingStatus: this.readingStatus,
+            oldTitle: oldTitle,
+            newTitle: newTitle,
+          }
+        })
+      );
     }
 
-    #handleTagsChange(title, chapter, oldTags) {
+    async #handleTagsChange(title, chapter) {
       const newTags = this.shadowRoot.getElementById('edit-tags').getTags();
-      updateBookmarkTags(title, chapter, this.#folderName, oldTags, newTags, true)
-        .then(() => {
-          this.#replaceCardTags(newTags);
-          this.selectEditOption(this.#editingOptions.menu);
-          this.dispatchEvent(
-            new CustomEvent('tagsChanged', {
-              bubbles: true,
-              composed: true,
-              detail: {
-                folder: this.#folderName,
-                readingStatus: this.readingStatus,
-                title: title,
-                newTags: newTags
-              }
-            })
-          );
-        });
+      await updateBookmarkTitle(this.#bookmarkId, title, chapter, newTags, true);
+      this.#replaceCardTags(newTags);
+      this.selectEditOption(this.#editingOptions.menu);
+      this.dispatchEvent(
+        new CustomEvent('tagsChanged', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            folder: this.#folderName,
+            readingStatus: this.readingStatus,
+            title: title,
+            newTags: newTags
+          }
+        })
+      );
     }
 
-    #handleFolderChange(title, chapter, tags) {
+    async #handleFolderChange() {
       const folderInput = this.shadowRoot.getElementById('change-folder-input');
       const newFolderName = folderInput.value.replace(/\s+/g, ' ').trim();
+      
+      let folderId;
+      const normalizedFolderName = newFolderName.toLowerCase();
+      const folders = await getExtensionFolders();
+      for (const [title, id] of folders) {
+        if (title.trim().toLowerCase() === normalizedFolderName) {
+          folderId = id;
+          break;
+        }
+      }
+      if (folderId === undefined) {
+        folderId = await addFolder(newFolderName);
+      }
 
-      performBookmarkMove(title, chapter, tags, this.#folderName, newFolderName, this.readingStatus, true);
+      await moveBookmark(this.#bookmarkId, folderId, this.readingStatus);
     }
 
-    #handleReadingStatusChange(title, chapter, tags) {
+    async #handleReadingStatusChange(title) {
       const checkedInput = this.shadowRoot.querySelector('input[name="reading-status-input"]:checked');
       const newSubFolder = checkedInput.value;
 
-      changeSubFolder(title, chapter, this.#folderName, tags, newSubFolder, true)
-        .then(() => {
-          this.readingStatus = checkedInput.value
-          this.selectEditOption(this.#editingOptions.menu);
-          this.dispatchEvent(
-            new CustomEvent('readingStatusChanged', {
-              bubbles: true,
-              composed: true,
-              detail: {
-                folder: this.#folderName,
-                title: title,
-                newReadingStatus: checkedInput.value
-              }
-            })
-          );
-        });
+      const folders = await getExtensionFolders();
+      const folderId = folders.get(this.#folderName);
+      if (folderId === undefined) throw new Error(`could not find id for ${this.#folderName} in extension folder`);
+      
+      await moveBookmark(this.#bookmarkId, folderId, newSubFolder, true);
+      this.readingStatus = checkedInput.value;
+      this.selectEditOption(this.#editingOptions.menu);
+      this.dispatchEvent(
+        new CustomEvent('readingStatusChanged', {
+          bubbles: true,
+          composed: true,
+          detail: {
+            folder: this.#folderName,
+            title: title,
+            newReadingStatus: checkedInput.value
+          }
+        })
+      );
     }
 
-    #handleDeleteBookmark(title, chapter, tags) {
-      removeBookmark(this.#folderName, {title: title, chapter: chapter, tags: tags});
+    #handleDeleteBookmark() {
+      removeBookmark(this.#bookmarkId);
     }
   }
 );

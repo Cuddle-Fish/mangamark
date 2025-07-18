@@ -73,6 +73,9 @@ customElements.define(
         case 'settings': return this.#settings;
         case 'side-navigation': return this.#sideNavigation;
         case 'edit': return this.#edit;
+        case 'add': return this.#add;
+        case 'undo': return this.#undo;
+        case 'error': return this.#error;
         default: return this.#defaultIcon;
       }
     }
@@ -215,6 +218,37 @@ customElements.define(
         </svg>
       `;
       return template;
+    }
+
+    get #add() {
+      const template = document.createElement('template');
+      template.innerHTML = /* html */ `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
+          <path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/>
+        </svg>
+      `;
+      return template;
+    }
+
+    get #undo() {
+      const template = document.createElement('template');
+      template.innerHTML = /* html */ `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
+        <path d="M280-200v-80h284q63 0 109.5-40T720-420q0-60-46.5-100T564-560H312l104 104-56 56-200-200 200-200 56 56-104 104h252q97 0 166.5 63T800-420q0 94-69.5 157T564-200H280Z"/>
+      </svg>
+      `;
+      return template;
+    }
+
+    get #error() {
+      const template = document.createElement('template');
+      template.innerHTML = /* html */ `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
+          <path d="M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Z"/>
+        </svg>
+      `;
+      return template;
+
     }
   }
 );
