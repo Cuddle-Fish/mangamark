@@ -11,7 +11,7 @@ template.innerHTML = /* html */ `
     <datalist id="existing-tags"></datalist>
   </div>
 
-  <div class="description-container">
+  <div id="description-container">
     <div>
       Press <b>enter</b> or <b>comma</b> to add a tag
     </div>
@@ -28,7 +28,7 @@ customElements.define(
     #event = new Event('tagChange');
 
     static get observedAttributes() {
-      return ['inputHidden'];
+      return ['inputHidden', 'compact'];
     }
 
     get inputHidden() {
@@ -47,8 +47,20 @@ customElements.define(
 
     connectedCallback() {
       const input = this.shadowRoot.getElementById('tag-input');
-      this.populateDatalist();
       input.addEventListener('keydown', (event) => this.inputKeyListener(event));
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+      if (name === 'compact') {
+        const tagElements = this.shadowRoot.querySelectorAll('tag-button');
+        for (const tagButton of tagElements) {
+          if (this.hasAttribute('compact')) {
+            tagButton.setAttribute('variant', 'small');
+          } else {
+            tagButton.removeAttribute('variant');
+          }
+        }
+      }
     }
 
     inputKeyListener(event) {
@@ -164,6 +176,10 @@ customElements.define(
     createTagElement(tagName) {
       const tagElement = document.createElement('tag-button');
       tagElement.textContent = tagName;
+
+      if (this.hasAttribute('compact')) {
+        tagElement.setAttribute('variant', 'small');
+      }
 
       tagElement.addEventListener('click', () => {
         const index = this.#tagList.indexOf(tagName);

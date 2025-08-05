@@ -1,5 +1,6 @@
 .input-container {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   box-sizing: border-box;
   width: 100%;
@@ -35,7 +36,7 @@ input:focus {
   outline: 1px solid var(--accent-bright);
 }
 
-.description-container {
+#description-container {
   margin-left: 20px;
   font-size: 12px;
 }
@@ -44,6 +45,17 @@ input:focus {
   background-color: transparent;
 }
 
-:host([inputHidden]) input,  :host([inputHidden]) .description-container {
+:host([inputHidden]) input,  :host([inputHidden]) #description-container {
   display: none;
+}
+
+:host([compact]) {
+  .input-container {
+    padding: 5px;
+    gap: 5px;
+  }
+
+  input {
+    font-size: 16px;
+  }
 }

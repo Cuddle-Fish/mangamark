@@ -1,0 +1,124 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: var(--offWhite);
+  font-size: 16px;
+  font-family: var(--font-family);
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  row-gap: 15px;
+  align-items: center;
+}
+
+.full-width {
+  grid-column: span 2;
+}
+
+#title-label {
+  align-self: flex-start;
+  cursor: default;
+}
+
+input, #title-display[contenteditable="plaintext-only"] {
+  padding: 2px 5px;
+  border: none;
+  border-radius: 5px;
+  background-color: var(--secondary-background);
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+input::placeholder, #title-display::after {
+  color: var(--offWhite30);
+}
+
+#title-display:empty::after {
+  cursor: text;
+  content: "Title of Content";
+}
+
+input:focus, #title-display:focus {
+  outline: 1px solid var(--accent-bright);
+}
+
+input:invalid:not(:focus), #title-display:empty:not(:focus) {
+  outline: 1px solid var(--warning);
+}
+
+.chapter-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#old-chapter {
+  color: var(--offWhite30);
+}
+
+#chapter-input {
+  width: 4em;
+  appearance: textfield;
+  color: var(--accent-bright);
+  caret-color: var(--offWhite);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input::-webkit-calendar-picker-indicator {
+  margin-bottom: 9px;
+}
+
+dropdown-menu {
+  width: 155px;
+  font-size: 16px;
+
+  &::part(dropdown-option) {
+    grid-template-columns: 0 [labelIcon] 24px [labelText] 1fr [end];
+  }
+}
+
+#error-text {
+  color: var(--warning);
+}
+
+#button-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+#completed-container {
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+
+  & svg-icon {
+    color: var(--approval);
+  }
+}
+
+
+.hidden {
+  display: none !important;
+}
+
+.flash {
+  outline: 1px solid var(--warning);
+  animation: flash .6s 2 linear;
+}
+
+@keyframes flash {
+  0% { outline: 3px solid var(--warning); }
+  100% { outline: 1px solid transparent; }
+}

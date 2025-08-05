@@ -1,506 +1,230 @@
 import {
   hasRootFolderId,
   findDefaultFolder,
-  addFolder,
-  getExtensionFolders,
   bookmarkRegex,
   searchForBookmark,
-  addBookmark, 
-  removeBookmark 
 } from "/externs/bookmark.js";
 import "/components/themed-button/themed-button.js";
-import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/svg-icon/svg-icon.js";
-import "/components/logo/mangamark-logo.js";
-import "/components/info-tooltip/info-tooltip.js";
-import "/components/input-select/input-select.js";
-import "/components/tag-elements/tag-li.js";
 import "/components/set-extension-folder/set-extension-folder.js";
-import "/popup/tags-screen/tags-screen.js";
-import "/popup/find-title-screen/find-title-screen.js";
+import "/popup/screens/update-create/update-create.js";
+import "/popup/screens/find-title/find-title.js";
 
-const GlobalDataStore = (() => {
-  let _state = '';
-  let _url = '';
-  let _tags = [];
-  let _existingBookmarkId = '';
-
-  const hasArg = arg => {
-    if (arg === undefined) {
-      throw new Error('Undefined passed as argument to Store');
-    }
-  }
-
-  const Store = {
-    setState: state => {
-      hasArg(state);
-      _state = state;
-    },
-    getState: () => _state,
-    setData: data => {
-      hasArg(data);
-      _url = data.url ?? _url;
-      _existingBookmarkId = data.existingBookmarkId ?? _existingBookmarkId;
-
-      if (data.tags !== undefined && !Array.isArray(data.tags)) {
-        throw new Error('tags on data, passed as argument to Store, must be an array argument');
-      }
-      if (data.tags !== undefined) {
-        _tags = [...data.tags];
-      }
-    },
-    getData: () => ({
-      url: _url,
-      tags: [..._tags],
-      existingBookmarkId: _existingBookmarkId,
-    }),
-    setUrl: url => {
-      hasArg(url);
-      _url = url;
-    },
-    getUrl: () => _url,
-    setTags: tags => {
-      hasArg(tags);
-      if (!Array.isArray(tags)) {
-        throw new Error('tags must be an array');
-      }
-      _tags = [...tags];
-    },
-    getTags: () => [..._tags],
-    setExistingBookmarkId: existingBookmarkId => {
-      hasArg(existingBookmarkId);
-      _existingBookmarkId = existingBookmarkId;
-    },
-    getCurrentBookmarkId: () => _existingBookmarkId
-  }
-
-  return Store;
-})();
-
-document.getElementById('manage-button').addEventListener('click', function() {
-  chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
+document.addEventListener('DOMContentLoaded', () => {
+  addListeners();
+  setInitialScreen();
 });
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const hasRootId = await hasRootFolderId();
-  if (hasRootId) {
-    setupFolderSelection();
-    processTab();
+function addListeners() {
+  const manageButton = document.getElementById('manage-button');
+  manageButton.addEventListener('click', openManager);
+
+  const infoOverlay = document.getElementById('info-overlay');
+  const infoButton = document.getElementById('info-button');
+  infoButton.addEventListener('click', () => infoOverlay.classList.remove('hidden'));
+  const closeInfo = document.getElementById('close-info');
+  closeInfo.addEventListener('click', () => infoOverlay.classList.add('hidden'));
+
+  const updateCreateScreen = document.getElementById('main-screen');
+  updateCreateScreen.addEventListener('findTitle', findTitleHandler);
+
+  document.addEventListener('folderSet', folderSetHandler);
+  document.addEventListener('findTitleAction', findTitleActionHandler);
+
+  const resetExtensionFolder = document.getElementById('reset-ext-folder');
+  resetExtensionFolder.addEventListener('click', openRootFolderScreen);
+}
+
+async function setInitialScreen() {
+  let hasRoot;
+  try {
+    hasRoot = await hasRootFolderId();
+  } catch (error) {
+    const warningOverlay = document.getElementById('warning-overlay');
+    warningOverlay.classList.remove('hidden');
+    console.warn(error);
+    return;
+  }
+
+  if (hasRoot) {
+    await setupMainScreen();
   } else {
     openRootFolderScreen();
   }
-});
-
-document.getElementById('set-extension-folder').addEventListener('folderSet', () => {
-  closeRootFolderScreen();
-  setupFolderSelection();
-  processTab();
-});
-
-async function setupFolderSelection() {
-  const extensionFolders = await getExtensionFolders();
-  const fragement = document.createDocumentFragment();
-  for (const title of extensionFolders.keys()) {
-    const option = document.createElement('option');
-    option.value = title;
-    fragement.appendChild(option);
-  }
-  const folderOptions = document.getElementById('folder-options');
-  folderOptions.replaceChildren(fragement);
 }
 
-async function processTab() {
-  try {
-    const tabs = await chrome.tabs.query({active: true, currentWindow: true});
-    const activeTab = tabs[0];
+function openManager(event) {
+  chrome.tabs.create({url: chrome.runtime.getURL('manager/manager.html')});
+}
 
-    GlobalDataStore.setUrl(activeTab.url);
-    const domain = new URL(activeTab.url).hostname;
-    const title = activeTab.title;
-    const numsInTitle = title.match(/\d+/g) || [];
+async function setupMainScreen() {
+  const queryTabs = await chrome.tabs.query({active: true, currentWindow: true});
+  const activeTab = queryTabs[0];
+  const url = activeTab.url;
+  const domain = new URL(url).hostname;
+  const defaultFolder = await findDefaultFolder(domain);
+  const tabTitle = activeTab.title;
+  const numbersInTitle = tabTitle.match(/-?\d+(\.\d+)?/g) || [];
 
-    const defaultFolder = await findDefaultFolder(domain);
-    const result = await searchForBookmark(title);
+  const result = await searchForBookmark(tabTitle);
+  let existingBookmarkInfo;
+  if (result) {
+    setScreenInfo('update');
+    const { bookmark, subFolder, folderName } = result;
+    const bookmarkContents = extractBookmarkContents(bookmark.title);
 
-    if (result) {
-      const bookmark = result.bookmark;
-      const subFolder = result.subFolder;
-      const folder = result.folderName;
-      if (subFolder) {
-        const readingStatusMenu = document.getElementById('reading-status-menu');
-        readingStatusMenu.selected = subFolder;
-      }
-      GlobalDataStore.setState('update');
-      const bookmarkInfo = getBookmarkContents(bookmark.title);
-      GlobalDataStore.setData({
-        tags: bookmarkInfo.tags,
-        existingBookmarkId: bookmark.id,
-      });
-
-      setActionDisplay(true);
-      titleDisplay(bookmarkInfo.title);
-      folderDisplay(folder);
-      chapterDisplay(numsInTitle, bookmarkInfo.chapter);
-      tagDisplay(bookmarkInfo.tags);
-    } else {
-      GlobalDataStore.setState('create');
-
-      setActionDisplay(false);
-      titleDisplay(title);
-      folderDisplay(defaultFolder);
-      chapterDisplay(numsInTitle);
-    }
-  } catch (error) {
-    console.error('Error processing tab:', error);
+    existingBookmarkInfo = { 
+      id: bookmark.id, 
+      title: bookmarkContents.title, 
+      chapter: bookmarkContents.chapter, 
+      folder: folderName,
+      tags: bookmarkContents.tags, 
+      readingStatus: subFolder 
+    };
+  } else {
+    setScreenInfo('create');
+    existingBookmarkInfo = null;
   }
+  const mainScreen = document.getElementById('main-screen');
+  mainScreen.setup(url, tabTitle, defaultFolder, numbersInTitle, existingBookmarkInfo);
+  mainScreen.classList.remove('hidden');
 }
 
 function openRootFolderScreen() {
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.add('hidden');
-  
-  const setExtensionFolder = document.getElementById('set-extension-folder');
-  setExtensionFolder.classList.remove('hidden');
+  const warningOverlay = document.getElementById('warning-overlay');
+  warningOverlay.classList.add('hidden');
+  setScreenInfo('setFolder');
+  const screenContainer = document.getElementById('alt-screen-container');
+  const rootFolderScreen = document.createElement('set-extension-folder');
+  screenContainer.replaceChildren(rootFolderScreen);
 }
 
-function closeRootFolderScreen() {
-  const setExtensionFolder = document.getElementById('set-extension-folder');
-  setExtensionFolder.classList.add('hidden');
-
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.remove('hidden');
+function folderSetHandler(event) {
+  event.stopPropagation();
+  const screenContainer = document.getElementById('alt-screen-container');
+  screenContainer.replaceChildren();
+  setupMainScreen();
 }
 
-/**
- * Set folder name displayed in popup
- * 
- * @param {string} folder name of folder to display
- */
-function folderDisplay(folder) {
-  const folderInput = document.getElementById('folder-input');
-  folderInput.value = folder;
-}
+function findTitleHandler(event) {
+  const showCreate = event.detail;
+  const screenContainer = document.getElementById('alt-screen-container');
+  const findTitleScreen = document.createElement('find-title');
+  screenContainer.replaceChildren(findTitleScreen);
 
-/**
- * Set up popup display for updating or creating a bookmark
- * 
- * @param {boolean} update define display type, true for updating, false for creating
- */
-function setActionDisplay(update) {
-  const actionTitle = document.getElementById('bookmark-action');
-  const actionButton = document.getElementById('action-button');
-  const oldChapter = document.getElementById('old-chapter');
-  const chapterArrow = document.getElementById('chapter-arrow');
-  const chapterInput = document.getElementById('chapter-input');
-  const modeChangeButton = document.getElementById('change-mode');
-  const completedText = document.getElementById('completed-text');
-  if (update) {
-    actionTitle.textContent = 'Update Bookmark';
-    actionButton.textContent = "Update";
-    completedText.textContent = "Bookmark Updated";
-
-    oldChapter.classList.remove('hidden');
-    chapterArrow.classList.remove('hidden');
-    chapterInput.inputStyle = 'color: var(--accent-bright)';
-
-    modeChangeButton.textContent = 'Create Mode';
+  if (showCreate) {
+    setScreenInfo('findOrCreate');
+    findTitleScreen.showCreateButton(true);
   } else {
-    actionTitle.textContent = 'Create Bookmark';
-    actionButton.textContent = "Create";
-    completedText.textContent = "Bookmark Created";
-    
-    oldChapter.classList.add('hidden');
-    chapterArrow.classList.add('hidden');
-    chapterInput.inputStyle = '';
-
-    modeChangeButton.textContent = 'Update Mode';
+    setScreenInfo('find');
   }
+  const mainScreen = document.getElementById('main-screen');
+  mainScreen.classList.add('hidden');
 }
 
-/**
- * @typedef {Object} BookmarkContents
- * @property {string} title - bookmark contents title
- * @property {string} chapter - bookmark chapter number
- * @property {string[]} tags - tags associated with bookmarks
- */
+function findTitleActionHandler(event) {
+  event.stopPropagation();
+  const action = event.detail.action;
+  const mainScreen = document.getElementById('main-screen');
+  switch (action) {
+    case 'update':
+      setScreenInfo('update');
+      const bookmarkInfo = event.detail.bookmarkInfo;
+      mainScreen.setUpdate(bookmarkInfo);
+      break;
+    case 'create':
+      setScreenInfo('create');
+      mainScreen.setCreate();
+      break;
+    default:
+      const mode = mainScreen.getMode();
+      setScreenInfo(mode);
+  }
 
-/**
- * Extracts title of content and chapter number from bookmark title
- * 
- * Expects to recieve a bookmark title with valid format
- * 
- * @param {string} bookmarkTitle Title of bookmark
- * @returns {BookmarkContents} Information contained in bookmark title
- */
-function getBookmarkContents(bookmarkTitle) {
-  const matches = bookmarkTitle.match(bookmarkRegex());
+  const screenContainer = document.getElementById('alt-screen-container');
+  screenContainer.replaceChildren();
+  mainScreen.classList.remove('hidden');
+}
+
+function setScreenInfo(screenType) {
+  let title, info;
+  switch (screenType) {
+    case 'update':
+      title = 'Update Bookmark';
+      info = /* html */ `
+        <p>Update a previously saved bookmark.</p>
+        <p>
+          If the title listed is incorrect and does not match the 
+          content you are currently reading click 'Create/Find Title' 
+          to find a different bookmark to update or create a new one.
+        </p>
+        <p>
+          Use the 'Manage' button to search through saved bookmarks, 
+          edit, and navigate to bookmark.
+        </p>
+      `;
+      break;
+    case 'create':
+      title = 'Create Bookmark';
+      info = /* html */ `
+        <p>Create a new bookmark to be added to your specified extension folder.</p>
+        <p>
+          <strong>IMPORTANT:</strong> For update detection, it is 
+          recommended you only change the title input by removing 
+          anything that is not the title of what you are reading.
+        </p>
+        <p>
+          If this extension failed to find an existing title you 
+          want to update click the 'Find Title' button.
+        </p>
+        <p>
+          Use the 'Manage' button to search through saved bookmarks, 
+          edit, and navigate to bookmark.
+        </p>
+      `;
+      break;
+    case 'setFolder':
+      title = 'Set Extension Folder';
+      info = /* html */ `
+        <p>Setup a bookmark folder to store all bookmarks created by this extension.</p>
+        <p>
+          <strong>Note:</strong> Any bookmarks in this folder not created 
+          by this extension will likely not be found within the management 
+          page or recognized for updates.
+        </p>
+      `;
+      break;
+    case 'find':
+      title = 'Find Title';
+      info = /* html */ `
+        <p>Find a bookmark previously saved by this extension in order to select it for updating.</p>
+        <p>You may search by Title, Folder, and/or Tags.</p>
+      `;
+      break;
+    case 'findOrCreate':
+      title = 'Create or Find Title';
+      info = /* html */ `
+        <p>Go to bookmark creation.</p>
+        <p><strong>OR</strong></p>
+        <p>Find a bookmark previously saved by this extension in order to select it for updating.</p>
+        <p>You may search by Title, Folder, and/or Tags.</p>
+      `;
+      break;
+    default:
+      return;
+  }
+
+  const screenTitle = document.getElementById('screen-title');
+  screenTitle.textContent = title;
+  const infoTitle = document.getElementById('info-title');
+  infoTitle.textContent = title;
+  const infoText = document.getElementById('info-text');
+  infoText.innerHTML = info;
+}
+
+function extractBookmarkContents(bookmarkTitle) {
+    const matches = bookmarkTitle.match(bookmarkRegex());
     const [, title, chapter] = matches;
     const tags = matches[3] ? matches[3].split(',') : [];
     return { title: title, chapter: chapter, tags: tags};
 }
-
-/**
- * Set title to be displayed in popup
- *  
- * @param {string} title 
- */
-function titleDisplay(title) {
-  const titleInput = document.getElementById('title-input');
-  titleInput.value = title;
-}
-
-/**
- * Set chapter information displayed in popup
- * 
- * @param {Array} numsInTitle list of all numbers in url title
- * @param {*=} oldChapter previous chapter number, if applicable
- */
-function chapterDisplay(numsInTitle, oldChapter) {
-  if (oldChapter) {
-    const oldChapterElement = document.getElementById('old-chapter');
-    oldChapterElement.textContent = oldChapter;
-  }
-
-  const chapterInput = document.getElementById('chapter-input');
-  if (oldChapter && numsInTitle.length > 1) {
-    var defaultVal = numsInTitle.reduce((prev, curr) => {
-      return (Math.abs(curr - oldChapter) < Math.abs(prev - oldChapter) ? curr : prev);
-    });
-    chapterInput.value = defaultVal;
-  } else if (numsInTitle.length > 0) {
-    chapterInput.value = numsInTitle[0];
-  } else {
-    chapterInput.value = '1';
-  }
-
-  if (numsInTitle.length > 0) {
-    numsInTitle.forEach(number => {
-      const option = document.createElement('option');
-      option.value = number;
-      chapterInput.appendChild(option);
-    });
-  }
-}
-
-function tagDisplay(tags) {
-  const fragment = document.createDocumentFragment();
-  tags.forEach(tag => {
-    const li = document.createElement('tag-li');
-    li.variant = 'small';
-    li.textContent = tag;
-    fragment.appendChild(li);
-  });
-  const bookmarkTags = document.getElementById('bookmark-tags');
-  bookmarkTags.replaceChildren(fragment);
-}
-
-document.getElementById('action-button').addEventListener('click', function() {
-  const titleInput = document.getElementById('title-input');
-  titleInput.value = titleInput.value.replace(/\s+/g, ' ').trim();
-  const invalidTitle = document.getElementById('invalid-title');
-  const folderInput = document.getElementById('folder-input');
-  folderInput.value = folderInput.value.replace(/\s+/g, ' ').trim();
-  const invalidFolder = document.getElementById('invalid-folder');
-  const chapterInput = document.getElementById('chapter-input');
-  const invalidChapter = document.getElementById('invalid-chapter');
-  let isInvalid = false;
-  if (titleInput.checkValidity()) {
-    invalidTitle.classList.add('hidden');
-  } else {
-    invalidTitle.classList.remove('hidden');
-    titleInput.flashWarning();
-    isInvalid = true;
-  }
-  if (folderInput.checkValidity()) {
-    invalidFolder.classList.add('hidden');
-  } else {
-    invalidFolder.classList.remove('hidden');
-    folderInput.classList.add('flash-warning');
-    setTimeout(() => folderInput.classList.remove('flash-warning'), 800);
-    isInvalid = true;
-  }
-  if (chapterInput.checkValidity()) {
-    invalidChapter.classList.add('hidden');
-  } else {
-    invalidChapter.classList.remove('hidden');
-    chapterInput.flashWarning();
-    isInvalid = true;
-  }
-  if (isInvalid) {
-    return;
-  }
-
-  const state = GlobalDataStore.getState();
-  const data = GlobalDataStore.getData();
-  if (state === 'update') {
-    createBookmark(data.url, data.tags)
-      .then((bookmarkTitle) => console.log(`Bookmark updated: ${bookmarkTitle}`))
-      .then(() => removeBookmark(data.existingBookmarkId))
-      .catch((err) => console.error('Error updating bookmark', err));
-  } else {
-    createBookmark(data.url, data.tags)
-      .then((bookmarkTitle) => console.log(`Bookmark created: ${bookmarkTitle}`))
-      .catch((err) => console.error('Error creating bookmark:', err));
-  }
-
-  hideEditElements();
-  const actionContainer = document.getElementById('action-button-container');
-  const completedContainer = document.getElementById('completed-container');
-  actionContainer.classList.add('hidden');
-  completedContainer.classList.remove('hidden');
-});
-
-/**
- * 
- * @param {string} url bookmark URL
- * @param {Array.<string>} tags list of tags associated with bookmark
- * @returns Promise resolves with title of bookmark created
- */
-async function createBookmark(url, tags) {
-  const selectedStatus = document.getElementById('reading-status-menu').selected;
-  const readingStatus = selectedStatus !== 'Reading' ? selectedStatus : undefined;
-  const contentTitle = document.getElementById('title-input').value.trim();
-
-  const folder = document.getElementById('folder-input').value.replace(/\s+/g, ' ').trim();
-  const normalizedFolder = folder.toLowerCase();
-  const extensionFolders = await getExtensionFolders();
-  let folderId;
-  for (const [title, id] of extensionFolders) {
-    if (title.trim().toLowerCase() === normalizedFolder) {
-      folderId = id;
-      break;
-    }
-  }
-  if (folderId === undefined) {
-    folderId = await addFolder(folder);
-  }
-
-  const chapter = document.getElementById('chapter-input').value;
-  return addBookmark(contentTitle, chapter, tags, url, folderId, readingStatus);
-}
-
-document.getElementById('edit-button').addEventListener('click', function() {
-  this.classList.add('hidden');
-
-  const editOptions = document.getElementById('edit-options');
-  editOptions.classList.remove('hidden');
-
-  const chapterInput = document.getElementById('chapter-input');
-  chapterInput.readonly = false;
-
-  const folderInput = document.getElementById('folder-input');
-  folderInput.readOnly = false;
-
-  titleEditing(true);
-});
-
-function titleEditing(isEditing) {
-  const titleInput = document.getElementById('title-input');
-  const titleTooltip = document.getElementById('title-tooltip');
-  const findUpdateButton = document.getElementById('find-update');
-  const state = GlobalDataStore.getState();
-  if (state === 'update') {
-    titleInput.readonly = true;
-    titleTooltip.classList.add('hidden');
-    if (isEditing) {
-      titleInput.inputWidth = '270px';
-      findUpdateButton.classList.remove('hidden');
-    } else {
-      titleInput.inputWidth = '370px';
-      findUpdateButton.classList.add('hidden');
-    }
-  } else {
-    findUpdateButton.classList.add('hidden');
-    if (isEditing) {
-      titleInput.inputWidth = '336px';
-      titleInput.readonly = false;
-      titleTooltip.classList.remove('hidden');
-    } else {
-      titleInput.inputWidth = '370px';
-      titleInput.readonly = true;
-      titleTooltip.classList.add('hidden');
-    }
-  }
-}
-
-function hideEditElements() {
-  const editOptions = document.getElementById('edit-options');
-  editOptions.classList.add('hidden');
-
-  titleEditing(false);
-
-  const chapterInput = document.getElementById('chapter-input');
-  chapterInput.readonly = true;
-
-  const folderInput = document.getElementById('folder-input');
-  folderInput.readOnly = true;
-}
-
-document.getElementById('edit-tags-mode').addEventListener('click', () => {
-  const tagsScreen = document.getElementById('tags-screen');
-  const titleInput = document.getElementById('title-input');
-  const title = titleInput.value;
-  const tags = GlobalDataStore.getTags();
-  tagsScreen.openScreen(title, tags);
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.add('hidden');
-});
-
-document.getElementById('change-mode').addEventListener('click', () => {
-  const state = GlobalDataStore.getState();
-  if (state === 'update') {
-    GlobalDataStore.setState('create');
-    GlobalDataStore.setExistingBookmarkId('');
-    setActionDisplay(false);
-    titleEditing(true);
-  } else {
-    switchToFindTitle();
-  }
-});
-
-function switchToFindTitle() {
-  const findTitleScreen = document.getElementById('find-title-screen');
-  findTitleScreen.openScreen();
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.add('hidden');
-}
-
-document.getElementById('tags-screen').addEventListener('finishEdit', (event) => {
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.remove('hidden');
-  const action = event.detail.action;
-  if (action === 'confirm') {
-    const newTags = event.detail.bookmarkTags;
-    tagDisplay(newTags);
-    GlobalDataStore.setTags(newTags);
-  }
-});
-
-document.getElementById('find-update').addEventListener('click', () => switchToFindTitle());
-
-document.getElementById('find-title-screen').addEventListener('closeTitleScreen', (event) => {
-  const updateCreateContainer = document.getElementById('update-create');
-  updateCreateContainer.classList.remove('hidden');
-  const action = event.detail.action;
-  if (action === 'confirm') {
-    const { folder, readingStatus, bookmarkTitle, bookmarkId } = event.detail.updateInfo;
-    const bookmarkContents = getBookmarkContents(bookmarkTitle);
-    titleDisplay(bookmarkContents.title);
-    folderDisplay(folder);
-    const oldChapterElement = document.getElementById('old-chapter');
-    oldChapterElement.textContent = bookmarkContents.chapter;
-    tagDisplay(bookmarkContents.tags);
-    const readingStatusMenu = document.getElementById('reading-status-menu');
-    readingStatusMenu.selected = readingStatus;
-    GlobalDataStore.setData({
-      tags: bookmarkContents.tags,
-      existingBookmarkId: bookmarkId,
-    });
-  }
-  const state = GlobalDataStore.getState();
-  if (action === 'confirm' && state === 'create') {
-    GlobalDataStore.setState('update');
-    setActionDisplay(true);
-    titleEditing(true);
-  }
-});

@@ -439,6 +439,10 @@ async function getMarks() {
   invalidList.replaceChildren();
 
   const hasRoot = await hasRootFolderId();
+  if (hasRoot) {
+    const tagsInput = document.getElementById('filter-tags-input');
+    tagsInput.populateDatalist();
+  }
   const extensionTree = hasRoot ? await getExtensionSubtree() : [];
   _bookmarkFolders = createFolders(extensionTree);
 }

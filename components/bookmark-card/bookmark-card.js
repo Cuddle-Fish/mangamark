@@ -145,6 +145,8 @@ customElements.define(
         this.#editingState = this.#editingOptions.menu;
         optionsWrapper.replaceChildren(optionsTemplate.content.cloneNode(true));
         this.setupOptionsEventListeners();
+        const tagsInput = this.shadowRoot.getElementById('edit-tags');
+        tagsInput.populateDatalist();
       } else {
         this.#editingState = this.#editingOptions.closed;
         optionsWrapper.replaceChildren();

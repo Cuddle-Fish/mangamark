@@ -54,7 +54,12 @@ async function createRootFolder(name, parentId) {
  */
 async function hasRootFolderId() {
   const result = await chrome.storage.sync.get('rootFolderId');
-  return result.rootFolderId ? true : false;
+  if (result.rootFolderId) {
+    await chrome.bookmarks.get(result.rootFolderId);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 /**
@@ -492,7 +497,6 @@ function registerBookmarkListener(listenerFn) {
   }
 
   chrome.bookmarks.onChanged.addListener(wrapperFn);
-  chrome.bookmarks.onChildrenReordered.addListener(wrapperFn);
   chrome.bookmarks.onCreated.addListener(wrapperFn);
   chrome.bookmarks.onMoved.addListener(wrapperFn);
   chrome.bookmarks.onRemoved.addListener(wrapperFn);

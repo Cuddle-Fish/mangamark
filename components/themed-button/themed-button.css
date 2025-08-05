@@ -1,4 +1,5 @@
 :host {
+  display: inline-block;
   height: fit-content;
 }
 

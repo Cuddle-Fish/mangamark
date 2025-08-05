@@ -94,7 +94,9 @@ customElements.define(
         });
       rootNode.addEventListener('select', (event) => this.#selectFolderHandler(event));
 
-      this.mode = 'create';
+      customElements.whenDefined('folder-node').then(() => {
+        this.mode = 'create';
+      });      
 
       const createButton = this.shadowRoot.getElementById('create-button');
       createButton.addEventListener('click', () => this.mode = 'create');
@@ -230,6 +232,8 @@ customElements.define(
       }
 
       this.dispatchEvent(new CustomEvent('folderSet', {
+        bubbles: true,
+        composed: true,
         detail: { title: folderName }
       }));
     }

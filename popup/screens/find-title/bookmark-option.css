@@ -1,0 +1,75 @@
+:host {
+  font-family: var(--font-family);
+  color: var(--offWhite);
+}
+
+.main-container {
+  display: flex;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  color: inherit;
+}
+
+#select-button {
+  flex-grow: 1;
+  text-align: left;
+  font-size: 16px;
+  border: 1px solid transparent;
+  border-radius: 5px 0 0 5px;
+  background-color: var(--offWhite10);
+}
+
+#select-button:hover, :host([selected]) #select-button {
+  background-color: var(--offWhite30);
+}
+
+:host([selected]) {
+  #select-button {
+    border: 1px solid var(--approval80);
+  }
+
+  #expand-button {
+    background-color: var(--approval80);
+  }
+
+  #expand-button:hover {
+    background-color: var(--approval);
+  }
+}
+
+#expand-button {
+  border-radius: 0 5px 5px 0;
+
+  background-color: var(--button-primary-color);
+}
+
+#expand-button:hover {
+  background-color: var(--button-primary-hover);
+}
+
+#info-wrapper {
+  padding: 0 8px;
+}
+
+.info-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 5px;
+  border-radius: 0 0 8px 8px;
+  background-color: var(--secondary-background);
+  font-size: 14px;
+}
+
+.folder-reading-container {
+  display: flex;
+  justify-content: space-between;
+}
+
+.hidden {
+  display: none !important;
+}

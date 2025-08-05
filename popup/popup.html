@@ -4,88 +4,46 @@
     <title>Mangamark Popup</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" type="text/css" href="popup.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
   </head>
   <body>
     <div class="header">
+      <div id="screen-title"></div>
+      <themed-button id="info-button"><svg-icon type="info"></svg-icon></themed-button>
+    </div>
+
+    <update-create id="main-screen" class="hidden"></update-create>
+
+    <div id="alt-screen-container"></div>
+
+    <hr />
+
+    <div id="footer">
       <themed-button id="manage-button">Manage</themed-button>
-      <h1><mangamark-logo></mangamark-logo>angamark</h1>
     </div>
 
-    <div id="update-create" class="update-create">
-      <div class="action-title-container">
-        <div id="bookmark-action">&lt;Bookmark Action&gt;</div>
-        <dropdown-menu id="reading-status-menu" selected="Reading" class="reading-status-menu">
-          <option value="Reading">Reading</option>
-          <option value="Completed">Completed</option>
-          <option value="Plan to Read">Plan to Read</option>
-          <option value="Re-Reading">Re-Reading</option>
-          <option value="On Hold">On Hold</option>
-        </dropdown-menu>
+    <div id="info-overlay" class="overlay hidden">
+      <div class="header">
+        <div id="info-title"></div>
+        <themed-button id="close-info"><svg-icon type="close"></svg-icon></themed-button>
       </div>
-
-      <div class="content-container">
-
-        <div class="identifier">Title</div>
-        <div class="value title-input-container">
-          <input-select id="title-input" type="textarea" required  readonly style="--input-width: 370px"></input-select>
-          <themed-button id="find-update" variant="secondary" size="small" class="title-column2 hidden">Find Title</themed-button>
-          <info-tooltip id="title-tooltip" class="title-column2 hidden">
-            <div slot="title">Create Title:</div>
-            <p slot="description">
-              For future updates, bookmarks can only be automatically matched if the created title 
-              matches the reading title present in either the tab title or URL.
-            </p>
-          </info-tooltip>
-        </div>
-
-        <div class="identifier">Folder</div>
-        <div class="value">
-          <input id="folder-input" list="folder-options" placeholder="Enter Folder" readonly required class="folder-input" />
-          <datalist id="folder-options"></datalist>
-        </div>
-
-        <div class="identifier">Chapter</div>
-        <div class="value chapter-container">
-          <span id="old-chapter" class="grey-text">&lt;##&gt;</span>
-          <span id="chapter-arrow">--&gt;</span>
-          <input-select id="chapter-input" type="number" step="0.01" readonly required style="--input-width: 5em"></input-select>
-        </div>
-
-        <div class="identifier">Tags</div>
-        <ul id="bookmark-tags" class="value"></ul>
-
-      </div>
-
-      <div id="edit-options" class="edit-options hidden">
-        <themed-button id="edit-tags-mode" variant="secondary">Edit Tags</themed-button>
-        <themed-button id="change-mode" variant="secondary">&lt;Mode Change&gt;</themed-button>
-      </div>
-
-      <div class="action-wrapper">
-        <div>
-          <div id="invalid-title" class="error-text hidden">Error: Title required</div>
-          <div id="invalid-chapter" class="error-text hidden">Error: Chapter required</div>
-          <div id="invalid-folder" class="error-text hidden">Error: Folder required</div>
-        </div>
-        <div id="action-button-container" class="action-button-container">
-          <themed-button id="edit-button" variant="secondary">Edit</themed-button>
-          <themed-button id="action-button">&lt;Action&gt;</themed-button>
-        </div>
-      </div>
-
-
-      <div id="completed-container" class="completed-container hidden">
-        <svg-icon type="check-mark" style="--icon-size: 36px"></svg-icon>
-        <span id="completed-text">Bookmark &lt;Action&gt;</span>
-      </div>
+      <div id="info-text"></div>
     </div>
 
-    <set-extension-folder id="set-extension-folder" class="hidden"></set-extension-folder>
-    <tags-screen id="tags-screen"></tags-screen>
-    <find-title-screen id="find-title-screen"></find-title-screen>
+    <div id="warning-overlay" class="overlay hidden">
+      <div>
+        <p>
+          <strong class="warning-text">WARNING:</strong> Could not find user specified extension folder.
+          Either an error occurred retrieving the folder or the folder may have been
+          changed or deleted.
+        </p>
+        <p>
+          Please refresh this popup by closing and reopening it <strong>OR</strong>
+          click the button below to set the extension folder again.        
+        </p>        
+      </div>
+      <themed-button id="reset-ext-folder">Set Extension Folder</themed-button>
+    </div>
 
     <script src="popup.js" type="module"></script>
   </body>

@@ -13,5 +13,10 @@
     "default_popup": "popup/popup.html"
   },
   "permissions": ["activeTab", "bookmarks", "storage"],
-  "options_page": "options/options.html"
+  "options_page": "options/options.html",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "mangamark@cuttlefishextension.com"
+    }
+  }
 }
