@@ -1,4 +1,3 @@
-import { getGroupsWithFolders, addGroup, changeGroupName, getDefaultGroupName, setDefaultGroupName, setAllGroups } from "/externs/settings.js";
 import {
   hasRootFolderId,
   getRootFolderName,
@@ -13,51 +12,76 @@ import "/components/dropdown-menu/dropdown-menu.js";
 import "/components/svg-icon/svg-icon.js";
 import "/components/set-extension-folder/set-extension-folder.js";
 
-addEventListener('DOMContentLoaded', () => {
+addEventListener('DOMContentLoaded', async () => {
+  await storeExtensionFolders();
   setupFolderOptions();
-  setupGroupOptions();
+  setupNavOptions();
 });
-
-// #region Folder Options
 
 let _folders = new Map();
 
+async function storeExtensionFolders() {
+  let hasRoot;
+  try {
+    hasRoot = await hasRootFolderId();
+  } catch (error) {
+    hasRoot = false;
+    console.warn(error);
+  }
+
+  if (hasRoot) {
+    _folders = await getExtensionFolders();
+  } else {
+    _folders.clear();
+  }
+}
+
+// #region Folder Options
+
 function setupFolderOptions() {
   updateFolderOptionsDisplay();
-  document.getElementById('folder-rename-select').addEventListener('DropdownChange', selectFolderRenameHandler);
+  document.getElementById('folder-rename-select').addEventListener('dropdownChange', selectFolderRenameHandler);
   document.getElementById('folder-rename-input').addEventListener('input', inputFolderRenameHandler);
   document.getElementById('folder-rename-confirm').addEventListener('click', changeFolderNameHandler);
   document.getElementById('edit-extension-folder').addEventListener('click', toggleRootFolderScreen);
   document.getElementById('set-extension-folder').addEventListener('folderSet', rootSetHandler);
 }
 
-async function updateFolderOptionsDisplay() {
-  const hasRoot = await hasRootFolderId();
-  if (hasRoot) {
-    _folders = await getExtensionFolders();
-  } else {
-    _folders.clear();
-  }
-  
+function updateFolderOptionsDisplay() {
   updateFolderRenameSelection();
   displayRootFolder();
 }
 
 function selectFolderRenameHandler(event) {
   const renameInput = document.getElementById('folder-rename-input');
-  renameInput.disabled = false;
+  renameInput.value = '';
+  renameInput.disabled = event.detail === '';
+
+  const renameFolderButton = document.getElementById('folder-rename-confirm');
+  renameFolderButton.disabled = true;
 }
 
 function inputFolderRenameHandler(event) {
   const value = event.target.value.replace(/\s+/g, ' ').trim();
-  const isInvalid = value === '' || _folders.has(value);
+  const normalizedValue = value.toLowerCase();
+  let isInvalid = false;
+  if (value === '') {
+    isInvalid = true
+  } else {
+    for (const title of _folders.values()) {
+      if (title.trim().toLowerCase() === normalizedValue) {
+        isInvalid = true;
+        break;
+      }
+    }    
+  }
+
   const renameFolderButton = document.getElementById('folder-rename-confirm');
   renameFolderButton.disabled = isInvalid;
 }
 
 async function changeFolderNameHandler(event) {
-  const selectedFolderName = document.getElementById('folder-rename-select').selected;
-  const folderId = _folders.get(selectedFolderName);
+  const folderId = document.getElementById('folder-rename-select').selected;
   const input = document.getElementById('folder-rename-input');
   const newFolderName = input.value.replace(/\s+/g, ' ').trim();
   await renameFolder(folderId, newFolderName);
@@ -66,20 +90,25 @@ async function changeFolderNameHandler(event) {
 function updateFolderRenameSelection() {
   const renameSelect = document.getElementById('folder-rename-select');
   const fragement = document.createDocumentFragment();
+
+  const defaultOptions = document.createElement('option');
+  defaultOptions.textContent = '-- Choose a Folder --';
+  defaultOptions.value = '';
+  fragement.appendChild(defaultOptions);
+
   if (_folders.size === 0) {
     renameSelect.disabled = true;
   } else {
     renameSelect.disabled = false;
-    for (const title of _folders.keys()) {
+    for (const [id, title] of _folders) {
       const option = document.createElement('option');
       option.textContent = title;
-      option.value = title;
+      option.value = id;
       fragement.appendChild(option);
     }
   }
 
   renameSelect.replaceChildren(fragement);
-  renameSelect.updateOptions('');
 
   const input = document.getElementById('folder-rename-input');
   input.value = '';
@@ -90,7 +119,13 @@ function updateFolderRenameSelection() {
 
 async function displayRootFolder() {
   const displayElement = document.getElementById('extension-folder-name');
-  const hasRoot = await hasRootFolderId();
+  let hasRoot;
+  try {
+    hasRoot = await hasRootFolderId();
+  } catch (error) {
+    hasRoot = false;
+    console.warn(error);
+  }
   if (hasRoot) {
     const rootName = await getRootFolderName();
     displayElement.textContent = rootName;
@@ -108,433 +143,176 @@ function toggleRootFolderScreen(event) {
   button.textContent = isVisible ? 'Change' : 'Close';
 }
 
-function rootSetHandler(event) {
+async function rootSetHandler(event) {
   const editExtensionButton = document.getElementById('edit-extension-folder');
   const setExtensionElement = document.getElementById('set-extension-folder');
 
   editExtensionButton.textContent = 'Change';
   setExtensionElement.style.display = 'none';
-  displayRootFolder();
+  await storeExtensionFolders();
+  updateFolderOptionsDisplay();
+  updateDisplayOrder();
 }
 
 // #endregion
 
 // #region Navigation Options
 
-let _groups = [];
+let _navOrder;
+let _draggedId = null;
 
-function setupGroupOptions() {
-  updateGroupOptionsDisplay();
-
-  document.getElementById('group-create-input').addEventListener('input', groupInputHandler);
-  document.getElementById('group-create-confirm').addEventListener('click', createGroupHandler);
-
-  document.getElementById('group-rename-select').addEventListener('DropdownChange', selectGroupRenameHandler)
-  document.getElementById('group-rename-input').addEventListener('input', inputGroupRenameHandler);
-  document.getElementById('group-rename-confirm').addEventListener('click', changeGroupNameHandler);
-
-  document.getElementById('group-default-select').addEventListener('DropdownChange', selectDefaultHandler);
-  document.getElementById('group-default-confirm').addEventListener('click', changeDefaultHandler);
-
-  document.getElementById('group-remove-select').addEventListener('DropdownChange', selectRemoveHandler);
-  document.getElementById('group-remove-confirm').addEventListener('click', removeGroupHandler);
-
-  document.getElementById('group-display-reset').addEventListener('click', updateDisplayOrderList);
-  document.getElementById('group-display-confirm').addEventListener('click', confirmDisplayHandler);
+function setupNavOptions() {
+  updateDisplayOrder();
+  document.getElementById('reset-nav-order').addEventListener('click', resetOrderHandler);
+  document.getElementById('change-nav-order').addEventListener('click', changeOrderHandler);
 }
 
-async function updateGroupOptionsDisplay() {
-  _groups = await getGroupsWithFolders();
-  updateGroupRenameSelection();
-  updateDefaultSelection();
-  updateRemoveDisplay();
-  updateDisplayOrderList();
-}
-
-function groupInputHandler(event) {
-  const createGroupButton = document.getElementById('group-create-confirm');
-  const value = event.target.value.replace(/\s+/g, ' ').trim();
-  const isInvalid = value === '' ||  _groups.some(({ name }) => name === value);
-  createGroupButton.disabled = isInvalid;
-}
-
-async function createGroupHandler(event) {
-  const inputGroup = document.getElementById('group-create-input');
-  const newGroupName = inputGroup.value.replace(/\s+/g, ' ').trim();
-  await addGroup(newGroupName);
-  inputGroup.value = '';
-  event.target.disabled = true;
-
-  await updateGroupOptionsDisplay();
-}
-
-function selectGroupRenameHandler(event) {
-  const renameInput = document.getElementById('group-rename-input');
-  renameInput.disabled = false;
-}
-
-function inputGroupRenameHandler(event) {
-  const value = event.target.value.replace(/\s+/g, ' ').trim();
-  const isInvalid = value === '' || _groups.some(({ name }) => name === value);
-  const renameGroupButton = document.getElementById('group-rename-confirm');
-  renameGroupButton.disabled = isInvalid;
-}
-
-async function changeGroupNameHandler(event) {
-  const selectedGroupName = document.getElementById('group-rename-select').selected;
-  const newGroupName = document.getElementById('group-rename-input').value.replace(/\s+/g, ' ').trim();
-  await changeGroupName(selectedGroupName, newGroupName);
-  await updateGroupOptionsDisplay();
-}
-
-async function selectDefaultHandler(event) {
-  const defaultGroup = await getDefaultGroupName();
-  const changeDefaultButton = document.getElementById('group-default-confirm');
-  changeDefaultButton.disabled = event.detail === defaultGroup;
-}
-
-async function changeDefaultHandler(event) {
-  const defaultSelection = document.getElementById('group-default-select');
-  const newDefault = defaultSelection.selected;
-  await setDefaultGroupName(newDefault);
-  await updateGroupOptionsDisplay();
-}
-
-async function selectRemoveHandler(event) {
-  const selectedValue = event.detail;
-
-  const confirmRemoveButton = document.getElementById('group-remove-confirm');
-  const defaultGroupName = await getDefaultGroupName();
-  confirmRemoveButton.disabled = selectedValue === defaultGroupName;
-  const selectedGroup = _groups.find(({ name }) => name === selectedValue);
-
-  const moveFoldersText = document.getElementById('group-remove-move-text');
-  const moveFoldersSelect = document.getElementById('group-move-folders-select');
-  if (selectedGroup?.numFolders) {
-    moveFoldersText.classList.remove('obscure');
-    moveFoldersSelect.disabled = false;
-  } else {
-    moveFoldersText.classList.add('obscure');
-    moveFoldersSelect.disabled = true;
+function updateDisplayOrder() {
+  _navOrder = Array.from(_folders.keys());
+  const fragement = document.createDocumentFragment();
+  for (const [id, title] of _folders) {
+    const draggableFolder = createDraggableFolder(title, id);
+    addDragListeners(draggableFolder);
+    fragement.appendChild(draggableFolder);
   }
 
-  if (moveFoldersSelect.selected === selectedValue) {
-    moveFoldersSelect.selected = defaultGroupName;
-  }
-
-  for (const option of moveFoldersSelect.options) {
-    if (option.value === selectedValue) {
-      moveFoldersSelect.setInputDisabled(option.value, true);
-    } else {
-      moveFoldersSelect.setInputDisabled(option.value, false);
-    }
-  }
+  const draggableFolderList = document.getElementById('draggable-folder-list');
+  draggableFolderList.replaceChildren(fragement);
 }
 
-async function removeGroupHandler(event) {
-  try {
-    const removeName = document.getElementById('group-remove-select').selected;
-    const groups = await getGroupsWithFolders();
-    const removeIndex = groups.findIndex(({ name }) => name === removeName);
-    const [removeGroup] = groups.splice(removeIndex, 1);
-
-    if (removeGroup.folders.length) {
-      const relocationName = document.getElementById('group-move-folders-select').selected;
-      const relocationGroup = groups.find(({ name }) => name === relocationName);
-      relocationGroup.folders.push(...removeGroup.folders);
-      relocationGroup.numFolders += removeGroup.numFolders;
-      const updatedFolders = groups.flatMap(({ folders }) => folders);
-      await reorderFolders(updatedFolders);
-    }
-    
-    const updateGroups = groups.map(({ name, numFolders }) => ({ name, numFolders }));
-    await setAllGroups(updateGroups);
-    await updateGroupOptionsDisplay();
-  } catch (error) {
-    console.error('Error performing remove group action:', error);
-  }
+function createDraggableFolder(name, id) {
+  const li = document.createElement('li');
+  li.classList.add('draggable-folder');
+  li.id = id;
+  li.draggable = true;
+  const icon = document.createElement('svg-icon');
+  icon.type = 'drag-indicator';
+  const span = document.createElement('span');
+  span.textContent = name;
+  li.appendChild(icon);
+  li.appendChild(span);
+  return li;
 }
 
-async function confirmDisplayHandler(event) {
-  const groupList = document.querySelectorAll('#group-display-list > .group-item');
-  const updatedGroups = [];
-  const updatedFolders = [];
-
-  groupList.forEach(groupElement => {
-    const groupName = groupElement.querySelector('.group-name-container span').textContent;
-    const folderList = groupElement.querySelectorAll('.folder-list > li');
-
-    const group = { name: groupName, numFolders: folderList.length };
-    updatedGroups.push(group);
-
-    folderList.forEach(folder => {
-      const folderName = folder.querySelector('.folder-name-container span').textContent;
-      updatedFolders.push(folderName);
-    });
-  });
-
-  if (updatedFolders.length !== 0) {
-    await reorderFolders(updatedFolders);
-  }
-  await setAllGroups(updatedGroups);
-
-  await updateGroupOptionsDisplay();
+function addDragListeners(draggableFolder) {
+  draggableFolder.addEventListener('dragstart', dragstartHandler);
+  draggableFolder.addEventListener('dragend', dragendHandler);
+  draggableFolder.addEventListener('dragover', dragoverHandler);
+  draggableFolder.addEventListener('dragleave', dragleaveHandler);
+  draggableFolder.addEventListener('drop', dropHandler);
 }
-
-async function updateGroupRenameSelection() {
-  const defaultGroup = await getDefaultGroupName();
-  const fragment = document.createDocumentFragment();
-  _groups.forEach(group => {
-    const option = document.createElement('option');
-    option.value = group.name;
-    option.textContent = group.name;
-
-    if (group.name === defaultGroup) {
-      option.textContent += ' - (default)';
-    }
-
-    fragment.appendChild(option);
-  });
-
-  const renameSelect = document.getElementById('group-rename-select');
-  renameSelect.replaceChildren(fragment);
-  renameSelect.updateOptions('');
-
-  const renameInput = document.getElementById('group-rename-input');
-  renameInput.value = '';
-  renameInput.disabled = true;
-
-  const confirmRenameButton = document.getElementById('group-rename-confirm');
-  confirmRenameButton.disabled = true;
-}
-
-async function updateDefaultSelection() {
-  const defaultGroup = await getDefaultGroupName();
-  const fragment = document.createDocumentFragment();
-  _groups.forEach(group => {
-    const option = document.createElement('option');
-    option.value = group.name;
-    option.textContent = group.name;
-
-    if (group.name === defaultGroup) {
-      option.textContent += ' - (default)';
-    }
-
-    fragment.appendChild(option);
-  });
-
-  const selectDefault = document.getElementById('group-default-select');
-  selectDefault.replaceChildren(fragment);
-  selectDefault.updateOptions(defaultGroup);
-
-  const changeDefault = document.getElementById('group-default-confirm');
-  changeDefault.disabled = true;
-}
-
-async function updateRemoveDisplay() {
-  const defaultGroup = await getDefaultGroupName();
-  const removeOptionsFrag = document.createDocumentFragment();
-  const relocateOptionsFrag = document.createDocumentFragment();
-
-  for (const group of _groups) {
-    const removeOption = document.createElement('option');
-    const relocateOption = document.createElement('option');
-
-    removeOption.textContent = group.name;
-    relocateOption.textContent = group.name;
-    removeOption.value = group.name;
-    relocateOption.value = group.name;
-
-    if (group.name === defaultGroup) {
-      removeOption.textContent += ' - (default)';
-      relocateOption.textContent += ' - (default)';
-    } else if (!group.numFolders) {
-      removeOption.textContent += ' - (empty)';
-    }
-
-    removeOptionsFrag.appendChild(removeOption);
-    relocateOptionsFrag.appendChild(relocateOption);
-  }
-
-  const selectRemove = document.getElementById('group-remove-select');
-  const selectRelocate = document.getElementById('group-move-folders-select');
-  selectRemove.replaceChildren(removeOptionsFrag);
-  selectRemove.updateOptions('');
-  selectRemove.setInputDisabled(defaultGroup, true);
-  selectRelocate.replaceChildren(relocateOptionsFrag);
-  selectRelocate.updateOptions(defaultGroup);
-  selectRelocate.disabled = true;
-
-  const relocateText = document.getElementById('group-remove-move-text');
-  relocateText.classList.add('obscure');
-
-  const removeGroupButton = document.getElementById('group-remove-confirm');
-  removeGroupButton.disabled = true;
-}
-
-async function updateDisplayOrderList() {
-  const fragment = document.createDocumentFragment();
-  for (const group of _groups) {
-    const groupItem = document.createElement('li');
-    groupItem.classList.add('group-item');
-    groupItem.draggable = true;
-    const groupNameContainer = document.createElement('div');
-    groupNameContainer.classList.add('group-name-container');
-    const groupDragIndicator = document.createElement('svg-icon');
-    groupDragIndicator.type = 'drag-indicator';
-    const groupNameText = document.createElement('span');
-    groupNameText.textContent = group.name;
-    groupNameContainer.appendChild(groupDragIndicator);
-    groupNameContainer.appendChild(groupNameText);
-    groupItem.appendChild(groupNameContainer);
-
-    const folderList = document.createElement('ul');
-    folderList.classList.add('folder-list');
-    groupItem.appendChild(folderList);
-
-    for (const folder of group.folders) {
-      const folderItem = document.createElement('li');
-      const div = document.createElement('div');
-      div.classList.add('folder-name-container');
-      const dragIndicator = document.createElement('svg-icon');
-      dragIndicator.type = 'drag-indicator';
-      const text = document.createElement('span');
-      text.textContent = folder;
-      div.appendChild(dragIndicator);
-      div.appendChild(text);
-      folderItem.appendChild(div);
-      folderItem.draggable = true;
-      folderList.appendChild(folderItem);
-    }
-
-    fragment.appendChild(groupItem);
-  }
-  const groupList = document.getElementById('group-display-list');
-  groupList.replaceChildren(fragment);
-  const resetButton = document.getElementById('group-display-reset');
-  resetButton.disabled = true;
-  const confirmButton = document.getElementById('group-display-confirm');
-  confirmButton.disabled = true;
-  setupDragListeners();
-}
-
-function setupDragListeners() {
-  document.querySelectorAll('.group-item[draggable="true"]').forEach(group => {
-    group.addEventListener('dragstart', dragstartHandler);
-    group.addEventListener('dragend', dragendHandler);
-    group.addEventListener('dragover', dragoverHandler);
-    group.addEventListener('dragleave', dragleaveHandler);
-    group.addEventListener('drop', dropHandler);
-  });
-
-  document.querySelectorAll('.folder-list li[draggable="true"]').forEach(folder => {
-    folder.addEventListener('dragstart', (event) => {
-      event.stopPropagation();
-      dragstartHandler(event);
-    });
-    folder.addEventListener('dragend', (event) => {
-      event.stopPropagation();
-      dragendHandler(event);
-    });
-  });
-}
-
-let _dragItem = null;
 
 function dragstartHandler(event) {
-  _dragItem = event.target;
-  document.getElementById('group-display-list').classList.add('dragging');
-  setTimeout(() => {
-    _dragItem.style.display = 'none';
-  }, 0);
+  const element = event.currentTarget;
+  _draggedId = element.id;
+  element.classList.add('dragging');
+
+  const draggableFolderList = document.getElementById('draggable-folder-list');
+  draggableFolderList.classList.add('dragging');
 }
 
 function dragendHandler(event) {
-  document.getElementById('group-display-list').classList.remove('dragging');
-  setTimeout(() => {
-    _dragItem.style.display = 'block';
-    _dragItem = null;
-  });
+  _draggedId = null;
+  event.currentTarget.classList.remove('dragging');
+
+  const draggableFolderList = document.getElementById('draggable-folder-list');
+  draggableFolderList.classList.remove('dragging');
 }
 
 function dragoverHandler(event) {
   event.preventDefault();
-  const { list, items } = getListAndItems(event.currentTarget);
-  clearInsertionIndicator(list, items);
-  if (items.length === 0) {
-    list.classList.add('insert-after');
-    return;
-  }
+  
+  const target = event.currentTarget;
+  const rect = target.getBoundingClientRect();
+  const offset = (event.clientY - rect.top) - (rect.height / 2);
+  const dropPosition = getDropPosition(target.id, offset);
 
-  const { insertionElement, position } = getInsertionInfo(list, items, event.clientY);
-  if (position === 'beforebegin') {
-    insertionElement.classList.add('insert-before');
-  } else {
-    insertionElement.classList.add('insert-after');
+  if (dropPosition === 'above') {
+    target.classList.remove('below-indicator');
+    target.classList.add('above-indicator');
+  } else if (dropPosition === 'below') {
+    target.classList.remove('above-indicator');
+    target.classList.add('below-indicator');
   }
 }
 
 function dragleaveHandler(event) {
-  const { list, items } = getListAndItems(event.currentTarget);
-  clearInsertionIndicator(list, items);
+  event.currentTarget.classList.remove('above-indicator', 'below-indicator');
 }
 
 function dropHandler(event) {
-  const { list, items } = getListAndItems(event.currentTarget);
-  clearInsertionIndicator(list, items);
-  const resetButton = document.getElementById('group-display-reset');
-  resetButton.disabled = false;
-  const confirmButton = document.getElementById('group-display-confirm');
-  confirmButton.disabled = false;
+  event.preventDefault();
 
-  if (items.length === 0) {
-    list.appendChild(_dragItem);
-    return;
+  const target = event.currentTarget;
+  const rect = target.getBoundingClientRect();
+  const offset = (event.clientY - rect.top) - (rect.height / 2);
+  const dropPosition = getDropPosition(target.id, offset);
+
+  if (!dropPosition) return;
+
+  const draggedElement = document.getElementById(_draggedId);
+  if (dropPosition === 'above') {
+    target.insertAdjacentElement('beforebegin', draggedElement);
+  } else if (dropPosition === 'below') {
+    target.insertAdjacentElement('afterend', draggedElement);
   }
 
-  const { insertionElement, position } = getInsertionInfo(list, items, event.clientY);
-  insertionElement.insertAdjacentElement(position, _dragItem);
-}
+  target.classList.remove('above-indicator', 'below-indicator');
 
-function clearInsertionIndicator(list, items) {
-  list.classList.remove('insert-after');
-  items.forEach(item => {
-    item.classList.remove('insert-after', 'insert-before');
-  });
-}
+  const draggableFolderList = document.getElementById('draggable-folder-list');
+  _navOrder = Array.from(draggableFolderList.children).map(child => child.id);
 
-function getListAndItems(currentTarget) {
-  if (_dragItem.classList.contains('group-item')) {
-    const listElement = document.getElementById('group-display-list');
-    const listItems = listElement.querySelectorAll('.group-item');
-    return { list: listElement, items: listItems };
-  } else {
-    const listElement = currentTarget.querySelector('ul');
-    const listItems = listElement.querySelectorAll('li');
-    return { list: listElement, items: listItems };
-  }
-}
-
-function getInsertionInfo(listElement, nodeItems, clientY) {
-  const listItems = [...nodeItems];
-  const itemBelow = getListItemBelow(listItems, clientY);
-  if (itemBelow) {
-    return { insertionElement: itemBelow, position: 'beforebegin' };
-  } else {
-    return { insertionElement: listElement.lastElementChild, position: 'afterend' };
-  }
-}
-
-function getListItemBelow(listItems, clientY) {
-  return listItems.reduce((closest, child) => {
-    const rect = child.getBoundingClientRect();
-    const offset = clientY - rect.top - rect.height / 2;
-    if (offset < 0 && offset > closest.offset) {
-      return { offset: offset, element: child };
-    } else {
-      return closest;
+  let hasChanged = false;
+  const currentOrder = Array.from(_folders.keys());
+  for (let i = 0; i < currentOrder.length; i++) {
+    if (_navOrder[i] !== currentOrder[i]) {
+      hasChanged = true;
+      break;
     }
-  }, { offset: Number.NEGATIVE_INFINITY }).element;
+  }
+
+  const resetButton = document.getElementById('reset-nav-order');
+  const changeOrderButton = document.getElementById('change-nav-order');
+  if (hasChanged) {
+    resetButton.disabled = false;
+    changeOrderButton.disabled = false;
+  } else {
+    resetButton.disabled = true;
+    changeOrderButton.disabled = true;
+  }
+}
+
+function getDropPosition(targetId, offset) {
+  if (targetId === _draggedId) return null;
+
+  const targetIndex = _navOrder.indexOf(targetId);
+  const draggedIndex = _navOrder.indexOf(_draggedId);
+
+  if (draggedIndex === -1 || targetIndex === -1) return null;
+
+  if (offset < 0 && draggedIndex !== targetIndex - 1) {
+    return 'above';
+  } else if (draggedIndex !== targetIndex + 1) {
+    return 'below';
+  } else {
+    return null;
+  }
+}
+
+function resetOrderHandler(event) {
+  updateDisplayOrder();
+  const resetButton = document.getElementById('reset-nav-order');
+  const changeOrderButton = document.getElementById('change-nav-order');
+  resetButton.disabled = true;
+  changeOrderButton.disabled = true;
+}
+
+async function changeOrderHandler(event) {
+  await reorderFolders(_navOrder);
+  const resetButton = document.getElementById('reset-nav-order');
+  const changeOrderButton = document.getElementById('change-nav-order');
+  resetButton.disabled = true;
+  changeOrderButton.disabled = true;
 }
 
 // #endregion
@@ -542,8 +320,7 @@ function getListItemBelow(listItems, clientY) {
 registerBookmarkListener(updateFolderInformation);
 
 async function updateFolderInformation() {
-  await updateFolderOptionsDisplay();
-
-  _groups = await getGroupsWithFolders();
-  updateDisplayOrderList();
+  await storeExtensionFolders();
+  updateFolderOptionsDisplay();
+  updateDisplayOrder();
 }

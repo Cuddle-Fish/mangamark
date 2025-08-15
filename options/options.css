@@ -64,8 +64,11 @@ h1 {
   background-color: var(--secondary-background);
 
   hr {
+    margin: 0;
     width: 100%;
-    border: 1px solid var(--offWhite30);
+    border: none;
+    height: 1px;
+    background-color: var(--offWhite30);
   }
 }
 
@@ -127,10 +130,6 @@ h1 {
   font-size: 14px;
 }
 
-dropdown-menu {
-  font-size: 20px;
-}
-
 #folder-rename-select[disabled]::after {
   content: "No Folders";
   padding-left: 10px;
@@ -142,56 +141,51 @@ dropdown-menu {
   color: var(--warning);
 }
 
-.obscure {
-  opacity: 0.5;
-}
-
-.group-display-list, .folder-list {
+#draggable-folder-list {
   padding: 0;
   margin: 0;
   list-style: none;
 }
 
-.group-item {
+.draggable-folder {
   cursor: grab;
-  font-weight: bold;
-  padding: 20px 0 20px 20px;
-  border-radius: 5px;
-  font-size: 20px;
-}
-
-.group-name-container {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-.folder-list {
-  padding-left: 25px;
-  font-weight: normal;
-
-  li {
-    border-radius: 5px;
-  }
-}
-
-.folder-name-container {
-  padding: 15px 0 15px 10px;
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 15px 0 15px 10px;
+  border-radius: 5px;
 }
 
-.group-display-list:not(.dragging) li:hover:not(:has(li:hover)) {
+.draggable-folder * {
+  pointer-events: none;
+}
+
+#draggable-folder-list:not(.dragging) .draggable-folder:hover {
   background-color: var(--accent-bright30);
 }
 
-.insert-after {
-  border-radius: 0 !important;
-  border-bottom: 4px groove var(--accent-bright);
+.draggable-folder.dragging {
+  opacity: 0.5;
+  background-color: var(--accent-bright30);
 }
 
-.insert-before {
-  border-radius: 0 !important;
-  border-top: 4px groove var(--accent-bright);
+.above-indicator::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: 0;
+  background-color: var(--accent-bright);
+  height: 2px;
+  width: 40%;
+}
+
+.below-indicator::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  background-color: var(--accent-bright);
+  height: 2px;
+  width: 40%;
 }

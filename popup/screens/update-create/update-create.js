@@ -186,7 +186,7 @@ customElements.define(
       const normalizedFolder = folder.toLowerCase();
       const extensionFolders = await getExtensionFolders();
       let folderId;
-      for (const [title, id] of extensionFolders) {
+      for (const [id, title] of extensionFolders) {
         if (title.trim().toLowerCase() === normalizedFolder) {
           folderId = id;
           break;
@@ -294,7 +294,7 @@ customElements.define(
       }
       
       const fragement = document.createDocumentFragment();
-      for (const title of extensionFolders.keys()) {
+      for (const title of extensionFolders.values()) {
         const option = document.createElement('option');
         option.value = title;
         fragement.appendChild(option);

@@ -95,6 +95,7 @@ customElements.define(
   class extends HTMLElement {
     #bookmarkId;
     #folderName;
+    #folderId;
     #editingOptions = Object.freeze({
       closed: 0,
       menu: 1,
@@ -326,7 +327,7 @@ customElements.define(
 
       const folders = await getExtensionFolders();
       const fragment = document.createDocumentFragment();
-      for (const title of folders.keys()) {
+      for (const title of folders.values()) {
         if (title !== this.#folderName) {
           const option = document.createElement('option');
           option.value = title;
@@ -387,9 +388,10 @@ customElements.define(
       }
     }
 
-    initialize(title, chapterNumber, url, date, readingStatus, activeTags, domain, bookmarkId, folderName) {
+    initialize(title, chapterNumber, url, date, readingStatus, activeTags, domain, bookmarkId, folderName, folderId) {
       this.#bookmarkId = bookmarkId;
       this.#folderName = folderName;
+      this.#folderId = folderId;
       this.state = 'default';
       this.readingStatus = readingStatus;
 
@@ -474,7 +476,7 @@ customElements.define(
       let folderId;
       const normalizedFolderName = newFolderName.toLowerCase();
       const folders = await getExtensionFolders();
-      for (const [title, id] of folders) {
+      for (const [id, title] of folders) {
         if (title.trim().toLowerCase() === normalizedFolderName) {
           folderId = id;
           break;
@@ -491,11 +493,7 @@ customElements.define(
       const checkedInput = this.shadowRoot.querySelector('input[name="reading-status-input"]:checked');
       const newSubFolder = checkedInput.value;
 
-      const folders = await getExtensionFolders();
-      const folderId = folders.get(this.#folderName);
-      if (folderId === undefined) throw new Error(`could not find id for ${this.#folderName} in extension folder`);
-      
-      await moveBookmark(this.#bookmarkId, folderId, newSubFolder, true);
+      await moveBookmark(this.#bookmarkId, this.#folderId, newSubFolder, true);
       this.readingStatus = checkedInput.value;
       this.selectEditOption(this.#editingOptions.menu);
       this.dispatchEvent(

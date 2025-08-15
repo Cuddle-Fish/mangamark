@@ -90,13 +90,18 @@
   }
 }
 
-.all-selection {
-  overflow-x: hidden;
-  flex-shrink: 0;
+hr {
+  margin: 0;
+  width: 100%;
+  border: none;
+  height: 1px;
+  background-color: var(--offWhite30);
 }
 
-.groups-container {
-  overflow-x: hidden;
+#folders-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--offWhite30) var(--secondary-background);
@@ -128,42 +133,6 @@ input:checked + label {
   background-color: var(--accent-subdued30);
 }
 
-.section-container {
-  display: flex;
-  flex-direction: column;
-}
-
-.collapse-button {
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 10px;
-  border: none;
-  border-radius: 5px;
-  background-color: var(--offWhite30);
-  color: var(--offWhite);
-  opacity: 50%;
-  font-size: 14px;
-  font-family: inherit;
-  margin-bottom: 10px;
-
-  &:hover {
-    opacity: 100%;
-  }
-
-  &:active {
-    opacity: 80%;
-  }
-}
-
-.items-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow-y: hidden;
-}
-
-.items-container:not([collapsed]) {
-  margin-bottom: 10px;
+:host([hide-selected]) label {
+  background-color: transparent;
 }

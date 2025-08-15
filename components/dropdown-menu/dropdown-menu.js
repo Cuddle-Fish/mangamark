@@ -5,11 +5,11 @@ template.innerHTML = /* html */ `
   <style>
     @import "/components/dropdown-menu/dropdown-menu.css";
   </style>
-  <button>
+  <button id="toggle-button">
     <span id="button-text"></span>
     <svg-icon id="button-arrow" type="expand-more"></svg-icon>
   </button>
-  <div class="options-container"></div>
+  <div id="options-container" class="hidden"></div>
   <datalist>
     <slot></slot>
   </datalist>
@@ -18,54 +18,28 @@ template.innerHTML = /* html */ `
 customElements.define(
   'dropdown-menu',
   class extends HTMLElement {
+    #validVariants = ['checkmark', 'highlight'];
+    #selections = new Map();
+
     static get observedAttributes() {
-      return ['placeholder', 'placeholder-view', 'open', 'selected', 'selected-indicator', 'disabled'];
-    }
-
-    get placeholder() {
-      return this.getAttribute('placeholder') || '';
-    }
-
-    get placeholderView() {
-      return this.getAttribute('placeholder-view') || 'insertBefore';
-    }
-
-    set placeholderView(value) {
-      const validViews = ['replace', 'insertBefore', 'insertAfter'];
-      if (!value) {
-        this.removeAttribute('placeholder-view');
-      } else if (validViews.includes(value)) {
-        this.setAttribute('placeholder-view', value);
-      }
-    }
-
-    get open() {
-      return this.hasAttribute('open') && this.getAttribute('open') !== false;
-    }
-
-    set open(value) {
-      value === true && !this.disabled ? this.setAttribute('open', '') : this.removeAttribute('open');
+      return ['selected', 'disabled', 'variant'];
     }
 
     get selected() {
-      return this.getAttribute('selected') || '';
+      if (!this.hasAttribute('selected')) {
+        return null;
+      }
+
+      const value = this.getAttribute('selected');
+      return this.#selections.has(value) ? value : null;
     }
 
     set selected(value) {
-      const newSelectedInput = this.shadowRoot
-        .querySelector(`input[name="dropdown-options"][value="${value}"]`);
-      const oldSelectedInput = this.shadowRoot
-        .querySelector(`input[name="dropdown-options"][value="${this.selected}"]`);
+      if (!this.#selections.has(value)) {
+        return;
+      }
 
-      if (oldSelectedInput) {
-        oldSelectedInput.checked = false;
-      }
-      if (!newSelectedInput || !value) {
-        this.removeAttribute('selected');
-      } else {
-        newSelectedInput.checked = true;
-        this.setAttribute('selected', value);
-      }
+      this.setAttribute('selected', value);
     }
 
     get disabled() {
@@ -76,8 +50,16 @@ customElements.define(
       value === true ? this.setAttribute('disabled', '') : this.removeAttribute('disabled');
     }
 
-    get options() {
-      return this.shadowRoot.querySelector('slot').assignedElements();
+    get variant() {
+      return this.getAttribute('variant') || 'checkmark';
+    }
+
+    set variant(value) {
+      if (value === '') {
+        this.removeAttribute('variant');
+      } else if (this.#validVariants.includes(value)) {
+        this.setAttribute('variant', value);
+      }
     }
 
     constructor() {
@@ -87,114 +69,129 @@ customElements.define(
       this.tabIndex = 0;
     }
 
+    connectedCallback() {
+      this.#renderOptions();
+      this.#renderSelected();
+
+      const slot = this.shadowRoot.querySelector('slot');
+      slot.addEventListener('slotchange', (event) => {
+        this.#renderOptions();
+        this.#renderSelected();
+      });
+
+      this.addEventListener('focusout', (event) => {
+        if (!this.contains(event.relatedTarget)) this.#closeMenu();
+      });
+
+      const toggleButton = this.shadowRoot.getElementById('toggle-button');
+      toggleButton.addEventListener('click', (event) => this.#toggleMenu(event));
+    }
+
     attributeChangedCallback(name, oldValue, newValue) {
-      if (
-        name === 'placeholder' || 
-        name === 'open' || 
-        name === 'selected' || 
-        name === 'placeholder-view'
-      ) {
-        this.render();
+      if (name === 'selected' && oldValue !== newValue) {
+        if (this.#selections.has(newValue)) {
+          this.#selections.get(newValue).input.checked = true;
+        } else if (this.#selections.has(oldValue)) {
+          this.#selections.get(oldValue).input.checked = false;
+        }
+        this.#renderSelected();
       }
     }
 
-    connectedCallback() {
-      this.shadowRoot
-        .querySelector('button')
-        .addEventListener('click', (event) => this.toggle());
-      this.createOptions();
-      this.render();
-
-      this.addEventListener('focusout', (event) => {
-        if (!this.contains(event.relatedTarget)) {
-          this.open = false;
-        }
-      });
-    }
-
-    updateOptions(selectedValue) {
-      this.createOptions();
-      this.selected = selectedValue || '';
-    }
-
-    createOptions() {
-      const options = this.querySelectorAll('option');
-      const fragement = document.createDocumentFragment();
-
-      options.forEach((option, index) => {
-        const input = document.createElement('input');
-        const label = document.createElement('label');
-        const icon = document.createElement('svg-icon');
-        icon.type = 'check-mark';
-
-        input.type = 'radio';
-        input.name = 'dropdown-options';
-        input.value = option.value;
-        input.id = `dropdown-option-${index}`;
-
-        if (this.selected === option.value) {
-          input.checked = true;
-        }
-
-        label.part = "dropdown-option";
-        label.htmlFor = input.id;
-        label.appendChild(icon);
-        icon.classList.add('labelIcon');
-        const span = document.createElement('span');
-        span.innerHTML = option.textContent;
-        span.classList.add('labelText');
-        label.appendChild(span);
-
-        const div = document.createElement('div');
-
-        div.appendChild(input);
-        div.appendChild(label);
-        fragement.appendChild(div);
-
-        input.addEventListener('change', () => {
-          this.setAttribute('selected', input.value);
-          this.open = false;
-          this.dispatchEvent(
-            new CustomEvent('DropdownChange', {
-              detail: input.value,
-            })
-          );
-        });
-      });
-
-      const optionsContainer = this.shadowRoot.querySelector('.options-container');
-      optionsContainer.replaceChildren(fragement);
-    }
-
-    toggle() {
+    #toggleMenu(event) {
       if (this.disabled) {
-        this.open = false;
         return;
       }
 
-      this.open = !this.open;
-    }
-
-    setInputDisabled(inputValue, isDisabled) {
-      const input = this.shadowRoot
-        .querySelector(`input[name="dropdown-options"][value="${inputValue}"]`);
-      input.disabled = isDisabled;
-    }
-
-    render() {
-      const buttonText = this.shadowRoot.getElementById('button-text');
-      if (!this.selected) {
-        buttonText.textContent = this.placeholder;
-      } else if (this.placeholderView === 'insertBefore') {
-        buttonText.textContent = `${this.placeholder} ${this.selected}`;
-      } else if (this.placeholderView === 'insertAfter') {
-        buttonText.textContent = `${this.selected} ${this.placeholder} `;
+      const toggleButton = this.shadowRoot.getElementById('toggle-button');
+      const toggleArrow = this.shadowRoot.getElementById('button-arrow');
+      const optionsContainer = this.shadowRoot.getElementById('options-container');
+      if (toggleButton.classList.contains('open')) {
+        toggleButton.classList.remove('open');
+        optionsContainer.classList.add('hidden');
+        toggleArrow.type = 'expand-more';
       } else {
-        buttonText.textContent = this.selected;
+        toggleButton.classList.add('open');
+        optionsContainer.classList.remove('hidden');
+        toggleArrow.type = 'expand-less';
+      }
+    }
+
+    #closeMenu() {
+      const toggleButton = this.shadowRoot.getElementById('toggle-button');
+      const optionsContainer = this.shadowRoot.getElementById('options-container');
+      const toggleArrow = this.shadowRoot.getElementById('button-arrow');
+      toggleButton.classList.remove('open');
+      optionsContainer.classList.add('hidden');
+      toggleArrow.type = 'expand-more';
+    }
+
+    #renderOptions() {
+      const options = this.querySelectorAll('option');
+      const fragement = document.createDocumentFragment();
+      this.#selections.clear();
+
+      options.forEach((option, index) => {
+        if (this.#selections.has(option.value)) {
+          throw new Error('invalid options, can not have duplicate option values.');
+        }
+
+        const selectedLabel = option.getAttribute('selected-label') || option.textContent;
+        const {container, input} = this.#createOption(option.textContent, option.value, index);
+        this.#selections.set(option.value, {input, selectedLabel});
+        input.addEventListener('change', () => {
+          this.selected = option.value;
+          this.#closeMenu();
+          this.dispatchEvent(new CustomEvent('dropdownChange', {
+            detail: option.value
+          }));
+        });
+
+        fragement.appendChild(container);
+      });
+
+      const optionsContainer = this.shadowRoot.getElementById('options-container');
+      optionsContainer.replaceChildren(fragement);
+
+      if (this.selected === null) {
+        this.selected = this.#selections.keys().next().value;
+      }
+    }
+
+    #createOption(text, value, index) {
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'dropdown-options';
+      input.value = value;
+      input.id = `option-${index}`;
+      if (this.getAttribute('selected') === value) {
+        input.checked = true;
       }
 
-      const arrow = this.shadowRoot.getElementById('button-arrow');
-      arrow.type = this.open ? 'expand-less' : 'expand-more';
+      const label = document.createElement('label');
+      label.htmlFor = `option-${index}`;
+      const icon = document.createElement('svg-icon');
+      icon.type = 'check-mark';      
+      const span = document.createElement('span');
+      span.textContent = text;
+      label.appendChild(icon);
+      label.appendChild(span);
+
+      const container = document.createElement('div');
+      container.classList.add('option');
+      container.appendChild(input);
+      container.appendChild(label);
+
+      return {container, input};
+    }
+
+    #renderSelected() {
+      const buttonText = this.shadowRoot.getElementById('button-text');
+      if (!this.#selections.has(this.selected)) {
+        buttonText.textContent = '';
+      } else {
+        buttonText.textContent = this.#selections.get(this.selected).selectedLabel;
+      }
     }
   }
 )

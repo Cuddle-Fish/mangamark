@@ -1,5 +1,4 @@
-import { getGroupsWithFolders, registerGroupChangeListener } from "/externs/settings.js";
-
+import { getExtensionFolders } from "/externs/bookmark.js";
 import "/components/svg-icon/svg-icon.js";
 
 const template = document.createElement('template');
@@ -18,7 +17,9 @@ template.innerHTML = /* html */ `
       <label for="all-bookmarks">Show All</label>
     </div>
 
-    <div id="groups-container" class="groups-container"></div>
+    <hr />
+
+    <div id="folders-container"></div>
   </div>
 `;
 
@@ -32,24 +33,11 @@ customElements.define(
     }
 
     get selected() {
-      return this.getAttribute('selected') || '';
-    }
-
-    set selected(value) {
-      if (!this.hasAttribute('selected') || this.getAttribute('selected') !== value) {
-        const navItems = this.shadowRoot.querySelectorAll('input[name="nav-item"]');
-        for (const input of navItems) {
-          if (input.value === value) {
-            input.checked = true;
-            this.setAttribute('selected', value);
-            break;
-          }
-        }
-      }
+      const selectedElement = this.shadowRoot.querySelector(`input[name="nav-item"]:checked`);
+      return selectedElement ? selectedElement.value : '';
     }
 
     connectedCallback() {
-      this.setAttribute('selected', '');
       this.setAttribute('open', '');
 
       this.shadowRoot.getElementById('close-button')
@@ -61,8 +49,7 @@ customElements.define(
       this.shadowRoot.getElementById('overlay')
         .addEventListener('click', () => this.closeNav());
 
-      this.renderGroups();
-      registerGroupChangeListener(this.renderGroups.bind(this));
+      this.renderFolders();
     }
 
     openNav() {
@@ -74,65 +61,54 @@ customElements.define(
       this.dispatchEvent(new Event('navClosed'));
     }
 
-    async renderGroups() {
+    async renderFolders() {
+      const selectedId = this.shadowRoot.querySelector(`input[name="nav-item"]:checked`).id;
       const fragment = document.createDocumentFragment();
-      const groups = await getGroupsWithFolders();
+      const extensionFolders = await getExtensionFolders();
 
       let selectedRemoved = true;
-
-      for (const group of groups) {
-        const sectionContainer = document.createElement('div');
-        sectionContainer.classList.add('section-container');
-
-        const collapseButton = document.createElement('button');
-        collapseButton.classList.add('collapse-button');
-        const div = document.createElement('div');
-        div.textContent = group.name;
-        collapseButton.appendChild(div);
-        const arrow = document.createElement('svg-icon');
-        arrow.type = 'expand-less';
-        arrow.size = '26px';
-        collapseButton.appendChild(arrow);
-        sectionContainer.appendChild(collapseButton);
-
-        const folderContainer = document.createElement('div');
-        folderContainer.classList.add('items-container');
-
-        for (const folder of group.folders) {
-          const input = document.createElement('input');
-          input.type = 'radio';
-          input.id = folder;
-          input.name = 'nav-item';
-          input.value = folder;
-          input.addEventListener('change', (event) => this.inputChangeHandler(event));
-
-          const label = document.createElement('label');
-          label.htmlFor = folder;
-          label.textContent = folder;
-          label.lang = 'en';
-
-          if (folder === this.selected) {
-            selectedRemoved = false;
-          }
-
-          folderContainer.appendChild(input);
-          folderContainer.appendChild(label);
+      for (const [id, title] of extensionFolders) {
+        let inputOption;
+        if (selectedId === id) {
+          inputOption = this.#createFolderOption(id, title, true);
+          selectedRemoved = false;
+        } else {
+          inputOption = this.#createFolderOption(id, title);
         }
 
-        sectionContainer.appendChild(folderContainer);
-        collapseButton.addEventListener('click', () => this.toggleSection(folderContainer, arrow));
-
-        fragment.appendChild(sectionContainer);
+        fragment.appendChild(inputOption);
       }
 
-      if (selectedRemoved) this.setAttribute('selected', '');
+      if (selectedRemoved) {
+        const allBookmarks = this.shadowRoot.getElementById('all-bookmarks');
+        allBookmarks.checked = true;        
+      }
 
-      const groupsContainer = this.shadowRoot.getElementById('groups-container');
-      groupsContainer.replaceChildren(fragment);
+      const foldersContainer = this.shadowRoot.getElementById('folders-container');
+      foldersContainer.replaceChildren(fragment);
+    }
+
+    #createFolderOption(id, folderName, selected = false) {
+      const container = document.createElement('div');
+
+      const input = document.createElement('input');
+      input.type = 'radio';
+      input.id = id;
+      input.name = 'nav-item';
+      input.value = folderName;
+      input.addEventListener('change', (event) => this.inputChangeHandler(event));
+      input.checked = selected;
+
+      const label = document.createElement('label');
+      label.htmlFor = id;
+      label.textContent = folderName;
+
+      container.appendChild(input);
+      container.append(label);
+      return container;
     }
 
     inputChangeHandler(event) {
-      this.setAttribute('selected', event.target.value);
       this.dispatchEvent(
         new CustomEvent('navChange', {
           detail: event.target.value,
@@ -140,36 +116,12 @@ customElements.define(
       );
     }
 
-    toggleSection(itemsContainer, arrow) {
-      if (itemsContainer.hasAttribute('collapsed')) {
-        itemsContainer.removeAttribute('collapsed');
-        itemsContainer.style.display = 'flex';
-        arrow.type = 'expand-less';
-      } else {
-        itemsContainer.setAttribute('collapsed', '');
-        itemsContainer.style.display = 'none';
-        arrow.type = 'expand-more';
-      }
-    }
-
     hideSelected() {
-      const navItems = this.shadowRoot.querySelectorAll('input[name="nav-item"]');
-      for (const input of navItems) {
-        if (input.checked) {
-          input.checked = false;
-          break;
-        }
-      }
+      this.setAttribute('hide-selected', '');
     }
 
     showSelected() {
-      const navItems = this.shadowRoot.querySelectorAll('input[name="nav-item"]');
-      for (const input of navItems) {
-        if (input.value === this.selected) {
-          input.checked = true;
-          break;
-        }
-      }
+      this.removeAttribute('hide-selected');
     }
   }
 )

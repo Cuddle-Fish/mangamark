@@ -12,7 +12,7 @@
   cursor: not-allowed;
 }
 
-button {
+#toggle-button {
   cursor: pointer;
   display: flex;
   justify-content: space-between;
@@ -28,17 +28,17 @@ button {
   font-size: inherit;
 }
 
-:host(:not([disabled])) button:hover {
+:host(:not([disabled])) #toggle-button:hover {
   background-color: var(--offWhite30);
 }
 
-:host([open]) button {
+#toggle-button.open {
   background-color: var(--accent-subdued) !important;
   border-radius: 3px 3px 0px 0px;
 }
 
-.options-container {
-  display: none;
+#options-container {
+  display: block;
   position: absolute;
   width: 100%;
   border-radius: 0px 0px 3px 3px;
@@ -46,60 +46,55 @@ button {
   z-index: 30;
 }
 
-:host([open]) .options-container {
-  display: block;
-}
+.option {
+  input {
+    display: none;
+  }
 
-input {
-  display: none;
-}
+  label {
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    align-items: center;
 
-label {
-  cursor: pointer;
-  display: grid;
-  grid-template-columns: 10px [labelIcon] 30px [labelText] 1fr [end];
-  column-gap: 10px;
-  padding: 5px 0;
-  word-break: break-all;
-  font-size: inherit;
-}
+    padding: 5px 0;
+    padding-left: 5%;
+    gap: 5%;
+  }
 
-:host(:not([selected-indicator='highlight'])) .labelIcon {
-  grid-column: labelIcon;
-}
+  label:hover {
+    background-color: var(--offWhite30);
+  }
 
-.labelText {
-  grid-column: labelText;
-}
+  label svg-icon {
+    visibility: hidden;
+    color: var(--approval);
+  }
 
-:host([selected-indicator='highlight']) .labelText {
-  grid-column: labelIcon / end;
-}
-
-label:hover {
-  background-color: var(--offWhite30);
-}
-
-label svg-icon {
-  display: none;
-  color: var(--approval);
-}
-
-:host(:not([selected-indicator='highlight'])) input:checked + label svg-icon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-:host([selected-indicator='highlight']) input:checked + label {
-  background-color: var(--accent-subdued30);
-}
-
-input:disabled + label {
-  cursor: default;
-  opacity: 10%;
-
-  &:hover {
+  input:checked + label {
+    cursor: default;
     background-color: transparent;
   }
+
+  input:checked + label svg-icon {
+    visibility: visible;
+  }
+}
+
+:host([variant='highlight']) .option {
+  label {
+    display: flex;
+  }
+  
+  label svg-icon {
+    display: none;
+  }
+
+  input:checked + label {
+    background-color: var(--button-primary-color);
+  }
+}
+
+.hidden {
+  display: none !important;
 }

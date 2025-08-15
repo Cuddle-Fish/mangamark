@@ -156,8 +156,9 @@ class Bookmark {
    * @param {string} readingStatus Reading Status associated with bookmark
    * @param {string[]} tags Tags associated with bookmark
    * @param {string} folderName Name of main containing folder
+   * @param {string} folderId Id of main containing folder
    */
-  constructor(title, chapter, url, dateCreated, readingStatus, tags, bookmarkId, folderName) {
+  constructor(title, chapter, url, dateCreated, readingStatus, tags, bookmarkId, folderName, folderId) {
     this.title = title;
     this.chapter = chapter;
     this.url = url;
@@ -169,7 +170,8 @@ class Bookmark {
       this.domain = this.domain.substring(4);
     }
     this.bookmarkId = bookmarkId;
-    this.folder = folderName;
+    this.folderName = folderName;
+    this.folderId = folderId;
   }
 
   /**
@@ -205,7 +207,8 @@ class Bookmark {
       this.tags,
       this.domain,
       this.bookmarkId,
-      this.folder
+      this.folderName,
+      this.folderId
     );
 
     return bookmarkCard;
@@ -237,7 +240,7 @@ function setupEventListeners() {
   document.getElementById('clear-search-button').addEventListener('click', clearSearchHandler);
 
   document.getElementById('toggle-status-display').addEventListener('toggleMenuChange', readingStatusHandler);
-  document.getElementById('order-dropdown').addEventListener('DropdownChange', displayOrderHandler);
+  document.getElementById('order-dropdown').addEventListener('dropdownChange', displayOrderHandler);
 
   document.getElementById('filter-tags-input').addEventListener('tagChange', tagFilterHandler);
   document.getElementById('toggle-filter-input').addEventListener('click', toggleFilterHandler);
@@ -451,7 +454,7 @@ function createFolders(tree) {
   const folders = [];
   tree.forEach(node => {
     if (node.children) {
-      const {folders: subFolders, bookmarks: bookmarks} = getBookmarks(node.children, node.title);
+      const {folders: subFolders, bookmarks: bookmarks} = getBookmarks(node.children, node.title, node.id);
       const folder = new Folder(node.title, bookmarks, subFolders);
       folders.push(folder);
     }
@@ -459,12 +462,12 @@ function createFolders(tree) {
   return folders;
 }
 
-function getBookmarks(tree, mainFolderName, subFolderName) {
+function getBookmarks(tree, mainFolderName, mainFolderId, subFolderName = undefined) {
   const bookmarks = [];
   const folders = [];
   tree.forEach(node => {
     if (node.url) {
-      const bookmark = createBookmark(node.title, node.url, node.id, node.dateAdded, mainFolderName, subFolderName);
+      const bookmark = createBookmark(node.title, node.url, node.id, node.dateAdded, mainFolderName, mainFolderId, subFolderName);
 
       if (bookmark) {
         bookmarks.push(bookmark);
@@ -478,7 +481,7 @@ function getBookmarks(tree, mainFolderName, subFolderName) {
         invalidContainer.classList.remove('hidden');
       }
     } else if (node.children  && !subFolderName) {
-      const subFolderBookmarks = getBookmarks(node.children, mainFolderName, node.title).bookmarks;
+      const subFolderBookmarks = getBookmarks(node.children, mainFolderName, mainFolderId, node.title).bookmarks;
       const folder = new Folder(node.title, subFolderBookmarks);
       folders.push(folder);
     }
@@ -486,7 +489,7 @@ function getBookmarks(tree, mainFolderName, subFolderName) {
   return {folders: folders, bookmarks: bookmarks};
 }
 
-function createBookmark(bookmarkTitle, url, bookmarkId, dateAdded, folderName, subFolderName) {
+function createBookmark(bookmarkTitle, url, bookmarkId, dateAdded, folderName, folderId, subFolderName) {
   const matches = bookmarkTitle.match(bookmarkRegex());
   if (!matches) {
     return null;
@@ -495,7 +498,7 @@ function createBookmark(bookmarkTitle, url, bookmarkId, dateAdded, folderName, s
     const chapter = matches[2];
     const tags = matches[3] ? matches[3].split(',') : [];
     const readingStatus = subFolderName || 'reading';
-    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags, bookmarkId, folderName);
+    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags, bookmarkId, folderName, folderId);
   }
 }
 
@@ -569,7 +572,7 @@ registerBookmarkListener(updatePage);
 
 async function updatePage() {
   const sideNav = document.getElementById('side-nav');
-  await sideNav.renderGroups();
+  await sideNav.renderFolders();
   const searchTokens = getSearchTokens();
   if (!searchTokens.length) {
     sideNav.showSelected();

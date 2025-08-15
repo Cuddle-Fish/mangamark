@@ -1,5 +1,3 @@
-import { groupsHandleFolderRemove } from "/externs/settings.js";
-
 let _preventListeners = false;
 
 /**
@@ -158,24 +156,15 @@ function getTagsFromFolder(folderBookmark) {
  * @returns Promise that will be fulfilled with a Map of folder titles to folder IDs
  */
 async function getExtensionFolders() {
-  const rootId = await getRootFolderId();
-  return await getFoldersFromId(rootId);
-}
-
-/**
- * get all top-level folders associated with given ID
- * 
- * @param {string} folderId bookmark id associated with folder to search through
- * @returns Promise that will be fulfilled with a Map of folder titles to folder IDs
- */
-async function getFoldersFromId(folderId) {
   const bookmarkFolders = new Map();
-  const children = await chrome.bookmarks.getChildren(folderId);
-  for (const folder of children) {
-    if (folder.url === undefined) {
-      bookmarkFolders.set(folder.title, folder.id);
+  const rootId = await getRootFolderId();
+  const children = await chrome.bookmarks.getChildren(rootId);
+  for (const node of children) {
+    if (node.url === undefined) {
+      bookmarkFolders.set(node.id, node.title);
     }
   }
+
   return bookmarkFolders;
 }
 
@@ -289,10 +278,10 @@ async function reorderFolders(orderedFolders) {
   if (orderedFolders.length !== folders.length) {
     throw new Error('number of folders recieved does not match amount in root folder');
   }
-  const orderedBookmarkFolders = orderedFolders.map((title) => {
-    const matchingFolder = folders.find(folder => folder.title === title);
+  const orderedBookmarkFolders = orderedFolders.map((id) => {
+    const matchingFolder = folders.find(folder => folder.id === id);
     if (!matchingFolder) {
-      throw new Error('received folder title that does not exist');
+      throw new Error('received folder id that does not exist in extension folder');
     }
     return matchingFolder;
   });
@@ -321,18 +310,8 @@ async function removeIfEmptyFolder(folderId) {
   const children = await chrome.bookmarks.getChildren(folderId);
   if (children.length === 0) {
     const rootId = await getRootFolderId();
-
-    if (parentId === rootId) {
-      const rootChildren = await chrome.bookmarks.getChildren(rootId);
-      const folders = rootChildren.filter(node => !node.url);
-      const folderIndex = folders.findIndex(folder => folder.id === folderId);
-      
-      await chrome.bookmarks.remove(folderId);
-      await groupsHandleFolderRemove(folderIndex);
-    } else {
-      await chrome.bookmarks.remove(folderId);
-      await removeIfEmptyFolder(parentId);
-    }
+    await chrome.bookmarks.remove(folderId);
+    if (parentId !== rootId) await removeIfEmptyFolder(parentId);
   }
 }
 
@@ -514,7 +493,6 @@ export {
   getExtensionSubtree,
   getExtensionTags,
   getExtensionFolders,
-  getFoldersFromId,
   renameFolder,
   addFolder,
   findDefaultFolder,
