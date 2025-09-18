@@ -25,7 +25,7 @@ body {
   padding-right: 10px;
 }
 
-.search-container {
+#search-container {
   position: sticky;
   top: 0;
   z-index: 60;
@@ -40,7 +40,7 @@ body {
   transition: all 200ms ease-in;
 }
 
-.scrolled {
+#search-container.scrolled {
   background-color: var(--background-color);
   border-bottom: 1px solid var(--accent-bright);
 }
@@ -141,26 +141,20 @@ body {
   }
 }
 
-.invalid-container {
-  padding: 10px;
-  border-radius: 8px;
-  background-color: var(--offWhite10);
+#root-error {
+  font-size: 20px;
+  margin: 20px;
 
-  .warning-title {
+  strong {
     font-weight: bold;
-    font-size: 18px;
-  }
-
-  .warning--list-container {
-    margin-left: 20px;
-    font-size: 14px;
+    color: var(--warning);
   }
 }
 
 .bookmark-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 5px;
   margin-bottom: 20px;
 }
 

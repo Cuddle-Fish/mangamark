@@ -12,12 +12,12 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 10px;
+  padding: 5px;
   font-family: inherit;
   font-size: inherit;
   text-transform: capitalize;
   border: none;
-  border-radius: 30px;
+  border-radius: 3px;
   background-color: var(--offWhite10);
   color: inherit;
 }
@@ -28,31 +28,18 @@ button {
 
 button:hover {
   background-color: var(--offWhite30);
-
-  & svg-icon {
-    outline: 2px solid var(--accent-bright);
-  }
-}
-svg-icon {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background-color: var(--offWhite10);
 }
 
-:host([open]) svg-icon {
+:host([open]) button {
   background-color: var(--accent-subdued);
-  outline: none;
 }
 
 div {
   display: flex;
+  gap: 2px;
   background-color: var(--offWhite10-match);
-  padding: 5px;
-  border-radius: 30px;
+  padding: 3px;
+  border-radius: 3px;
 }
 
 input {
@@ -65,8 +52,8 @@ label {
   justify-content: center;
   align-items: center;
   min-width: 100px;
-  padding: 5px 20px;
-  border-radius: 30px;
+  padding: 2px 15px;
+  border-radius: 3px;
 }
 
 label:hover {
@@ -74,10 +61,10 @@ label:hover {
 }
 
 input:checked + label {
-  background-color: var(--accent-subdued); 
+  background-color: var(--button-primary-color); 
 }
 
-@media (max-width:1420px) {
+@media (max-width:1360px) {
   button {
     display: flex;
   }
@@ -91,9 +78,10 @@ input:checked + label {
     box-sizing: border-box;
     position: absolute;
     flex-direction: column;
-    gap: 10px;
+    gap: 2px;
     background-color: var(--background-color);
-    padding: 10px;
+    padding: 2px;
+    box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.35);
   }
 
   label {

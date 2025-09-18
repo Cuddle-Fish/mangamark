@@ -1,10 +1,12 @@
 import "/components/svg-icon/svg-icon.js";
 
+const tagStyle = new CSSStyleSheet();
+fetch('/components/tag-input/tag-button.css')
+  .then((response) => response.text())
+  .then((cssText) => tagStyle.replace(cssText));
+
 const template = document.createElement('template');
 template.innerHTML = /* html */ `
-  <style>
-    @import "/components/tag-elements/tag-elements.css";
-  </style>
   <button id="element-button">
     <span><slot></slot></span>
     <div class="vertical-line"></div>
@@ -19,6 +21,7 @@ customElements.define(
       super();
       const shadowRoot = this.attachShadow({ mode: 'open'});
       shadowRoot.appendChild(template.content.cloneNode(true));
+      shadowRoot.adoptedStyleSheets = [tagStyle];
     }
 
     animate() {

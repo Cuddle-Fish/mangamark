@@ -1,10 +1,5 @@
+import { bookmarkRegex, getExtensionSubtree, hasRootFolderId, registerBookmarkListener } from "/externs/bookmark.js";
 import { setStatusFilter, setDisplayOrder, getDisplaySettings } from "/externs/settings.js";
-import {
-  bookmarkRegex,
-  hasRootFolderId,
-  getExtensionSubtree,
-  registerBookmarkListener
-} from "/externs/bookmark.js";
 
 import "/manager/sideNavigation/sideNavigation.js"
 
@@ -15,243 +10,218 @@ import "/components/tag-input/tag-input.js";
 import "/components/themed-button/themed-button.js"
 import "/components/bookmark-card/bookmark-card.js";
 
+let _bookmarkFolders;
+let _displayedCards;
+let _typingtimer;
+let _navSelection = '';
+
 class Folder {
   /**
-   * 
-   * @param {string} name Folder name
-   * @param {Bookmark[]} bookmarks bookmarks directly contained in folder
-   * @param {Folder[]} subfolders subfolder within this folder
+   * @param {string} name folder name
+   * @param {Bookmark[]} bookmarks bookmarks contained in folder
    */
-  constructor(name, bookmarks, subfolders) {
+  constructor(name, bookmarks) {
     this.name = name;
-    this.bookmarks = bookmarks;
-    this.subfolders = subfolders ? subfolders : [];
+    this.bookmarks = bookmarks || [];
   }
 
-  /**
-   * Get all bookmarks in folder and subfolders, optionally filter by tags and and/or title query tokens
-   * 
-   * @param {Object} filters Filtering options
-   * @param {string[]} filters.tags Tags to filter by
-   * @param {string[]} filters.queryTokens Tokenized search query to filter by
-   * @returns {Bookmark[]} Filtered bookmarks
-   */
-  getAllBookmarks(filters = {}) {
+  getBookmarks(filters = {}) {
     const { tags = [], queryTokens = [] } = filters;
-    const allBookmarks = [...this.bookmarks];
-    this.subfolders.forEach(subfolder => {
-      allBookmarks.push(...subfolder.bookmarks);
-    });
     return (tags.length || queryTokens.length)
-      ? this.filterBookmarks(allBookmarks, tags, queryTokens)
-      : allBookmarks;
+      ? this.#filterBookmarks(tags, queryTokens)
+      : [...this.bookmarks];
   }
 
-  /**
-   * Get direct bookmarks in folder, optionally filter by tags and and/or title query tokens
-   * 
-   * @param {Object} filters Filtering options
-   * @param {string[]} filters.tags Tags to filter by
-   * @param {string[]} filters.queryTokens Tokenized search query to filter by
-   * @returns {Bookmark[]} Filtered bookmarks
-   */
-  getMainBookmarks(filters = {}) {
-    const { tags = [], queryTokens = [] } = filters;
-    const mainBookmarks = [...this.bookmarks];
-    return (tags.length || queryTokens.length)
-      ? this.filterBookmarks(mainBookmarks, tags, queryTokens)
-      : mainBookmarks;
-  }
-
-  /**
-   * Get bookmarks in specified subfolder, optionally filter by tags and and/or title query tokens
-   * 
-   * @param {string} subfolderName Name of subfolder
-   * @param {Object} filters Filtering options
-   * @param {string[]} filters.tags Tags to filter by
-   * @param {string[]} filters.queryTokens Tokenized search query to filter by
-   * @returns {Bookmark[]} Filtered bookmarks
-   */
-  getSubFolderBookmarks(subfolderName, filters = {}) {
-    const { tags = [], queryTokens = [] } = filters;
-    const subfolder = this.subfolders.find(subfolder => subfolder.name === subfolderName);
-    if (subfolder) {
-      const subfolderBookmarks = [...subfolder.bookmarks];
-      return (tags.length || queryTokens.length)
-        ? this.filterBookmarks(subfolderBookmarks, tags, queryTokens)
-        : subfolderBookmarks;
-    } else {
-      return [];
-    }
-  }
-
-  /**
-   * Filter bookmarks by tags and/or title query tokens
-   * 
-   * @param {Bookmark[]} bookmarks Bookmarks to filter
-   * @param {string[]} tags Tags to filter by
-   * @param {string[]} queryTokens Tokenized search query to filter by
-   * @returns {Bookmark[]} Filtered bookmarks
-   */
-  filterBookmarks(bookmarks, tags, queryTokens) {
-    return bookmarks.filter(bookmark => {
+  #filterBookmarks(tags, queryTokens) {
+    const filteredBookmarks = [...this.bookmarks];
+    return filteredBookmarks.filter(bookmark => {
       const matchesTags = tags.length ? bookmark.hasTags(tags) : true;
-      const matchesTokens = queryTokens.length ? bookmark.matchesTokens(queryTokens) : true;
+      const matchesTokens = queryTokens.length ? bookmark.hasTitle(queryTokens) : true;
       return matchesTags && matchesTokens;
     });
   }
+}
 
-  moveBookmark(title, subFolderName) {
-    const validSubfolders = ['reading', 'Completed', 'Plan to Read', 'Re-Reading', 'On Hold'];
-    if (!validSubfolders.includes(subFolderName)) {
-      console.error(`Invalid subfolder name '${subFolderName}'`);
-      return;
-    }
+class NamedFolder extends Folder {
+  static VALID_SUBFOLDERS = ['Completed', 'Plan to Read', 'Re-Reading', 'On Hold'];
 
-    const findAndRemoveBookmark = (folder) => {
-      const index = folder.bookmarks.findIndex(bookmark => bookmark.title === title);
-      if (index !== -1) {
-        const bookmark = folder.bookmarks[index];
-        folder.bookmarks.splice(index, 1);
-        return bookmark;
-      } else {
-        return null;        
-      }
-    };
+  /**
+   * @param {string} name folder name
+   * @param {Bookmark[]} bookmarks bookmarks contained in folder
+   * @param {string} id unique identifier for folder
+   * @param {Folder[]} subfolders folders associated with this folder
+   */
+  constructor(name, bookmarks, id, subfolders) {
+    super(name, bookmarks)
+    this.id = id;
+    this.subfolders = subfolders ? subfolders : [];
+  }
 
-    let bookmark = findAndRemoveBookmark(this);
-    if (!bookmark) {
-      for (const subfolder of this.subfolders) {
-        bookmark = findAndRemoveBookmark(subfolder);
-        if (bookmark) break;
-      }
-    }
-
-    if (!bookmark) {
-      console.error(`Could not find bookmark '${title}' in folder '${this.name}'`);
-      return;
-    }
-
-    if (subFolderName === 'reading') {
-      this.bookmarks.push(bookmark);
+  getCards(source, filters = {}) {
+    if (source === 'reading') {
+      return this.#getReadingCards(filters);
+    } else if (source === 'all') {
+      const readingCards = this.#getReadingCards(filters);
+      const subfolderCards = this.subfolders.flatMap(subfolder =>
+        this.#getSubfolderCards(subfolder, filters)
+      );
+      return [...readingCards, ...subfolderCards];
     } else {
-      let subfolder = this.subfolders.find(folder => folder.name === subFolderName);
-      if (!subfolder) {
-        subfolder = new Folder(subFolderName, []);
-        this.subfolders.push(subfolder);
-      }
-      subfolder.bookmarks.push(bookmark);
+      const subfolder = this.subfolders.find(folder => folder.name === source);
+      return subfolder ? this.#getSubfolderCards(subfolder, filters) : [];
     }
-    bookmark.readingStatus = subFolderName;
+  }
+
+  #getReadingCards(filters = {}) {
+    const filteredBookmarks = this.getBookmarks(filters);
+    return filteredBookmarks.map(bookmark => 
+      bookmark.getCard(this.id, this.name)
+    );
+  }
+
+  #getSubfolderCards(subfolder, filters = {}) {
+    const filteredBookmarks = subfolder.getBookmarks(filters);
+    return filteredBookmarks.map(bookmark => 
+      bookmark.getCard(this.id, this.name, subfolder.name)
+    );
+  }
+
+  findBookmark(source, bookmarkId) {
+    if (source === 'reading') {
+      return this.bookmarks.find(bookmark => bookmark.id === bookmarkId);
+    } else {
+      const subfolder = this.subfolders.find(folder => folder.name === source);
+      return subfolder?.bookmarks.find(bookmark => bookmark.id === bookmarkId);
+    }
+  }
+
+  addBookmark(destination, bookmark) {
+    if (destination === 'reading') {
+      this.bookmarks.push(bookmark);
+      return true;
+    }
+
+    if (!NamedFolder.VALID_SUBFOLDERS.includes(destination)) {
+      console.warn(`Warning: Invalid subfolder name '${destination}'`);
+      return false;
+    }
+
+    let subfolder = this.subfolders.find(folder => folder.name === destination);
+    if (!subfolder) {
+      subfolder = new Folder(destination);
+      this.subfolders.push(subfolder);
+    }
+
+    subfolder.bookmarks.push(bookmark);
+    return true;
+  }
+
+  removeBookmark(source, bookmarkId) {
+    const bookmarkList = source === 'reading'
+      ? this.bookmarks
+      : this.subfolders.find(folder => folder.name === source)?.bookmarks;
+    if (bookmarkList === undefined) return null;
+
+    const index = bookmarkList.findIndex(bookmark => bookmark.id === bookmarkId);
+    if (index === -1) return null;
+    return bookmarkList.splice(index, 1)[0];
   }
 }
 
 class Bookmark {
-  /**
-   * 
-   * @param {string} title Bookmark contents title
-   * @param {string} chapter Chapter number of the bookmark
-   * @param {string} url Url for bookmark
-   * @param {number} dateCreated Date bookmark was created
-   * @param {string} readingStatus Reading Status associated with bookmark
-   * @param {string[]} tags Tags associated with bookmark
-   * @param {string} folderName Name of main containing folder
-   * @param {string} folderId Id of main containing folder
-   */
-  constructor(title, chapter, url, dateCreated, readingStatus, tags, bookmarkId, folderName, folderId) {
+  constructor(title, chapter, tags, url, date, id) {
     this.title = title;
     this.chapter = chapter;
+    this.tags = tags;
     this.url = url;
-    this.date = dateCreated
-    this.readingStatus = readingStatus || null;
-    this.tags = tags || [];
-    this.domain = new URL(url).hostname;
-    if (this.domain.startsWith('www.')) {
-      this.domain = this.domain.substring(4);
-    }
-    this.bookmarkId = bookmarkId;
-    this.folderName = folderName;
-    this.folderId = folderId;
+    this.date = date;
+    this.id = id;
   }
 
-  /**
-   * @param {string[]} filterTags Name(s) of tags to check
-   * @returns boolean indicating whether bookmark has the specifed tags
-   */
   hasTags(filterTags) {
     return filterTags.every(tag => this.tags.includes(tag));
   }
 
-  /**
-   * @param {string[]} queryTokens tokens to match against bookmark title
-   * @returns boolean indicating whether bookmark title has all query tokens
-   */
-  matchesTokens(queryTokens) {
+  hasTitle(queryTokens) {
     const normalizedTitle = this.title.toLowerCase();
     return queryTokens.every(token => normalizedTitle.includes(token));
   }
 
-  /**
-   * Create an HTML element to represent this bookmark
-   * 
-   * @returns {HTMLElement} Instance of the `bookmark-card` custom element, with this bookmarks properties
-   */
-  bookmarkElement() {
-    const bookmarkCard = document.createElement('bookmark-card');
-    bookmarkCard.initialize(
+  getCard(folderId, folderName, readingStatus = 'reading') {
+    const card = document.createElement('bookmark-card');
+    card.setup(
       this.title,
       this.chapter,
+      this.tags,
       this.url,
       this.date,
-      this.readingStatus,
-      this.tags,
-      this.domain,
-      this.bookmarkId,
-      this.folderName,
-      this.folderId
+      readingStatus,
+      this.id,
+      folderName,
+      folderId
     );
-
-    return bookmarkCard;
+    return card;
   }
 }
 
-addEventListener('DOMContentLoaded', () => {
-  setupSavedSettings();
-  setupEventListeners();
-  getMarks().then(() => displayBookmarks());
+document.addEventListener('DOMContentLoaded', async () => {
+  await setSavedSettings();
+  addListeners();
+
+  await mapExtensionTree();
+
+  const sideNav = document.getElementById('side-nav');
+  await sideNav.renderFolders();
+  sideNav.selected = _navSelection;
+
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.populateDatalist();
+
+  renderCards();
 });
 
-function setupSavedSettings() {
-  getDisplaySettings()
-    .then((settings) => {
-      document.getElementById('toggle-status-display').selected = settings.status;
-      document.getElementById('order-dropdown').selected = settings.order;
-    });
+async function setSavedSettings() {
+  const settings = await getDisplaySettings();
+  document.getElementById('select-status-menu').selected = settings.status;
+  document.getElementById('order-dropdown').selected = settings.order;
 }
 
-function setupEventListeners() {
-  document.getElementById('open-nav').addEventListener('click', openSideNav);
+function addListeners() {
+  document.addEventListener('scroll', handleScroll);
+
+  document.getElementById('open-nav').addEventListener('click', showSideNav);
   document.getElementById('side-nav').addEventListener('navClosed', showOpenNavButton);
   document.getElementById('side-nav').addEventListener('navChange', navChangeHandler);
 
-  document.addEventListener('scroll', handleScroll);
-
-  document.getElementById('search-input').addEventListener('keyup', searchHandler);
+  document.getElementById('search-input').addEventListener('keyup', searchInputHandler);
   document.getElementById('clear-search-button').addEventListener('click', clearSearchHandler);
-
-  document.getElementById('toggle-status-display').addEventListener('toggleMenuChange', readingStatusHandler);
-  document.getElementById('order-dropdown').addEventListener('dropdownChange', displayOrderHandler);
 
   document.getElementById('filter-tags-input').addEventListener('tagChange', tagFilterHandler);
   document.getElementById('toggle-filter-input').addEventListener('click', toggleFilterHandler);
-  document.getElementById('remove-filters').addEventListener('click', removeTagFiltersHandler);
+  document.getElementById('remove-filters').addEventListener('click', clearTagFilterHandler);
 
-  document.addEventListener('readingStatusChanged', readingStatusChangeHandler);
-  document.addEventListener('tagsChanged', tagsChangeHandler);
-  document.addEventListener('titleChanged', titleChangeHandler);
+  document.getElementById('select-status-menu').addEventListener('toggleMenuChange', readingStatusHandler);
+  document.getElementById('order-dropdown').addEventListener('dropdownChange', changeOrderHandler);
+
+  document.addEventListener('titleChanged', cardTitleChangeHandler);
+  document.addEventListener('tagsChanged', cardTagChangeHandler);
+  document.addEventListener('bookmarkMoved', cardMoveBookmarkHandler);
 }
 
-function openSideNav() {
+function handleScroll(event) {
+  const searchContainer = document.getElementById('search-container');
+  if (window.scrollY === 0) {
+    searchContainer.classList.remove('scrolled');
+  } else {
+    searchContainer.classList.add('scrolled');
+  }
+}
+
+// ****************
+// side navigation functions
+// ****************
+
+function showSideNav() {
   document.getElementById('side-nav').openNav();
   const openButton = document.getElementById('open-nav');
   openButton.style.visibility = 'hidden';
@@ -263,95 +233,67 @@ function showOpenNavButton() {
 }
 
 function navChangeHandler(event) {
+  _navSelection = event.detail;
+
   const searchInput = document.getElementById('search-input');
-  const searchValue = searchInput.value;
-  if (searchValue !== '') {
-    searchInput.value = '';
-    setSearchIcon();
-  }
+  searchInput.value = '';
+  setSearchIcon();
 
-  displayBookmarks();
+  renderCards();
 }
 
-function handleScroll(event) {
-  const searchContainer = document.getElementsByClassName('search-container')[0];
-  if (window.scrollY === 0) {
-    searchContainer.classList.remove('scrolled');
-  } else {
-    searchContainer.classList.add('scrolled');
-  }
-}
+// ****************
+// search functions
+// ****************
 
-let _searchTypingTimer;
-
-function searchHandler(event) {
-  clearTimeout(_searchTypingTimer);
+function searchInputHandler(event) {
+  clearTimeout(_typingtimer);
   const searchValue = event.target.value;
-  searchValue === '' ? setSearchIcon() : setSearchIcon(false);
-  _searchTypingTimer = setTimeout(filterBySearch, 400);
+  setSearchIcon(searchValue === '');
+  _typingtimer = setTimeout(performSearch, 400);
 }
 
 function clearSearchHandler(event) {
   const searchInput = document.getElementById('search-input');
   searchInput.value = '';
   setSearchIcon();
-  filterBySearch();
+  const sideNav = document.getElementById('side-nav');
+  sideNav.selected = _navSelection;
+  renderCards();
 }
 
-function setSearchIcon(searchCleared=true) {
+function performSearch() {
+  const tokens = getSearchTokens();
+  const sideNav = document.getElementById('side-nav');
+  sideNav.selected = tokens.length ? null : _navSelection;
+  renderCards();
+}
+
+function setSearchIcon(hasEmptySearch=true) {
   const clearSearchButton = document.getElementById('clear-search-button');
   const searchLabel = document.getElementById('search-label');
-  if (searchCleared) {
+  if (hasEmptySearch) {
     clearSearchButton.classList.add('hidden');
-    searchLabel.classList.remove('hidden');        
+    searchLabel.classList.remove('hidden');
   } else {
     searchLabel.classList.add('hidden');
-    clearSearchButton.classList.remove('hidden');   
+    clearSearchButton.classList.remove('hidden');
   }
-}
-
-function filterBySearch() {
-  const searchTokens = getSearchTokens();
-  const sideNav = document.getElementById('side-nav');
-  searchTokens.length ? sideNav.hideSelected() : sideNav.showSelected();
-  displayBookmarks();
 }
 
 function getSearchTokens() {
   const searchValue = document.getElementById('search-input').value.trim();
-  if (searchValue === '') {
-    return [];
-  } else {
-    return searchValue.toLowerCase().split(/\s+/);
-  }
+  return searchValue === '' ? [] : searchValue.toLowerCase().split(/\s+/);
 }
 
-async function readingStatusHandler(event) {
-  try {
-    await setStatusFilter(event.detail);
-    displayBookmarks();    
-  } catch (error) {
-    console.error(`Error changing reading status display: ${error}`);
-  }
-}
-
-async function displayOrderHandler(event) {
-  try {
-    await setDisplayOrder(event.detail);
-    displayBookmarks();
-  } catch (error) {
-    console.error(`Error changing bookmark display order: ${error}`);
-  }
-}
+// ****************
+// tag functions
+// ****************
 
 function tagFilterHandler(event) {
-  const removeFilters = document.getElementById('remove-filters');
-  if (event.target.getTags().length) {
-    removeFilters.disabled = false;
-  } else {
-    removeFilters.disabled = true;
-  }
-  displayBookmarks();
+  const removeTagFilters = document.getElementById('remove-filters');
+  removeTagFilters.disabled = event.target.getTags().length === 0;
+  renderCards();
 }
 
 function toggleFilterHandler(event) {
@@ -366,194 +308,58 @@ function toggleFilterHandler(event) {
   tagsInput.clearInput();
 }
 
-function removeTagFiltersHandler(event) {
+function clearTagFilterHandler(event) {
   const tagsInput = document.getElementById('filter-tags-input');
   tagsInput.replaceAllTags([]);
   event.target.disabled = true;
-  displayBookmarks();
+  renderCards();
 }
 
-function readingStatusChangeHandler(event) {
-  const {folder, title, newReadingStatus} = event.detail;
-  const bookmarkFolder = _bookmarkFolders.find(currentFolder => currentFolder.name === folder);
-  if (!bookmarkFolder) {
-    console.error(`Could not find folder '${folder}'`);
-    return;
+// ****************
+// card display functions
+// ****************
+
+async function readingStatusHandler(event) {
+  try {
+    await setStatusFilter(event.detail);
+  } catch (error) {
+    console.error(`Error changing reading status display: ${error}`);
   }
-  bookmarkFolder.moveBookmark(title, newReadingStatus);
-  const selectedStatus = document.getElementById('toggle-status-display').selected;
-  if (selectedStatus !== 'all' && selectedStatus !== newReadingStatus) {
-    event.target.remove();
-  }
+  renderCards();
 }
 
-function tagsChangeHandler(event) {
-  const {folder, readingStatus, title, newTags} = event.detail;
-  const bookmark = findBookmark(folder, readingStatus, title);
-  if (!bookmark) return;
-
-  bookmark.tags = newTags;
-  const filterTags = document.getElementById('filter-tags-input').getTags();
-  if (!bookmark.hasTags(filterTags)) {
-    event.target.remove();
+async function changeOrderHandler(event) {
+  try {
+    await setDisplayOrder(event.detail);
+  } catch (error) {
+    console.error(`Error changing bookmark display order: ${error}`);
   }
+  renderCards();
 }
 
-function titleChangeHandler(event) {
-  const {folder, readingStatus, oldTitle, newTitle} = event.detail;
-  const bookmark = findBookmark(folder, readingStatus, oldTitle);
-  if (!bookmark) return;
-
-  bookmark.title = newTitle;
+function renderCards() {
+  const navSelection = document.getElementById('side-nav').selected;
   const searchTokens = getSearchTokens();
-  if (!bookmark.matchesTokens(searchTokens)) {
-    event.target.remove();
-  }
-}
 
-function findBookmark(folder, readingStatus, title) {
-  const bookmarkFolder = _bookmarkFolders.find(currentFolder => currentFolder.name === folder);
-  if (!bookmarkFolder) {
-    console.error(`Could not find folder '${folder}'`);
-    return null;
-  }
-  let bookmark;
-  if (readingStatus === 'reading') {
-    bookmark = bookmarkFolder.bookmarks.find(currentBookmark => currentBookmark.title === title);
-  } else {
-    const subfolder = bookmarkFolder.subfolders.find(currentFolder => currentFolder.name === readingStatus);
-    bookmark = subfolder?.bookmarks.find(currentBookmark => currentBookmark.title === title);
-  }
-
-  if (!bookmark) {
-    console.error(`Could not find bookmark with title '${title}' in folder '${folder}'`);
-    return null;
-  }
-
-  return bookmark;
-}
-
-let _bookmarkFolders;
-
-async function getMarks() {
-  const invalidContainer = document.getElementById('invalid-container');
-  invalidContainer.classList.add('hidden');
-  const invalidList = document.getElementById('invalid-list');
-  invalidList.replaceChildren();
-
-  const hasRoot = await hasRootFolderId();
-  if (hasRoot) {
-    const tagsInput = document.getElementById('filter-tags-input');
-    tagsInput.populateDatalist();
-  }
-  const extensionTree = hasRoot ? await getExtensionSubtree() : [];
-  _bookmarkFolders = createFolders(extensionTree);
-}
-
-function createFolders(tree) {
-  const folders = [];
-  tree.forEach(node => {
-    if (node.children) {
-      const {folders: subFolders, bookmarks: bookmarks} = getBookmarks(node.children, node.title, node.id);
-      const folder = new Folder(node.title, bookmarks, subFolders);
-      folders.push(folder);
-    }
-  });
-  return folders;
-}
-
-function getBookmarks(tree, mainFolderName, mainFolderId, subFolderName = undefined) {
-  const bookmarks = [];
-  const folders = [];
-  tree.forEach(node => {
-    if (node.url) {
-      const bookmark = createBookmark(node.title, node.url, node.id, node.dateAdded, mainFolderName, mainFolderId, subFolderName);
-
-      if (bookmark) {
-        bookmarks.push(bookmark);
-      } else {
-        console.log(`Warning, bookmark: "${node.title}" has an invalid title`);
-        const li = document.createElement('li');
-        li.textContent = node.title;
-        const invalidList = document.getElementById('invalid-list');
-        invalidList.appendChild(li);
-        const invalidContainer = document.getElementById('invalid-container');
-        invalidContainer.classList.remove('hidden');
-      }
-    } else if (node.children  && !subFolderName) {
-      const subFolderBookmarks = getBookmarks(node.children, mainFolderName, mainFolderId, node.title).bookmarks;
-      const folder = new Folder(node.title, subFolderBookmarks);
-      folders.push(folder);
-    }
-  });
-  return {folders: folders, bookmarks: bookmarks};
-}
-
-function createBookmark(bookmarkTitle, url, bookmarkId, dateAdded, folderName, folderId, subFolderName) {
-  const matches = bookmarkTitle.match(bookmarkRegex());
-  if (!matches) {
-    return null;
-  } else {
-    const title = matches[1];
-    const chapter = matches[2];
-    const tags = matches[3] ? matches[3].split(',') : [];
-    const readingStatus = subFolderName || 'reading';
-    return new Bookmark(title, chapter, url, dateAdded, readingStatus, tags, bookmarkId, folderName, folderId);
-  }
-}
-
-async function displayBookmarks() {
-  const folderName = document.getElementById('side-nav').selected;
-  const searchTokens = getSearchTokens();
-  const { order, status } = await getDisplaySettings();
+  const folders = searchTokens.length || !navSelection
+    ? _bookmarkFolders
+    : [_bookmarkFolders.find((folder) => folder.id === navSelection)];
+  
+  const status = document.getElementById('select-status-menu').selected;
   const tags = document.getElementById('filter-tags-input').getTags();
+  const cards = folders.flatMap(folder => 
+    folder.getCards(status, {tags: tags, queryTokens: searchTokens})
+  );
 
-  const folders = searchTokens.length || !folderName 
-    ? [..._bookmarkFolders] 
-    : [_bookmarkFolders.find((folder) => folder.name === folderName)];
-
-  let bookmarks;
-  if (status === 'all') {
-    bookmarks = filterAllBookmarks(folders, searchTokens, tags);
-  } else if (status === 'reading') {
-    bookmarks = filterMainBookmarks(folders, searchTokens, tags);
-  } else {
-    bookmarks = filterSubfolderBookmarks(folders, status, searchTokens, tags);
-  }
-
-  bookmarks = sortBookmarks(bookmarks, order);
-  const bookmarkDisplay = bookmarks.map(bookmark => bookmark.bookmarkElement());
+  _displayedCards = sortCards(cards);
   const bookmarkList = document.getElementById('bookmark-list');
-  bookmarkList.replaceChildren(...bookmarkDisplay);
+  bookmarkList.replaceChildren(..._displayedCards);
 }
 
-function filterAllBookmarks(folders, searchTokens, tags) {
-  const bookmarks = [];
-  folders.forEach(folder => {
-    bookmarks.push(...folder.getAllBookmarks({ tags: tags, queryTokens: searchTokens }));
-  });
-  return bookmarks;
-}
-
-function filterMainBookmarks(folders, searchTokens, tags) {
-  const bookmarks = [];
-  folders.forEach(folder => {
-    bookmarks.push(...folder.getMainBookmarks({ tags: tags, queryTokens: searchTokens }));
-  });
-  return bookmarks;
-}
-
-function filterSubfolderBookmarks(folders, subFolderName, searchTokens, tags) {
-  const bookmarks = [];
-  folders.forEach(folder => {
-    bookmarks.push(...folder.getSubFolderBookmarks(subFolderName, { tags: tags, queryTokens: searchTokens }));
-  });
-  return bookmarks;
-}
-
-function sortBookmarks(bookmarks, sortBy) {
-  return bookmarks.toSorted((a, b) => {
-    switch (sortBy) {
+function sortCards(cards) {
+  const order = document.getElementById('order-dropdown').selected;
+  return cards.toSorted((a, b) => {
+    switch (order) {
       case 'Recent':
         return b.date - a.date;
       case 'Oldest':
@@ -568,15 +374,166 @@ function sortBookmarks(bookmarks, sortBy) {
   });
 }
 
+// ****************
+// parse extension tree functions
+// ****************
+
+async function mapExtensionTree() {
+  const rootError = document.getElementById('root-error');
+  let hasRoot;
+  try {
+    hasRoot = await hasRootFolderId();
+    rootError.style.display = 'none';
+  } catch (error) {
+    hasRoot = false;
+    rootError.style.display = 'block';
+    console.warn(error);
+  }
+
+  if (hasRoot) {
+    const tree = await getExtensionSubtree();
+    parseTree(tree);
+  } else {
+    _bookmarkFolders = [];
+  }
+}
+
+function parseTree(tree) {
+  _bookmarkFolders = [];
+  for (const node of tree) {
+    const namedFolder = parseNamedFolder(node);
+    if (namedFolder) _bookmarkFolders.push(namedFolder);
+  }
+}
+
+function parseNamedFolder(node) {
+  if (!node.children) {
+    console.warn(`Invalid bookmark skipped: '${node.title}'; can not be placed directly in extension folder`);
+    return null;
+  }
+
+  const namedFolder = new NamedFolder(node.title, [], node.id, []);
+
+  for (const child of node.children) {
+    if (child.url) {
+      const bookmark = parseBookmark(child);
+      if (bookmark) namedFolder.bookmarks.push(bookmark);
+      else console.warn(`Invalid bookmark skipped: '${child.title}'; does not match bookmark format`);
+    } else if (child.children && NamedFolder.VALID_SUBFOLDERS.includes(child.title)) {
+      const subfolder = parseSubfolder(child);
+      namedFolder.subfolders.push(subfolder);
+    } else {
+      console.warn(`Invalid folder skipped: '${child.title}'; unsupported subfolder name`);
+    }
+  }
+
+  return namedFolder;
+}
+
+function parseSubfolder(node) {
+  const subfolder = new Folder(node.title, []);
+
+  for (const child of node.children) {
+    if (child.url) {
+      const bookmark = parseBookmark(child);
+      if (bookmark) subfolder.bookmarks.push(bookmark);
+      else console.warn(`Invalid bookmark skipped: '${child.title}'; does not match bookmark format`);
+    } else {
+      console.warn(`Invalid folder skipped: '${child.title}'; unsupported tree depth`);
+    }
+  }
+
+  return subfolder;
+}
+
+function parseBookmark(bookmark) {
+  const match = bookmark.title.match(bookmarkRegex());
+  if (!match) return null;
+
+  const [, title, chapter, tagsString] = match;
+  const tags = tagsString ? tagsString.split(',') : [];
+  return new Bookmark(title, chapter, tags, bookmark.url, bookmark.dateAdded, bookmark.id);
+}
+
+// ****************
+// card change functions
+// ****************
+
+function cardTitleChangeHandler(event) {
+  const {folderId, readingStatus, bookmarkId, title} = event.detail;
+  const namedFolder = _bookmarkFolders.find(folder => folder.id === folderId);
+  const bookmark = namedFolder?.findBookmark(readingStatus, bookmarkId);
+
+  if (!bookmark) return;
+
+  bookmark.title = title;
+  const searchTokens = getSearchTokens();
+  if (!bookmark.matchesTokens(searchTokens)) {
+    event.target.remove();
+  }
+}
+
+function cardTagChangeHandler(event) {
+  const {folderId, readingStatus, bookmarkId, tags} = event.detail;
+  const namedFolder = _bookmarkFolders.find(folder => folder.id === folderId);
+  const bookmark = namedFolder?.findBookmark(readingStatus, bookmarkId);
+
+  if (!bookmark) return;
+
+  bookmark.tags = tags;
+  const filterTags = document.getElementById('filter-tags-input').getTags();
+  if (!bookmark.hasTags(filterTags)) {
+    event.target.remove();
+  }
+}
+
+function cardMoveBookmarkHandler(event) {
+  const bookmarkId = event.detail.bookmarkId;
+  const source = event.detail.source;
+  const destination = event.detail.destination;
+
+  const sourceFolder = _bookmarkFolders.find(folder => folder.id === source.id);
+  const bookmark = sourceFolder?.removeBookmark(source.readingStatus, bookmarkId);
+
+  if (!bookmark) {
+    console.error('Error: could not find bookmark in source folder.');
+    return;
+  }
+
+  const destinationFolder = _bookmarkFolders.find(folder => folder.id === destination.id);
+  const isAdded = destinationFolder?.addBookmark(destination.readingStatus, bookmark);
+
+  if (!isAdded) {
+    console.error('Error: failed to move bookmark to destination folder');
+    sourceFolder.addBookmark(source.readingStatus, bookmark);
+    return;
+  }
+
+  const status = document.getElementById('select-status-menu').selected;
+  const matchesStatus = status === 'all' || destination.readingStatus === status;
+  const matchesFolder = _navSelection === '' || _navSelection === destination.id;
+  if (!matchesStatus || !matchesFolder) {
+    event.target.remove();
+  }
+}
+
 registerBookmarkListener(updatePage);
 
 async function updatePage() {
+  await mapExtensionTree();
+
   const sideNav = document.getElementById('side-nav');
   await sideNav.renderFolders();
+  if (!sideNav.hasOption(_navSelection)) {
+    _navSelection = '';
+  }
   const searchTokens = getSearchTokens();
   if (!searchTokens.length) {
-    sideNav.showSelected();
+    sideNav.selected = _navSelection;
   }
-  await getMarks();
-  displayBookmarks();
+
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.populateDatalist();
+  
+  renderCards();
 }

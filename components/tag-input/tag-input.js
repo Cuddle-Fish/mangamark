@@ -1,4 +1,4 @@
-import "/components/tag-elements/tag-button.js";
+import "/components/tag-input/tag-button.js";
 import { hasRootFolderId, getExtensionTags } from "/externs/bookmark.js";
 
 const template = document.createElement('template');
@@ -81,7 +81,7 @@ customElements.define(
     }
 
     async populateDatalist() {
-      const hasRoot = await hasRootFolderId();
+      const hasRoot = await hasRootFolderId().catch(() => false);
       const tags = hasRoot ? await getExtensionTags() : new Set();
       const fragment = document.createDocumentFragment();
       tags.forEach(tag => {
@@ -106,16 +106,16 @@ customElements.define(
       }
 
       if (this.#tagList.length !== tags.length) {
-        return true;
+        return false;
       }
 
       for (let i = 0; i < this.#tagList.length; i++) {
         if (this.#tagList[i] !== tags[i]) {
-          return true;
+          return false;
         }
       }
 
-      return false;
+      return true;
     }
 
     replaceAllTags(tags) {

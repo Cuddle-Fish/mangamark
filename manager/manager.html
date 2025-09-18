@@ -15,10 +15,9 @@
 </head>
 <body>
   <side-navigation id="side-nav"></side-navigation>
-
   <div id="main-content" class="main">
 
-    <div class="search-container">
+    <div id="search-container">
       <div class="search-area">
         <input type="text" placeholder="Search" name="search-input" id="search-input" />
         <label id="search-label" for="search-input">
@@ -34,7 +33,7 @@
     </div>
 
     <div class="order-container">
-      <toggle-menu id="toggle-status-display">
+      <toggle-menu id="select-status-menu">
         <option value="all">All</option>
         <option value="reading">Reading</option>
         <option value="Completed">Completed</option>
@@ -61,13 +60,12 @@
       </div>
     </div>
 
-    <div id="invalid-container" class="invalid-container hidden">
-      <div class="warning-title">Warning Invalid Bookmaks</div>
-      <div class="warning--list-container">
-        Your Mangamark bookmark folder contains bookmarks not created by this extension.The following bookmarks should be removed from the Mangamark folder:
-        <ul id="invalid-list"></ul>
-      </div>
-    </div>
+    <p id="root-error" style="display: none;">
+      <strong>WARNING:</strong> Could not find user specified extension folder.
+      Either an error occurred retrieving the folder or the folder may have been
+      changed or deleted. If needed the extension folder can be set again by opening
+      the options page or popup.
+    </p>
 
     <div id="bookmark-list" class="bookmark-list"></div>
 

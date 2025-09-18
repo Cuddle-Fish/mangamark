@@ -3,7 +3,7 @@ template.innerHTML = /* html */ `
   <style>
     @import "/components/themed-button/themed-button.css";
   </style>
-  <button>
+  <button part="styled-button">
     <slot></slot>
   </button>
 `;

@@ -1,4 +1,4 @@
-import { getExtensionFolders } from "/externs/bookmark.js";
+import { hasRootFolderId, getExtensionFolders } from "/externs/bookmark.js";
 import "/components/svg-icon/svg-icon.js";
 
 const template = document.createElement('template');
@@ -33,8 +33,24 @@ customElements.define(
     }
 
     get selected() {
-      const selectedElement = this.shadowRoot.querySelector(`input[name="nav-item"]:checked`);
-      return selectedElement ? selectedElement.value : '';
+      const selectedElement = this.shadowRoot.querySelector('input[name="nav-item"]:checked');
+      return selectedElement ? selectedElement.value : null;
+    }
+
+    set selected(value) {
+      if (value === null) {
+        const selectedElement = this.shadowRoot.querySelector('input[name="nav-item"]:checked');
+        if (selectedElement) selectedElement.checked = false;
+        return;
+      }
+
+      const inputs = this.shadowRoot.querySelectorAll('input[name="nav-item"]');
+      for (const input of inputs) {
+        if (input.value === value) {
+          input.checked = true;
+          break;
+        }
+      }
     }
 
     connectedCallback() {
@@ -48,8 +64,6 @@ customElements.define(
 
       this.shadowRoot.getElementById('overlay')
         .addEventListener('click', () => this.closeNav());
-
-      this.renderFolders();
     }
 
     openNav() {
@@ -62,42 +76,28 @@ customElements.define(
     }
 
     async renderFolders() {
-      const selectedId = this.shadowRoot.querySelector(`input[name="nav-item"]:checked`).id;
+      const hasRoot = await hasRootFolderId().catch(() => false);
+      const extensionFolders =  hasRoot ? await getExtensionFolders() : new Map();
       const fragment = document.createDocumentFragment();
-      const extensionFolders = await getExtensionFolders();
 
-      let selectedRemoved = true;
       for (const [id, title] of extensionFolders) {
-        let inputOption;
-        if (selectedId === id) {
-          inputOption = this.#createFolderOption(id, title, true);
-          selectedRemoved = false;
-        } else {
-          inputOption = this.#createFolderOption(id, title);
-        }
-
+        const inputOption = this.#createFolderOption(id, title);
         fragment.appendChild(inputOption);
-      }
-
-      if (selectedRemoved) {
-        const allBookmarks = this.shadowRoot.getElementById('all-bookmarks');
-        allBookmarks.checked = true;        
       }
 
       const foldersContainer = this.shadowRoot.getElementById('folders-container');
       foldersContainer.replaceChildren(fragment);
     }
 
-    #createFolderOption(id, folderName, selected = false) {
+    #createFolderOption(id, folderName) {
       const container = document.createElement('div');
 
       const input = document.createElement('input');
       input.type = 'radio';
       input.id = id;
       input.name = 'nav-item';
-      input.value = folderName;
+      input.value = id;
       input.addEventListener('change', (event) => this.inputChangeHandler(event));
-      input.checked = selected;
 
       const label = document.createElement('label');
       label.htmlFor = id;
@@ -116,12 +116,16 @@ customElements.define(
       );
     }
 
-    hideSelected() {
-      this.setAttribute('hide-selected', '');
-    }
-
-    showSelected() {
-      this.removeAttribute('hide-selected');
+    hasOption(option) {
+      const inputs = this.shadowRoot.querySelectorAll('input[name="nav-item"]');
+      let hasFoundOption = false;
+      for (const input of inputs) {
+        if (input.value === option) {
+          hasFoundOption = true;
+          break;
+        }
+      }
+      return hasFoundOption;
     }
   }
 )

@@ -2,7 +2,7 @@
   display: inline-block;
 }
 
-li, button {
+button {
   display: flex;
   align-items: center;
   height: fit-content; 
@@ -12,19 +12,6 @@ li, button {
   font-weight: bold;
   font-family: var(--font-family);
   color: var(--offWhite);
-}
-
-li {
-  padding: 0px 3px;
-}
-
-:host(:not([variant])) li,
-:host([variant="default"]) li {
-  font-size: 18px;
-}
-
-:host([variant="small"]) li {
-  font-size: 16px;
 }
 
 button {
