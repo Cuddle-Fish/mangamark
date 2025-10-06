@@ -87,10 +87,6 @@ customElements.define(
 
     #titleLabelHandler(event) {
       const titleDisplay = this.shadowRoot.getElementById('title-display');
-      if (titleDisplay.contentEditable !== 'plaintext-only') {
-        return;
-      }
-
       titleDisplay.focus();
     }
 
@@ -222,7 +218,7 @@ customElements.define(
 
     setUpdate(bookmarkInfo) {
       this.#updatesBookmarkId = bookmarkInfo.id;
-      this.#setTitle(bookmarkInfo.title, true);
+      this.#setTitle(bookmarkInfo.title);
       this.#toggleOldChapter(bookmarkInfo.chapter);
       this.#setFolder(bookmarkInfo.folder);
       this.#setTags(bookmarkInfo.tags);
@@ -236,7 +232,7 @@ customElements.define(
 
     setCreate() {
       this.#updatesBookmarkId = null;
-      this.#setTitle(this.#tabTitle, false);
+      this.#setTitle(this.#tabTitle);
       this.#toggleOldChapter(null);
       this.#setFolder(this.#defaultFolder);
       this.#setTags([]);
@@ -244,16 +240,9 @@ customElements.define(
       this.#changeButtonText('Find Title', 'Create');
     }
 
-    #setTitle(title, readonly) {
+    #setTitle(title) {
       const titleDisplay = this.shadowRoot.getElementById('title-display');
       titleDisplay.textContent = title;
-      if (readonly) {
-        titleDisplay.removeAttribute('contenteditable');
-        titleDisplay.removeAttribute('aria-labelledby');
-      } else {
-        titleDisplay.setAttribute('contenteditable', 'plaintext-only');
-        titleDisplay.setAttribute('aria-labelledby', 'title-label');
-      }
     }
 
     #toggleOldChapter(chapter) {
