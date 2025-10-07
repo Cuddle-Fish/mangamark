@@ -468,7 +468,7 @@ function cardTitleChangeHandler(event) {
 
   bookmark.title = title;
   const searchTokens = getSearchTokens();
-  if (!bookmark.matchesTokens(searchTokens)) {
+  if (!bookmark.hasTitle(searchTokens)) {
     event.target.remove();
   }
 }
