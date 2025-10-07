@@ -52,6 +52,7 @@ template.innerHTML = /* html */ `
 const optionsTemplate = document.createElement('template');
 optionsTemplate.innerHTML = /* html */ `
   <div id="options-container">
+
     <div id="options-menu">
       <themed-button id="title-option">Edit Title</themed-button>
       <themed-button id="tag-option">Add/Remove Tags</themed-button>
@@ -59,27 +60,34 @@ optionsTemplate.innerHTML = /* html */ `
       <themed-button id="reading-status-option">Set Reading Status</themed-button>
       <themed-button id="delete-option" variant="warning">Delete Bookmark</themed-button>
     </div>
-    <input id="title-input" type="text" placeholder="Enter Title" class="hidden" />
-    <tag-input id="edit-tags" class="hidden"></tag-input>
-    <input id="folder-input" list="folder-autofill" type="text" placeholder="Enter Folder" class="hidden" />
-    <datalist id="folder-autofill"></datalist>
-    <div id="reading-status-options" class="hidden">
-      <input type="radio" id="reading" name="reading-status-input" value="reading" />
-      <label for="reading">Reading</label>
-      <input type="radio" id="completed" name="reading-status-input" value="Completed" />
-      <label for="completed" class="green-highlight">Completed</label>
-      <input type="radio" id="plan-to-read" name="reading-status-input" value="Plan to Read" />
-      <label for="plan-to-read" class="orange-highlight">Plan to Read</label>
-      <input type="radio" id="re-reading" name="reading-status-input" value="Re-Reading" />
-      <label for="re-reading" class="purple-highlight">Re-Reading</label>
-      <input type="radio" id="on-hold" name="reading-status-input" value="On Hold" />
-      <label for="on-hold" class="red-highlight">On Hold</label>
+
+    <div id="active-option">
+      <input id="title-input" type="text" placeholder="Enter Title" class="hidden" />
+      <tag-input id="edit-tags" class="hidden"></tag-input>
+      <input id="folder-input" list="folder-autofill" type="text" placeholder="Enter Folder" class="hidden" />
+      <datalist id="folder-autofill"></datalist>
+
+      <div id="reading-status-options" class="hidden">
+        <input type="radio" id="reading" name="reading-status-input" value="reading" />
+        <label for="reading">Reading</label>
+        <input type="radio" id="completed" name="reading-status-input" value="Completed" />
+        <label for="completed" class="green-highlight">Completed</label>
+        <input type="radio" id="plan-to-read" name="reading-status-input" value="Plan to Read" />
+        <label for="plan-to-read" class="orange-highlight">Plan to Read</label>
+        <input type="radio" id="re-reading" name="reading-status-input" value="Re-Reading" />
+        <label for="re-reading" class="purple-highlight">Re-Reading</label>
+        <input type="radio" id="on-hold" name="reading-status-input" value="On Hold" />
+        <label for="on-hold" class="red-highlight">On Hold</label>
+      </div>
+
+      <div id="warning-text" class="warning-text hidden">WARNING: This action is permanent</div>
+      <div id="option-buttons" class="hidden">
+        <themed-button id="confirm-button">Confirm</themed-button>
+        <themed-button id="cancel-button">Cancel</themed-button>
+      </div>
     </div>
-    <div id="warning-text" class="hidden">WARNING: This action is permanent</div>
-    <div id="option-buttons" class="hidden">
-      <themed-button id="confirm-button">Confirm</themed-button>
-      <themed-button id="cancel-button">Cancel</themed-button>
-    </div>
+
+    <div id="option-error" class="warning-text hidden">Error Message</div>
   </div>
 `;
 
@@ -256,6 +264,8 @@ customElements.define(
     #enterMenu() {
       const optionsMenu = this.shadowRoot.getElementById('options-menu');
       optionsMenu.classList.remove('hidden');
+
+      this.#hideError();
     }
 
     #exitMenu() {
@@ -342,8 +352,8 @@ customElements.define(
       confirmButton.variant = 'warning';
       this.#showOptionButtons();
 
-      const optionsContainer = this.shadowRoot.getElementById('options-container');
-      optionsContainer.classList.add('reverse');
+      const activeOption = this.shadowRoot.getElementById('active-option');
+      activeOption.classList.add('reverse');
     }
 
     #exitDelete() {
@@ -353,8 +363,8 @@ customElements.define(
       confirmButton.variant = '';
       this.#hideOptionButtons();
 
-      const optionsContainer = this.shadowRoot.getElementById('options-container');
-      optionsContainer.classList.remove('reverse');
+      const activeOption = this.shadowRoot.getElementById('active-option');
+      activeOption.classList.remove('reverse');
     }
 
     #showOptionButtons() {
@@ -468,7 +478,15 @@ customElements.define(
       const tagsElement = this.shadowRoot.getElementById('tags');
       const tags = Array.from(tagsElement.children, li => li.textContent);
 
-      await updateBookmarkTitle(this.#bookmarkId, newTitle, chapter, tags, true);
+      try {
+        await updateBookmarkTitle(this.#bookmarkId, newTitle, chapter, tags, true);
+      } catch (error) {
+        console.error(`Error changing title, caused by: ${error}`);
+        this.#showError('Error, failed to change bookmark title.');
+        return;
+      }
+      
+      this.#hideError();
       this.shadowRoot.getElementById('title').textContent = newTitle;
       this.#setState(this.#stateEnum.MENU);
       this.dispatchEvent(
@@ -489,7 +507,15 @@ customElements.define(
       const chapter = this.shadowRoot.getElementById('chapter-number').textContent;
       const newTags = this.shadowRoot.getElementById('edit-tags').getTags();
 
-      await updateBookmarkTitle(this.#bookmarkId, this.title, chapter, newTags, true);
+      try {
+        await updateBookmarkTitle(this.#bookmarkId, this.title, chapter, newTags, true);
+      } catch (error) {
+        console.error(`Error changing tags, caused by: ${error}`);
+        this.#showError('Error, failed to change bookmark tags.');
+        return;
+      }
+
+      this.#hideError();
       this.#renderTags(newTags);
       this.#setState(this.#stateEnum.MENU);
       this.dispatchEvent(
@@ -509,23 +535,34 @@ customElements.define(
     async #changeFolder() {
       const folderInput = this.shadowRoot.getElementById('folder-input');
       const newFolder = folderInput.value.replace(/\s+/g, ' ').trim();
-
       let folderId;
-      const normalizedFolderName = newFolder.toLowerCase();
-      const folders = await getExtensionFolders();
-      for (const [id, title] of folders) {
-        if (title.trim().toLowerCase() === normalizedFolderName) {
-          folderId = id;
-          this.#folderName = title;
-          break;
+      let bookmarkFolderName;
+
+      try {
+        const folders = await getExtensionFolders();
+
+        const normalizedFolderName = newFolder.toLowerCase();
+        for (const [id, title] of folders) {
+          if (title.trim().toLowerCase() === normalizedFolderName) {
+            folderId = id;
+            bookmarkFolderName = title;
+            break;
+          }
         }
-      }
-      if (folderId === undefined) {
-        folderId = await addFolder(newFolder);
-        this.#folderName = newFolder;
+        if (folderId === undefined) {
+          folderId = await addFolder(newFolder);
+          bookmarkFolderName = newFolder;
+        }
+
+        await moveBookmark(this.#bookmarkId, folderId, this.readingStatus, true);
+      } catch (error) {
+        console.error(`Error changing folder, caused by: ${error}`);
+        this.#showError('Error, failed move bookmark folder.');
+        return;
       }
 
-      await moveBookmark(this.#bookmarkId, folderId, this.readingStatus, true);
+      this.#hideError();
+      this.#folderName = bookmarkFolderName;
       const oldFolderId = this.#folderId;
       this.#folderId = folderId;
       this.#setState(this.#stateEnum.MENU);
@@ -546,7 +583,15 @@ customElements.define(
       const checkedInput = this.shadowRoot.querySelector('input[name="reading-status-input"]:checked');
       const newSubFolder = checkedInput.value;
 
-      await moveBookmark(this.#bookmarkId, this.#folderId, newSubFolder, true);
+      try {
+        await moveBookmark(this.#bookmarkId, this.#folderId, newSubFolder, true);
+      } catch (error) {
+        console.error(`Error changing subfolder for reading status, caused by: ${error}`);
+        this.#showError('Error, failed to change reading status.');
+        return;
+      }
+
+      this.#hideError();
       const oldReadingStatus = this.readingStatus;
       this.readingStatus = newSubFolder;
       this.#setState(this.#stateEnum.MENU);
@@ -563,8 +608,26 @@ customElements.define(
       );
     }
 
-    #handleDelete() {
-      removeBookmark(this.#bookmarkId);
+    async #handleDelete() {
+      try {
+        await removeBookmark(this.#bookmarkId);
+      } catch (error) {
+        console.error(`Error deleting bookmark, caused by: ${error}`);
+        this.#showError('Error, failed to delete bookmark.');
+        return;
+      }
+    }
+
+    #showError(message) {
+      const optionError = this.shadowRoot.getElementById('option-error');
+      optionError.textContent = message;
+      optionError.classList.remove('hidden');
+    }
+
+    #hideError() {
+      const optionError = this.shadowRoot.getElementById('option-error');
+      optionError.textContent = '';
+      optionError.classList.add('hidden');
     }
   }
 )
