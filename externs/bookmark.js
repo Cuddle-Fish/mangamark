@@ -188,7 +188,9 @@ async function renameFolder(folderId, newName) {
  */
 async function addFolder(name) {
   const rootId = await getRootFolderId();
+  _preventListeners = true;
   const bookmark = await chrome.bookmarks.create({ parentId: rootId, title: name });
+  _preventListeners = false;
   return bookmark.id;
 }
 

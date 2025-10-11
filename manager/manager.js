@@ -487,7 +487,7 @@ function cardTagChangeHandler(event) {
   }
 }
 
-function cardMoveBookmarkHandler(event) {
+async function cardMoveBookmarkHandler(event) {
   const bookmarkId = event.detail.bookmarkId;
   const source = event.detail.source;
   const destination = event.detail.destination;
@@ -500,21 +500,44 @@ function cardMoveBookmarkHandler(event) {
     return;
   }
 
-  const destinationFolder = _bookmarkFolders.find(folder => folder.id === destination.id);
-  const isAdded = destinationFolder?.addBookmark(destination.readingStatus, bookmark);
-
+  let destinationFolder = _bookmarkFolders.find(folder => folder.id === destination.id);
+  if (destinationFolder === undefined) {
+    destinationFolder = new NamedFolder(destination.title, [], destination.id, []);
+    _bookmarkFolders.push(destinationFolder);
+  }
+  const isAdded = destinationFolder.addBookmark(destination.readingStatus, bookmark);
   if (!isAdded) {
     console.error('Error: failed to move bookmark to destination folder');
     sourceFolder.addBookmark(source.readingStatus, bookmark);
     return;
   }
 
-  const status = document.getElementById('select-status-menu').selected;
-  const matchesStatus = status === 'all' || destination.readingStatus === status;
-  const matchesFolder = _navSelection === '' || _navSelection === destination.id;
-  if (!matchesStatus || !matchesFolder) {
-    event.target.remove();
+  const folderRemoved = await updateSideNav();
+  if (folderRemoved) {
+    renderCards();
+  } else {
+    const status = document.getElementById('select-status-menu').selected;
+    const matchesStatus = status === 'all' || destination.readingStatus === status;
+    const matchesFolder = _navSelection === '' || _navSelection === destination.id;
+    if (!matchesStatus || !matchesFolder) {
+      event.target.remove();
+    }    
   }
+}
+
+async function updateSideNav() {
+  let selectionRemoved = false;
+  const sideNav = document.getElementById('side-nav');
+  await sideNav.renderFolders();
+  if (!sideNav.hasOption(_navSelection)) {
+    _navSelection = '';
+    selectionRemoved = true;
+  }
+  const searchTokens = getSearchTokens();
+  if (!searchTokens.length) {
+    sideNav.selected = _navSelection;
+  }
+  return selectionRemoved;
 }
 
 registerBookmarkListener(updatePage);
@@ -522,15 +545,7 @@ registerBookmarkListener(updatePage);
 async function updatePage() {
   await mapExtensionTree();
 
-  const sideNav = document.getElementById('side-nav');
-  await sideNav.renderFolders();
-  if (!sideNav.hasOption(_navSelection)) {
-    _navSelection = '';
-  }
-  const searchTokens = getSearchTokens();
-  if (!searchTokens.length) {
-    sideNav.selected = _navSelection;
-  }
+  await updateSideNav();
 
   const tagsInput = document.getElementById('filter-tags-input');
   tagsInput.populateDatalist();

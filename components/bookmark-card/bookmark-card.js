@@ -573,7 +573,7 @@ customElements.define(
           detail: {
             bookmarkId: this.#bookmarkId,
             source: {id: oldFolderId, readingStatus: this.readingStatus},
-            destination: {id: folderId, readingStatus: this.readingStatus}
+            destination: {id: folderId, title: bookmarkFolderName, readingStatus: this.readingStatus}
           }
         })
       );
@@ -602,7 +602,7 @@ customElements.define(
           detail: {
             bookmarkId: this.#bookmarkId,
             source: {id: this.#folderId, readingStatus: oldReadingStatus},
-            destination: {id: this.#folderId, readingStatus: newSubFolder}
+            destination: {id: this.#folderId, title: this.#folderName, readingStatus: newSubFolder}
           }
         })
       );
