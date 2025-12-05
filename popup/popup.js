@@ -4,6 +4,7 @@ import {
   bookmarkRegex,
   searchForBookmark,
 } from "/externs/bookmark.js";
+import { getDomainRegex } from '/externs/settings.js';
 import "/components/themed-button/themed-button.js";
 import "/components/svg-icon/svg-icon.js";
 import "/components/set-extension-folder/set-extension-folder.js";
@@ -61,10 +62,29 @@ async function setupMainScreen() {
   const queryTabs = await chrome.tabs.query({active: true, currentWindow: true});
   const activeTab = queryTabs[0];
   const url = activeTab.url;
-  const domain = new URL(url).hostname;
-  const defaultFolder = await findDefaultFolder(domain);
+  const hostname = new URL(url).hostname;
+  const defaultFolder = await findDefaultFolder(hostname);
   const tabTitle = activeTab.title;
-  const numbersInTitle = tabTitle.match(/-?\d+(\.\d+)?/g) || [];
+  let contentTitle = tabTitle;
+
+  const chapterNumbers = {};
+  chapterNumbers.options = tabTitle.match(/-?\d+(\.\d+)?/g) || [];
+
+  const siteRegex = await getDomainRegex();
+  const domain = hostname.startsWith('www.') ? hostname.substring(4) : hostname;
+  if (siteRegex.has(domain)) {
+    const { title: titleRegex, chapter: chapterRegex } = siteRegex.get(domain);
+
+    const titleResult = tabTitle.match(new RegExp(titleRegex));
+    if (titleResult && titleResult[1]) {
+      contentTitle = titleResult[1];
+    }
+
+    const chapterResult = tabTitle.match(new RegExp(chapterRegex));
+    if (chapterResult && chapterResult[1]) {
+      chapterNumbers.inputValue = chapterResult[1];
+    }
+  }
 
   const result = await searchForBookmark(tabTitle);
   let existingBookmarkInfo;
@@ -85,8 +105,9 @@ async function setupMainScreen() {
     setScreenInfo('create');
     existingBookmarkInfo = null;
   }
+
   const mainScreen = document.getElementById('main-screen');
-  mainScreen.setup(url, tabTitle, defaultFolder, numbersInTitle, existingBookmarkInfo);
+  mainScreen.setup(url, contentTitle, defaultFolder, chapterNumbers, existingBookmarkInfo);
   mainScreen.classList.remove('hidden');
 }
 

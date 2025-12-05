@@ -62,6 +62,7 @@ h1 {
   padding: 0 10px;
   border-radius: 8px;
   background-color: var(--secondary-background);
+  box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.35);
 
   hr {
     margin: 0;
@@ -90,33 +91,38 @@ h1 {
   align-items: center;
   justify-content: space-between;
 
-  input {
-    width: 100%;
-    padding: 5px 10px;
-    border: none;
-    border-radius: 8px;
-    font-size: 20px;
-    font-family: inherit;
-    background-color: var(--offWhite10);
-    color: inherit;
-
-    &::placeholder {
-      color: var(--offWhite30);
-    }
-
-    &:focus {
-      outline: 1px solid var(--accent-bright);
-    }
-
-    &:disabled {
-      cursor: not-allowed;
-      opacity: 20%;
-    }
-  }
-
   span {
-    text-wrap: nowrap;
+    word-break: break-all;
   }
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 8px;
+  font-size: 20px;
+  font-family: inherit;
+  background-color: var(--offWhite10);
+  color: inherit;
+
+  &::placeholder {
+    color: var(--offWhite30);
+  }
+
+  &:focus {
+    outline: 1px solid var(--accent-bright);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 20%;
+  }
+}
+
+input::-webkit-calendar-picker-indicator {
+  margin-bottom: 9px;
 }
 
 .option-buttons-row {
@@ -188,4 +194,55 @@ h1 {
   background-color: var(--accent-bright);
   height: 2px;
   width: 40%;
+}
+
+.regex-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  label {
+    font-size: 14px;
+  }
+
+  themed-button {
+    margin-top: 3px;
+  }
+}
+
+#regex-test-results {
+  font-size: 16px;
+  margin-left: 20px;
+  word-break: break-all;
+
+  div >:first-child {
+    font-weight: bold;
+  }
+}
+
+.warning-text {
+  color: var(--warning);
+}
+
+.regex-button-container {
+  display: flex;
+  justify-content: space-between;
+
+  div {
+    display: flex;
+    gap: 20px;
+  }
+}
+
+.notification-label {
+  font-weight: bold;
+}
+
+.added-text {
+  background-color: color-mix(in srgb, var(--approval) 30%, transparent);
+}
+
+.removed-text {
+  text-decoration: line-through;
+  background-color: color-mix(in srgb, var(--warning) 30%, transparent);
 }

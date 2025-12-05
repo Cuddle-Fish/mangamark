@@ -44,6 +44,10 @@
   border-radius: 0px 0px 3px 3px;
   background-color: var(--offWhite10-match);
   z-index: 30;
+  max-height: var(--dropdown-max-height, none);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--offWhite) transparent;
 }
 
 .option {

@@ -199,12 +199,12 @@ customElements.define(
       setTimeout(() => element.classList.remove('flash'), 1200);
     }
 
-    setup(url, tabTitle, defaultFolder, numbersInTitle, existingBookmarkInfo) {
+    setup(url, tabTitle, defaultFolder, chapter, existingBookmarkInfo) {
       this.#url = url;
       this.#tabTitle = tabTitle;
       this.#defaultFolder = defaultFolder;
 
-      this.#setupChapterInput(numbersInTitle);
+      this.#setupChapterInput(chapter);
       this.#setupFolderOptions();
       const tagInput = this.shadowRoot.querySelector('tag-input');
       tagInput.populateDatalist();
@@ -259,12 +259,16 @@ customElements.define(
       }
     }
 
-    #setupChapterInput(options) {
+    #setupChapterInput(chapter) {
       const chapterInput = this.shadowRoot.getElementById('chapter-input');
-      chapterInput.value = options.length > 0 ? options[0] : '0';
+      if (chapter.inputValue) {
+        chapterInput.value = chapter.inputValue;
+      } else {
+        chapterInput.value = chapter.options.length > 0 ? chapter.options[0] : '0';
+      }
 
       const fragement = document.createDocumentFragment();
-      for (const number of options) {
+      for (const number of chapter.options) {
         const option = document.createElement('option');
         option.value = number;
         fragement.appendChild(option);

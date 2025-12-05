@@ -23,6 +23,10 @@
   cursor: default;
 }
 
+#title-display {
+  word-break: break-all;
+}
+
 input, #title-display[contenteditable="plaintext-only"] {
   padding: 2px 5px;
   border: none;

@@ -4,8 +4,10 @@ import {
   getExtensionFolders,
   renameFolder,
   reorderFolders,
-  registerBookmarkListener
+  registerBookmarkListener,
+  getExtensionSubtree
 } from "/externs/bookmark.js";
+import { getDomainRegex, setDomainRegex, removeDomainRegex } from '/externs/settings.js'
 
 import "/components/themed-button/themed-button.js";
 import "/components/dropdown-menu/dropdown-menu.js";
@@ -16,6 +18,7 @@ addEventListener('DOMContentLoaded', async () => {
   await storeExtensionFolders();
   setupFolderOptions();
   setupNavOptions();
+  setupRegexOptions();
 });
 
 let _folders = new Map();
@@ -313,6 +316,311 @@ async function changeOrderHandler(event) {
   const changeOrderButton = document.getElementById('change-nav-order');
   resetButton.disabled = true;
   changeOrderButton.disabled = true;
+}
+
+// #endregion
+
+// #region Regex Options
+
+let _domainRegex;
+
+async function setupRegexOptions() {
+  _domainRegex = await getDomainRegex();
+  updateRegexSelection();
+  await Promise.resolve();
+  selectRegex('');
+  setDomainOptions();
+  document.getElementById('regex-select')
+    .addEventListener('dropdownChange', (event) => selectRegex(event.detail));
+  
+  document.getElementById('regex-domain').addEventListener('input', regexInputHandler);
+  document.getElementById('regex-title').addEventListener('input', regexInputHandler);
+  document.getElementById('regex-chapter').addEventListener('input', regexInputHandler);
+
+  document.getElementById('regex-test-button').addEventListener('click', testRegex);
+  document.getElementById('regex-remove').addEventListener('click', removeRegex);
+  document.getElementById('regex-reset').addEventListener('click', resetRegex);
+  document.getElementById('regex-confirm').addEventListener('click', addRegex);
+}
+
+function updateRegexSelection() {
+  const fragement = document.createDocumentFragment();
+
+  const createOption = document.createElement('option');
+  createOption.textContent = '-- Create New Site Regex --';
+  createOption.value = '';
+  fragement.appendChild(createOption);
+
+  for (const domain of _domainRegex.keys()) {
+    const option = document.createElement('option');
+    option.textContent = domain;
+    fragement.appendChild(option);
+  }
+
+  const regexSelect = document.getElementById('regex-select');
+  regexSelect.replaceChildren(fragement);
+}
+
+function setRegexInput(domain = '', title = '', chapter = '', clearTest = true) {
+  const domainInput = document.getElementById('regex-domain');
+  domainInput.value = domain;
+
+  const titleInput = document.getElementById('regex-title');
+  titleInput.value = title;
+
+  const chapterInput = document.getElementById('regex-chapter');
+  chapterInput.value = chapter;
+  
+  if (clearTest) {
+    const testInput = document.getElementById('regex-test-input');
+    testInput.value = '';
+  }
+}
+
+async function getDomains() {
+  const domains = new Set();
+
+  function traverseTree(node) {
+    if (node.url) {
+      try {
+        const url = new URL(node.url);
+        const domain = url.hostname.startsWith('www.') ? url.hostname.substring(4) : url.hostname;
+        domains.add(domain);
+      } catch (error) {
+        console.warn(`Invalid URL skipped: '${url}'`);
+      }
+    } else if (node.children) {
+      node.children.forEach(child => traverseTree(child));
+    }
+  }
+
+  const tree = await getExtensionSubtree();
+  tree.forEach(node => traverseTree(node));
+  return domains;
+}
+
+async function setDomainOptions() {
+  const domains = await getDomains().then((domainSet) => domainSet.difference(new Set(_domainRegex.keys())));
+  
+  const domainOptions = document.getElementById('domain-options');
+  const fragement = document.createDocumentFragment();
+  for (const domain of domains) {
+    const option = document.createElement('option');
+    option.value = domain;
+    fragement.appendChild(option);
+  }
+  domainOptions.replaceChildren(fragement);
+}
+
+function selectRegex(selection, hideText = true) {
+  const removeButton = document.getElementById('regex-remove');
+  removeButton.disabled = selection === '';
+
+  if (selection === '') {
+    setRegexInput();
+  } else {
+    const { title, chapter } = _domainRegex.get(selection);
+    setRegexInput(selection, title, chapter);
+  }
+
+  const confirmButton = document.getElementById('regex-confirm');
+  confirmButton.disabled = true;
+  const resetButton =  document.getElementById('regex-reset');
+  resetButton.disabled = true;
+
+  if (hideText) {
+    renderRegexTest({ hideContainer: true });
+    renderNotificationText({ hideContainer: true });
+  }
+}
+
+function regexInputHandler() {
+  const domainInput = document.getElementById('regex-domain').value.trim();
+  const titleInput = document.getElementById('regex-title').value;
+  const chapterInput = document.getElementById('regex-chapter').value;
+  const selected = document.getElementById('regex-select').selected;
+  
+  const resetButton =  document.getElementById('regex-reset');
+  const confirmButton = document.getElementById('regex-confirm');
+
+  const { title, chapter } = selected === '' ? {title: '', chapter: ''} : _domainRegex.get(selected);
+  
+  const hasNoChanges = (domainInput === selected && titleInput === title && chapterInput === chapter);
+  resetButton.disabled = hasNoChanges;
+
+  if (domainInput !== selected && _domainRegex.has(domainInput)) {
+    confirmButton.disabled = true;
+  } else if (!domainInput || !titleInput || !chapterInput) {
+    confirmButton.disabled = true;
+  } else {
+    confirmButton.disabled = hasNoChanges;
+  }
+}
+
+function renderRegexTest({
+  title = '',
+  chapter = '',
+  titleError = false,
+  chapterError = false,
+  hideContainer = false
+} = {}) {
+  const resultContainer = document.getElementById('regex-test-results');
+  const titleLabel = document.getElementById('test-title-label');
+  const chapterLabel = document.getElementById('test-chapter-label');
+  const titleValue = document.getElementById('title-result');
+  const chapterValue = document.getElementById('chapter-result');
+
+  if (titleError) {
+    titleLabel.classList.add('warning-text');
+  } else {
+    titleLabel.classList.remove('warning-text');
+  }
+
+  if (chapterError) {
+    chapterLabel.classList.add('warning-text');
+  } else {
+    chapterLabel.classList.remove('warning-text');
+  }
+
+  titleValue.textContent = title;
+  chapterValue.textContent = chapter;
+
+  resultContainer.style.display = hideContainer ? 'none' : 'block';
+}
+
+function testRegex() {
+  const titleValue = document.getElementById('regex-title').value;
+  const chapterValue = document.getElementById('regex-chapter').value;
+  const testString = document.getElementById('regex-test-input').value;
+
+  const results = { title: '', chapter: '', titleError: false, chapterError: false };
+
+  try {
+    const titleRegex = new RegExp(titleValue);
+    const titleMatch = testString.match(titleRegex);
+    results.title = titleMatch && titleMatch[1] ? titleMatch[1] : 'No Match Found';
+  } catch (error) {
+    console.log(error);
+    results.title = 'ERROR (see console for more info)';
+    results.titleError = true;
+  }
+
+  try {
+    const chapterRegex = new RegExp(chapterValue);
+    const chapterMatch = testString.match(chapterRegex);
+    results.chapter = chapterMatch && chapterMatch[1] ? chapterMatch[1] : 'No Match Found';
+  } catch (error) {
+    console.log(error);
+    results.chapter = 'ERROR (see console for more info)';
+    results.chapterError = true;
+  }
+
+  renderRegexTest(results);
+}
+
+function renderNotificationText({
+  labelText = '',
+  errorText = '',
+  removedDomain = '',
+  setDomain = '',
+  hideContainer = false
+} = {}) {
+  const notificationContainer = document.getElementById('regex-notification');
+  const labelElement = notificationContainer.querySelector('.notification-label');
+  const ErrorTextElement = notificationContainer.querySelector('.error-text');
+  const removedElement = notificationContainer.querySelector('.removed-text');
+  const setElement = notificationContainer.querySelector('.added-text');
+
+  labelElement.textContent = labelText;
+  ErrorTextElement.textContent = errorText;
+  removedElement.textContent = removedDomain;
+  setElement.textContent = setDomain;
+
+  if (errorText) {
+    labelElement.classList.add('warning-text');
+  } else {
+    labelElement.classList.remove('warning-text');
+  }
+
+  notificationContainer.style.display = hideContainer ? 'none' : 'block';
+  if(!hideContainer && notificationContainer.getBoundingClientRect().bottom > window.innerHeight) {
+    notificationContainer.scrollIntoView({ behavior: "instant", block: "end" });
+  }
+}
+
+async function removeRegex() {
+  const regexSelect = document.getElementById('regex-select');
+  const domain = regexSelect.selected;
+  if (domain === '') throw new Error('Error: remove regex attempted in invalid state.');
+
+  try {
+    await removeDomainRegex(domain);
+    renderNotificationText({ labelText: 'Removed:', removedDomain: domain });
+    _domainRegex = await getDomainRegex();
+    setDomainOptions();
+    updateRegexSelection();
+    await Promise.resolve();
+    selectRegex('', false);
+  } catch (error) {
+    console.error(error);
+    renderNotificationText({ labelText: 'Error:', errorText: 'failed to remove domain' });
+  }
+}
+
+function resetRegex() {
+  const regexSelect = document.getElementById('regex-select');
+  const domain = regexSelect.selected;
+  if (domain === '') {
+    setRegexInput('', '', '', false);
+  } else {
+    const { title, chapter } = _domainRegex.get(domain);
+    setRegexInput(domain, title, chapter, false);
+  }
+
+  const confirmButton = document.getElementById('regex-confirm');
+  confirmButton.disabled = true;
+  const resetButton =  document.getElementById('regex-reset');
+  resetButton.disabled = true;
+}
+
+async function addRegex() {
+  const domain = document.getElementById('regex-domain').value.trim();
+  const titleRegex = document.getElementById('regex-title').value;
+  const chapterRegex = document.getElementById('regex-chapter').value;
+  const selected = document.getElementById('regex-select').selected;
+
+  if (!domain || !titleRegex || !chapterRegex) {
+    return;
+  }
+
+  try {
+    new RegExp(titleRegex);
+    new RegExp(chapterRegex);
+  } catch (error) {
+    console.log(error);
+    renderNotificationText({ labelText: 'Error:', errorText: 'Invalid Regex' });
+    return;
+  }
+
+  try {
+    const notificationText = { labelText: 'Set:' };
+    if (selected != '' && selected !== domain) {
+      await removeDomainRegex(selected);
+      notificationText.removedDomain = selected;
+    }
+    await setDomainRegex(domain, titleRegex, chapterRegex);
+    notificationText.setDomain = domain;
+    renderNotificationText(notificationText);
+    _domainRegex = await getDomainRegex();
+    setDomainOptions();
+    updateRegexSelection();
+    await Promise.resolve();
+    selectRegex('', false);
+  } catch (error) {
+    console.error(error);
+    renderNotificationText({ labelText: 'Error:', errorText: 'failed to set domain' });
+    return;
+  }
 }
 
 // #endregion

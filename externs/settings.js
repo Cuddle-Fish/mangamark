@@ -56,10 +56,38 @@ function getDisplaySettings() {
     });
 }
 
+async function getDomainRegex() {
+  const result = await chrome.storage.sync.get('regexEntries');
+  if (result.regexEntries) {
+    return new Map(Object.entries(result.regexEntries));
+  } else {
+    return new Map();
+  }
+}
+
+async function setDomainRegex(domain, title, chapter) {
+  const domainRegex = await getDomainRegex();
+  domainRegex.set(domain, {title, chapter});
+  const regexEntries = Object.fromEntries(domainRegex);
+  await chrome.storage.sync.set({ regexEntries });
+}
+
+async function removeDomainRegex(domain) {
+  const domainRegex = await getDomainRegex();
+  const isRemoved = domainRegex.delete(domain);
+  if (isRemoved) {
+    const regexEntries = Object.fromEntries(domainRegex);
+    await chrome.storage.sync.set({ regexEntries });
+  }
+}
+
 export { 
   getStatusFilter, 
   setStatusFilter, 
   getDisplayOrder, 
   setDisplayOrder, 
-  getDisplaySettings 
+  getDisplaySettings,
+  getDomainRegex,
+  setDomainRegex,
+  removeDomainRegex
 };

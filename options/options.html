@@ -59,7 +59,63 @@
           </div>
         </div>
       </div>
+      
+      <div class="section">
+        <div class="section-title">
+          <svg-icon type="regex"></svg-icon>
+          <span>Site Regex</span>
+        </div>
+        <div class="section-options">
+          <div class="option">
+            <p class="option-description">
+              Create/Edit title and chapter matching for specific web domains. When creating your own regex strings note
+              that your regex will be matched against the page title.
+            </p>
+            <p class="option-description">
+              <strong>Adanced Option</strong> This option is only intead for users with a basic understanding of regex.
+            </p>
+            <dropdown-menu id="regex-select" variant="highlight" style="--dropdown-max-height: 440px"></dropdown-menu>
+            <div class="regex-input-container">
+              <div>
+                <label for="regex-domain">Domain:</label>
+                <input id="regex-domain" name="regex-domain" list="domain-options" placeholder="Enter domain (without http:// or www.)" />
+                <datalist id="domain-options"></datalist>
+              </div>
+              <div>
+                <label for="regex-title">Title Regex:</label>
+                <input id="regex-title" name="regex-title" placeholder="e.g., ^(.*?) -" />
+              </div>
+              <div>
+                <label for="regex-chapter">Chapter Regex:</label>
+                <input id="regex-chapter" name="regex-chapter" placeholder="e.g., (?:Chapter|Episode) (\d+\.?\d*|\.\d+)" />
+              </div>
+              <div>
+                <label for="regex-test-input">Test Page Title:</label>
+                <input id="regex-test-input" name="regex-test" placeholder="Paste a sample page title to test" />
+                <themed-button id="regex-test-button" size="small">Test Regex</themed-button>
+                <div id="regex-test-results" style="display: none;">
+                  <div><span id="test-title-label">Title: </span><span id="title-result"></span></div>
+                  <div><span id="test-chapter-label">Chapter: </span><span id="chapter-result"></span></div>
+                </div>
+              </div>
+            </div>
 
+            <div class="regex-button-container">
+              <themed-button id="regex-remove" variant="warning" disabled>Remove</themed-button>
+              <div>
+                <themed-button id="regex-reset" variant="secondary" disabled>Reset</themed-button>
+                <themed-button id="regex-confirm" disabled>Confirm</themed-button>
+              </div>
+            </div>
+            <div id="regex-notification" style="display: none;">
+              <span class="notification-label"></span>
+              <span class="error-text"></span>
+              <span class="removed-text"></span>
+              <span class="added-text"></span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="options.js" type="module"></script>
