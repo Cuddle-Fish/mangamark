@@ -152,6 +152,8 @@ async function rootSetHandler(event) {
 
   editExtensionButton.textContent = 'Change';
   setExtensionElement.style.display = 'none';
+  setExtensionElement.buildTree();
+  setExtensionElement.clearSelected();
   await storeExtensionFolders();
   updateFolderOptionsDisplay();
   updateDisplayOrder();
@@ -630,5 +632,7 @@ registerBookmarkListener(updateFolderInformation);
 async function updateFolderInformation() {
   await storeExtensionFolders();
   updateFolderOptionsDisplay();
+  const setExtensionElement = document.getElementById('set-extension-folder');
+  setExtensionElement.buildTree(true);
   updateDisplayOrder();
 }

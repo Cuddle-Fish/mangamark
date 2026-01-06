@@ -29,6 +29,7 @@ function createBookmarkTitle(title, chapterNum, tags=[]) {
  * @param {string} id bookmark id associated with root folder
  */
 async function setRootFolderId(id) {
+  await chrome.bookmarks.get(id); // Prevent setting nonexistent id
   await chrome.storage.sync.set({ 'rootFolderId': id });
 }
 
@@ -40,9 +41,14 @@ async function setRootFolderId(id) {
  * @returns Promise that will be fulfilled with the bookmark id for extension's root folder
  */
 async function createRootFolder(name, parentId) {
-  const bookmark = await chrome.bookmarks.create({ parentId: parentId, title: name });
-  await setRootFolderId(bookmark.id);
-  return bookmark.id;
+  try {
+    _preventListeners = true;
+    const bookmark = await chrome.bookmarks.create({ parentId: parentId, title: name });
+    await setRootFolderId(bookmark.id);
+    return bookmark.id;
+  } finally {
+    _preventListeners = false;
+  }
 }
 
 /**

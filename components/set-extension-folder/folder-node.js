@@ -25,7 +25,6 @@ customElements.define(
   'folder-node',
   class extends HTMLElement {
     #bookmarkId;
-    #selectedNode = null;
 
     get title() {
       const titleElement = this.shadowRoot.getElementById('folder-title');
@@ -34,6 +33,14 @@ customElements.define(
 
     get id() {
       return this.#bookmarkId;
+    }
+
+    get selected() {
+      return this.hasAttribute('is-selected') && this.getAttribute('is-selected') !== false;
+    }
+
+    set selected(value) {
+      value === true ? this.setAttribute('is-selected', '') : this.removeAttribute('is-selected');
     }
 
     constructor() {
@@ -50,29 +57,17 @@ customElements.define(
       expandArrow.addEventListener('click', (event) => this.expandHandler(event));
     }
 
-    buildTree(tree) {
-      this.#selectedNode = null;
-      this.addEventListener('folder-selected', (event) => this.#folderSelected(event));
-
-      const container = this.shadowRoot.getElementById('container');
-      container.style.display = "none";
-      const childrenElement = this.shadowRoot.getElementById('children');
-      childrenElement.style.display = "block";
-
-      const fragment = document.createDocumentFragment();
-      for (const child of tree.children) {
-        const childNode = document.createElement('folder-node');
-        childNode.createNode(child, 0);
-        fragment.appendChild(childNode);
-      }
-      childrenElement.replaceChildren(fragment);
-    }
-
-    createNode(node, depth) {
+    createNode(node, depth, selectedId) {
       this.#bookmarkId = node.id;
       const folderTitle = this.shadowRoot.getElementById('folder-title');
       folderTitle.textContent = node.title;
       this.style.setProperty('--depth', depth);
+
+      let matchingNode = null;
+      if (selectedId && selectedId === node.id) {
+        this.selected = true;
+        matchingNode = this;
+      }
 
       const fragment = document.createDocumentFragment();
       let hasFolders = false;
@@ -80,7 +75,8 @@ customElements.define(
         if (!child.url) {
           hasFolders = true;
           const childNode = document.createElement('folder-node');
-          childNode.createNode(child, depth + 1);
+          const hasMatching = childNode.createNode(child, depth + 1, selectedId);
+          if (hasMatching) matchingNode = hasMatching;
           fragment.appendChild(childNode);
         }
       }
@@ -88,6 +84,8 @@ customElements.define(
       arrowWrapper.style.visibility = hasFolders ? "visible" : "hidden";
       const childrenElement = this.shadowRoot.getElementById('children');
       childrenElement.replaceChildren(fragment);
+
+      return matchingNode;
     }
 
     expandHandler(event) {
@@ -109,31 +107,6 @@ customElements.define(
         composed: true,
         detail: { selectedNode: this }
       }));
-    }
-
-    #folderSelected(event) {
-      event.stopPropagation();
-      const selectedNode = event.detail.selectedNode;
-      this.selectNode(selectedNode);
-    }
-
-    selectNode(node) {
-      if (this.#selectedNode && this.#selectedNode !== node) {
-        this.#selectedNode.removeAttribute('is-selected');
-      }
-      this.#selectedNode = node;
-      node.setAttribute('is-selected', '');
-
-      this.dispatchEvent(new CustomEvent('select', {
-        detail: { title: node.title, id: node.id }
-      }));
-    }
-
-    deselectFolder() {
-      if (this.#selectedNode) {
-        this.#selectedNode.removeAttribute('is-selected');
-        this.#selectedNode = null;
-      }
     }
   }
 )

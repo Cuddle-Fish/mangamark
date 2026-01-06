@@ -15,7 +15,11 @@
   font-size: inherit;
   font-family: inherit;
   background-color: var(--accent-subdued30);
-  color: var(--offWhite30);  
+  color: var(--offWhite30);
+
+  &:hover {
+    color: var(--offWhite);
+  }
 }
 
 .small-text {

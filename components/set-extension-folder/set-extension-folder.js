@@ -39,7 +39,7 @@ template.innerHTML = /* html */ `
       </div>
 
       <div id="confirm-container">
-        <div id="error-message" style="visibility: hidden"></div>
+        <div id="error-message"></div>
         <themed-button id="confirm-button">Set Folder</themed-button>
       </div>          
     </div>
@@ -63,7 +63,7 @@ customElements.define(
   'set-extension-folder',
   class extends HTMLElement {
     #modes = ['create', 'existing'];
-    #selectedId = null;
+    #selectedNode = null;
     #invalidIds = [];
 
     static get observedAttributes() {
@@ -86,17 +86,13 @@ customElements.define(
     }
 
     connectedCallback() {
-      const rootNode = this.shadowRoot.querySelector('folder-node');
-      chrome.bookmarks.getTree()
-        .then(([bookmarkTree]) => {
-          this.#invalidIds = bookmarkTree.children.map(child => child.id);
-          rootNode.buildTree(bookmarkTree);
-        });
-      rootNode.addEventListener('select', (event) => this.#selectFolderHandler(event));
+      this.buildTree();
+      const treeContainer = this.shadowRoot.getElementById('tree-container');
+      treeContainer.addEventListener('folder-selected', (event) => this.#selectFolderHandler(event));
 
       customElements.whenDefined('folder-node').then(() => {
         this.mode = 'create';
-      });      
+      });
 
       const createButton = this.shadowRoot.getElementById('create-button');
       createButton.addEventListener('click', () => this.mode = 'create');
@@ -117,19 +113,38 @@ customElements.define(
       }
     }
 
+    async buildTree(checkSelected = false) {
+      const [tree] = await chrome.bookmarks.getTree();
+      this.#invalidIds = tree.children.map(child => child.id);
+
+      const fragment = document.createDocumentFragment();
+      const selectedId = checkSelected && this.#selectedNode ? this.#selectedNode.id : null;
+
+      let matchingNode = null;
+      for (const child of tree.children) {
+        if (child.id === 'mobile______') {
+          continue;
+        }
+        const childNode = document.createElement('folder-node');
+        const hasMatching = childNode.createNode(child, 0, selectedId);
+        if (hasMatching) matchingNode = hasMatching;
+        fragment.appendChild(childNode);
+      }
+
+      if (checkSelected && matchingNode) {
+        this.#selectedNode = matchingNode;
+      } else if (checkSelected) {
+        this.clearSelected();
+      }
+
+      const treeContainer = this.shadowRoot.getElementById('tree-container');
+      treeContainer.replaceChildren(fragment);
+    }
+
     #switchMode() {
+      this.clearSelected();
+
       const isCreate = this.mode === 'create';
-
-      const rootNode = this.shadowRoot.querySelector('folder-node');
-      rootNode.deselectFolder();
-      const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
-      selectedFolderElement.textContent = '';
-      this.#selectedId = null;
-
-      const errorMessage = this.shadowRoot.getElementById('error-message');
-      errorMessage.style.visibility = 'hidden';
-      const confirmButton = this.shadowRoot.getElementById('confirm-button');
-      confirmButton.disabled = false;
 
       const selectDescription = this.shadowRoot.getElementById('select-description');
       selectDescription.textContent = isCreate ? 'Selected Location:' : 'Selected Extension Folder:';
@@ -141,22 +156,37 @@ customElements.define(
       warningOverlay.style.display = isCreate ? 'none' : 'flex';
     }
 
-    #selectFolderHandler(event) {
-      const { title, id } = event.detail;
+    clearSelected() {
+      if (this.#selectedNode) {
+        this.#selectedNode.selected = false;
+      }
+
+      this.#selectedNode = null;
       const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
-      selectedFolderElement.textContent = title;
-      this.#selectedId = id;
+      selectedFolderElement.textContent = '';
+      this.#displayError('');
+      const confirmButton = this.shadowRoot.getElementById('confirm-button');
+      confirmButton.disabled = false;
+    }
+
+    #selectFolderHandler(event) {
+      event.stopPropagation();
+      const node = event.detail.selectedNode;
+      if (this.#selectedNode && this.#selectedNode !== node) {
+        this.#selectedNode.selected = false;
+      }
+      this.#selectedNode = node;
+      node.selected = true;
+
+      const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
+      selectedFolderElement.textContent = node.title;
 
       if (this.mode === 'existing') {
-        const isInvalid = this.#invalidIds.includes(id);
+        const isInvalid = this.#invalidIds.includes(node.id);
         const confirmButton = this.shadowRoot.getElementById('confirm-button');
         confirmButton.disabled = isInvalid;
-        if (isInvalid) {
-          this.#displayError(`Can not use '${title}' as extension folder`);
-        } else {
-          const errorMessage = this.shadowRoot.getElementById('error-message');
-          errorMessage.style.visibility = 'hidden';
-        }
+        const errorMessage = isInvalid ? `Can not use '${node.title}' as extension folder` : '';
+        this.#displayError(errorMessage);
       }
     }
 
@@ -167,14 +197,14 @@ customElements.define(
 
     #confirmButtonHandler(event) {
       let isInvalid = false;
-      if (this.#selectedId === null) {
+      if (this.#selectedNode === null) {
         isInvalid = true;
         const treeWrapper = this.shadowRoot.getElementById('tree-wrapper');
         this.#flashInvalid(treeWrapper);
       }
 
       // sanity check
-      if (this.mode === 'existing' && this.#invalidIds.includes(this.#selectedId)) {
+      if (this.mode === 'existing' && this.#selectedNode && this.#invalidIds.includes(this.#selectedNode.id)) {
         isInvalid = true;
         console.error('Error: confirm button should be disabled if in existing mode and id is invalid');
       }
@@ -200,19 +230,17 @@ customElements.define(
     #displayError(message) {
       const errorElement = this.shadowRoot.getElementById('error-message');
       errorElement.textContent = message;
-      errorElement.style.visibility = 'visible';
     }
 
     async #setExtensionFolder() {
-      const errorMessage = this.shadowRoot.getElementById('error-message');
-      errorMessage.style.visibility = 'hidden';
+      this.#displayError('');
 
       let folderName = '';
       if (this.mode === 'existing') {
         const selectedFolderElement = this.shadowRoot.getElementById('selected-folder');
         folderName = selectedFolderElement.textContent;
         try {
-          await setRootFolderId(this.#selectedId);
+          await setRootFolderId(this.#selectedNode.id);
         } catch (error) {
           console.error(error);
           this.#displayError('Error: Could not set extension folder');
@@ -223,7 +251,7 @@ customElements.define(
         const inputName = input.value.trim();
         folderName = inputName;
         try {
-          await createRootFolder(inputName, this.#selectedId);
+          await createRootFolder(inputName, this.#selectedNode.id);
         } catch (error) {
           console.error(error);
           this.#displayError('Error: Could not set extension folder');
