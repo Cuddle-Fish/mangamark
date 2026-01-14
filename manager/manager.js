@@ -206,6 +206,8 @@ function addListeners() {
   document.addEventListener('titleChanged', cardTitleChangeHandler);
   document.addEventListener('tagsChanged', cardTagChangeHandler);
   document.addEventListener('bookmarkMoved', cardMoveBookmarkHandler);
+
+  chrome.storage.sync.onChanged.addListener(storageChangeHandler);
 }
 
 function handleScroll(event) {
@@ -481,7 +483,9 @@ function cardTagChangeHandler(event) {
   if (!bookmark) return;
 
   bookmark.tags = tags;
-  const filterTags = document.getElementById('filter-tags-input').getTags();
+  const tagsInput = document.getElementById('filter-tags-input');
+  tagsInput.populateDatalist();
+  const filterTags = tagsInput.getTags();
   if (!bookmark.hasTags(filterTags)) {
     event.target.remove();
   }
@@ -541,6 +545,12 @@ async function updateSideNav() {
 }
 
 registerBookmarkListener(updatePage);
+
+function storageChangeHandler(changes) {
+  if (changes.rootFolderId) {
+    updatePage();
+  }
+}
 
 async function updatePage() {
   await mapExtensionTree();
