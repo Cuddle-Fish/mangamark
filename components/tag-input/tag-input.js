@@ -196,10 +196,8 @@ customElements.define(
 
     toggleOption(tagName, isDisabled) {
       const datalist = this.shadowRoot.getElementById('existing-tags');
-      const option = Array.from(datalist.options).find(option => option.value === tagName);
-      if (option) {
-        option.disabled = isDisabled;
-      }
+      const option = datalist.querySelector(`option[value="${tagName}"]`);
+      if (option) option.disabled = isDisabled;
     }
 
     clearInput() {
