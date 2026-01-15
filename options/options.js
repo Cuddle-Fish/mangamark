@@ -90,7 +90,7 @@ async function changeFolderNameHandler(event) {
   await renameFolder(folderId, newFolderName);
 }
 
-function updateFolderRenameSelection() {
+async function updateFolderRenameSelection() {
   const renameSelect = document.getElementById('folder-rename-select');
   const fragement = document.createDocumentFragment();
 
@@ -112,10 +112,11 @@ function updateFolderRenameSelection() {
   }
 
   renameSelect.replaceChildren(fragement);
+  await Promise.resolve();
 
   const input = document.getElementById('folder-rename-input');
   input.value = '';
-  input.disabled = true;
+  input.disabled = renameSelect.selected === '';
   const renameFolderButton = document.getElementById('folder-rename-confirm');
   renameFolderButton.disabled = true;
 }
@@ -402,7 +403,16 @@ async function getDomains() {
 }
 
 async function setDomainOptions() {
-  const domains = await getDomains().then((domainSet) => domainSet.difference(new Set(_domainRegex.keys())));
+  let domains = new Set();
+  try {
+    const hasRoot = await hasRootFolderId();
+    if (hasRoot) {
+      const allDomains = await getDomains();
+      domains = allDomains.difference(new Set(_domainRegex.keys()));
+    }
+  } catch (error) {
+    console.warn(error);
+  }
   
   const domainOptions = document.getElementById('domain-options');
   const fragement = document.createDocumentFragment();
@@ -589,7 +599,8 @@ async function addRegex() {
   const domain = document.getElementById('regex-domain').value.trim();
   const titleRegex = document.getElementById('regex-title').value;
   const chapterRegex = document.getElementById('regex-chapter').value;
-  const selected = document.getElementById('regex-select').selected;
+  const regexSelect = document.getElementById('regex-select');
+  const selected = regexSelect.selected;
 
   if (!domain || !titleRegex || !chapterRegex) {
     return;
@@ -617,6 +628,7 @@ async function addRegex() {
     setDomainOptions();
     updateRegexSelection();
     await Promise.resolve();
+    regexSelect.selected = '';
     selectRegex('', false);
   } catch (error) {
     console.error(error);
